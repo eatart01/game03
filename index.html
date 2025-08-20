@@ -3,35 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>回合制戰鬥遊戲</title>
+  <title>Game03 Talent Viewer</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div id="game-container">
-    <h1>回合制戰鬥遊戲</h1>
-
-    <div id="status-panel">
-      <p>玩家血量：<span id="player-hp">100</span></p>
-      <p>敵人血量：<span id="enemy-hp">100</span></p>
-      <p>回合數：<span id="turn-count">1</span></p>
-      <p>可配置天賦點數：<span id="talent-points">3</span></p>
-    </div>
-
-    <div id="action-panel">
-      <button id="attack-btn">攻擊</button>
-      <button id="parry-btn">招架</button>
-      <button id="talent-btn">配置天賦</button>
-    </div>
-
-    <div id="message-panel">
-      <p id="game-message">請選擇你的行動。</p>
-    </div>
+  <div id="app">
+    <h1>角色天賦卡片</h1>
+    <div id="card-container"></div>
+    <div id="feedback"></div>
   </div>
 
-  <!-- 載入模組化 JS -->
-  <script src="js/main.js"></script>
-  <script src="js/combat.js"></script>
-  <script src="js/parry.js"></script>
-  <script src="js/ui.js"></script>
+  <!-- 主邏輯與 UI 模組 -->
+  <script src="JS/main.js"></script>
+  <script src="JS/ui.js"></script>
 </body>
 </html>

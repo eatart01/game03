@@ -1,31 +1,8 @@
-// 初始化遊戲狀態
-let playerHP = 100;
-let enemyHP = 100;
-let turnCount = 1;
-let availableTalentPoints = 3;
+// 主邏輯模組：初始化 UI，橋接邏輯與視覺模組
 
-// 初始化 UI
-updateHPDisplay();
-updateTurnDisplay();
-updateTalentDisplay();
-showMessage("請選擇你的行動。");
+import { loadTalents } from './ui.js';
 
-// 綁定按鈕事件
-document.getElementById("attack-btn").addEventListener("click", () => {
-  handleAttack();
+// 頁面載入後初始化
+window.addEventListener('DOMContentLoaded', () => {
+  loadTalents();
 });
-
-document.getElementById("parry-btn").addEventListener("click", () => {
-  startParrySequence();
-});
-
-document.getElementById("talent-btn").addEventListener("click", () => {
-  configureTalent();
-});
-
-// 回合結束邏輯（可由 combat.js 呼叫）
-function endTurn() {
-  turnCount++;
-  updateTurnDisplay();
-  enemyAction(); // 由 combat.js 控制敵人行動
-}

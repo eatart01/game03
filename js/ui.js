@@ -1,26 +1,20 @@
-function updateHPDisplay() {
-  document.getElementById("player-hp").textContent = playerHP;
-  document.getElementById("enemy-hp").textContent = enemyHP;
-}
+document.addEventListener("DOMContentLoaded", function () {
+  const grid = document.getElementById("talents-grid");
+  const pointsDisplay = document.getElementById("points");
+  let points = 5;
 
-function updateTurnDisplay() {
-  document.getElementById("turn-count").textContent = turnCount;
-}
-
-function updateTalentDisplay() {
-  document.getElementById("talent-points").textContent = availableTalentPoints;
-}
-
-function showMessage(text) {
-  const messageEl = document.getElementById("game-message");
-  messageEl.textContent = text;
-}
-
-function triggerParryEffect() {
-  const container = document.getElementById("game-container");
-  container.classList.add("parry-success");
-
-  setTimeout(() => {
-    container.classList.remove("parry-success");
-  }, 300);
-}
+  grid.querySelectorAll(".talent-slot").forEach(slot => {
+    slot.addEventListener("click", () => {
+      if (slot.classList.contains("selected")) {
+        slot.classList.remove("selected");
+        points++;
+      } else {
+        if (points > 0) {
+          slot.classList.add("selected");
+          points--;
+        }
+      }
+      pointsDisplay.textContent = points;
+    });
+  });
+});
