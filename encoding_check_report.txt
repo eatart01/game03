@@ -1,0 +1,7 @@
+【編碼檢查報告】 
+掃描路徑：C:\Users\JS\Desktop\game03 
+ 
+✅ 正常編碼：C:\Users\JS\Desktop\game03\index.html 
+✅ 正常編碼：C:\Users\JS\Desktop\game03\js\ui.js 
+✅ 正常編碼：C:\Users\JS\Desktop\game03\encoding_check_report.txt 
+ 
