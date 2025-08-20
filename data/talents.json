@@ -1,0 +1,26 @@
+[
+  {
+    "id": "atk_boost",
+    "name": "攻擊強化",
+    "description": "提升攻擊力 +2",
+    "effect": {
+      "attackBonus": 2
+    }
+  },
+  {
+    "id": "def_boost",
+    "name": "防禦強化",
+    "description": "減少所受傷害 -2",
+    "effect": {
+      "damageReduction": 2
+    }
+  },
+  {
+    "id": "parry_window",
+    "name": "招架延長",
+    "description": "招架時機延長 0.5 秒",
+    "effect": {
+      "parryDurationBonus": 500
+    }
+  }
+]

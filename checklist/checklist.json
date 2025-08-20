@@ -1,0 +1,22 @@
+[
+  {
+    "id": "task01",
+    "label": "完成左塔自動生成球的邏輯",
+    "done": false
+  },
+  {
+    "id": "task02",
+    "label": "建立右塔的碰撞與反應模組",
+    "done": false
+  },
+  {
+    "id": "task03",
+    "label": "整合 parry.js 的視覺反饋效果",
+    "done": false
+  },
+  {
+    "id": "task04",
+    "label": "測試 talents.json 的載入與解析",
+    "done": false
+  }
+]
