@@ -1,34 +1,33 @@
-// src/stores/gameStore.ts
 import { create } from 'zustand';
-import { GameState, Card, CardRarity } from '../types/card';
-import { CARD_LIBRARY } from '../data/cards';
+import { GameState, Card } from '../types/card';
+import { CARD_LIBRARY, drawCardByPriority, getInitialHand } from '../data/cards';
 
 interface GameStore extends GameState {
   // 動作 (Actions)
   startGame: () => void;
-  drawCard: (rarity: CardRarity) => Card | null;
   playCard: (cardIndex: number) => void;
   challengeEnemy: () => void;
   resetGame: () => void;
+  setSelectedCard: (index: number | null) => void;
 }
 
-// 抽牌邏輯：按照 S->A->B->C 的優先級抽取
-const drawCardByPriority = (): Card => {
-  const rarities: CardRarity[] = ['S', 'A', 'B', 'C'];
-  
-  for (const rarity of rarities) {
-    const availableCards = CARD_LIBRARY[rarity];
-    if (availableCards && availableCards.length > 0) {
-      // 隨機選擇一張該稀有度的卡牌
-      const randomIndex = Math.floor(Math.random() * availableCards.length);
-      return { ...availableCards[randomIndex] };
-    }
+// 計算攻擊結果
+const calculateAttackResult = (card: Card) => {
+  const isHit = Math.random() * 100 < card.hitRate;
+  let damageDealt = 0;
+  let isCrit = false;
+
+  if (isHit) {
+    isCrit = Math.random() * 100 < card.critRate;
+    damageDealt = isCrit ? card.damage * 2 : card.damage;
   }
-  
-  // 如果所有牌庫都空了，返回一張隨機的C級卡
-  const cCards = CARD_LIBRARY.C;
-  const randomIndex = Math.floor(Math.random() * cCards.length);
-  return { ...cCards[randomIndex] };
+
+  return {
+    isHit,
+    isCrit,
+    damageDealt,
+    cardName: card.name
+  };
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -44,70 +43,91 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // 開始遊戲
   startGame: () => {
-    // 初始化手牌：C階級三種卡各一張
-    const initialHand = CARD_LIBRARY.C.map(card => ({ ...card }));
+    const initialHand = getInitialHand();
     
     set({
       isGameStarted: true,
       hand: initialHand,
       isChallengeButtonVisible: false,
       playerHealth: 100,
-      enemyHealth: 100
+      enemyHealth: 100,
+      selectedCardIndex: null
     });
-  },
-
-  // 抽牌邏輯
-  drawCard: (rarity: CardRarity) => {
-    const availableCards = CARD_LIBRARY[rarity];
-    if (!availableCards || availableCards.length === 0) {
-      return null;
-    }
-    const randomIndex = Math.floor(Math.random() * availableCards.length);
-    return { ...availableCards[randomIndex] };
   },
 
   // 出牌邏輯
   playCard: (cardIndex: number) => {
-    const { hand, enemyHealth } = get();
+    const state = get();
     
-    if (cardIndex >= hand.length) return;
-
-    const card = hand[cardIndex];
-    
-    // 計算命中
-    const isHit = Math.random() * 100 < card.hitRate;
-    const isCrit = isHit && (Math.random() * 100 < card.critRate);
-    
-    let damageDealt = 0;
-    if (isHit) {
-      damageDealt = isCrit ? card.damage * 2 : card.damage;
+    if (!state.isGameStarted || cardIndex >= state.hand.length) {
+      return;
     }
 
-    // 更新手牌：將使用的牌替換為新的C級卡
-    const newHand = [...hand];
-    const newCard = drawCardByPriority();
-    newHand[cardIndex] = newCard;
+    const card = state.hand[cardIndex];
+    const attackResult = calculateAttackResult(card);
+
+    // 顯示攻擊結果（實際遊戲中可以替換為更華麗的動畫）
+    console.log(`使用: ${attackResult.cardName}`);
+    console.log(attackResult.isHit ? 
+      (attackResult.isCrit ? `暴擊！造成 ${attackResult.damageDealt} 傷害` : `命中！造成 ${attackResult.damageDealt} 傷害`) : 
+      '未命中！'
+    );
+
+    // 更新敵人血量
+    const newEnemyHealth = Math.max(0, state.enemyHealth - attackResult.damageDealt);
+
+    // 替換使用的牌（黑色遮蓋效果後補牌）
+    const newHand = [...state.hand];
+    
+    // 先將使用的牌標記為待替換（實際UI會顯示黑色遮蓋）
+    newHand[cardIndex] = { 
+      ...newHand[cardIndex], 
+      isBeingReplaced: true 
+    };
 
     set({
-      enemyHealth: Math.max(0, enemyHealth - damageDealt),
+      enemyHealth: newEnemyHealth,
       hand: newHand,
       selectedCardIndex: null
     });
 
-    // 這裡可以添加敵人反擊邏輯
+    // 延遲一秒後補牌（模擬黑色遮蓋效果）
+    setTimeout(() => {
+      const currentState = get();
+      const updatedHand = [...currentState.hand];
+      
+      // 抽取新牌（按照 S->A->B->C 優先級）
+      const newCard = drawCardByPriority();
+      updatedHand[cardIndex] = newCard;
+
+      set({
+        hand: updatedHand,
+        isPlayerTurn: true
+      });
+
+      // 檢查遊戲是否結束
+      if (newEnemyHealth <= 0) {
+        console.log('敵人被擊敗！');
+        set({
+          isChallengeButtonVisible: true,
+          isGameStarted: false
+        });
+      }
+
+    }, 1000); // 1秒後補牌
   },
 
-  // 挑戰敵人
+  // 挑戰新敵人
   challengeEnemy: () => {
-    const { hand } = get();
-    
-    // 重置手牌為C階級三種卡
-    const newHand = CARD_LIBRARY.C.map(card => ({ ...card }));
+    const initialHand = getInitialHand();
     
     set({
-      hand: newHand,
+      hand: initialHand,
       enemyHealth: 100,
-      isChallengeButtonVisible: false
+      playerHealth: 100,
+      isChallengeButtonVisible: false,
+      isGameStarted: true,
+      selectedCardIndex: null
     });
   },
 
@@ -121,5 +141,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedCardIndex: null,
       isChallengeButtonVisible: true
     });
+  },
+
+  // 設置選中的卡牌
+  setSelectedCard: (index: number | null) => {
+    set({ selectedCardIndex: index });
   }
 }));
