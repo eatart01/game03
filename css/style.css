@@ -1,53 +1,67 @@
+/* 全域設定 */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
   margin: 0;
-  padding: 20px;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #1e1e2f;
+  color: #f0f0f0;
 }
 
-.talents-section {
-  max-width: 600px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #ffd369;
 }
 
-.talent-points {
-  font-size: 18px;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.talents-container {
+/* 主容器：三欄式 */
+#main-container {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 20px;
+  gap: 20px;
 }
 
-.talents-grid {
+/* 左側：天賦格子 */
+#talents-panel {
+  flex: 1;
+  background-color: #2e2e3e;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+#talents-grid {
   display: grid;
-  grid-template-columns: repeat(5, 60px);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
 }
 
-.talent-slot {
-  width: 60px;
-  height: 60px;
-  background-color: #eee;
-  font-size: 24px;
-  text-align: center;
-  line-height: 60px;
+.talent-cell {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #444;
+  border: 2px solid #666;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.2s, background-color 0.3s;
 }
 
-.talent-slot:hover {
-  background-color: #d0eaff;
+.talent-cell:hover {
+  background-color: #ffd369;
+  transform: scale(1.05);
 }
 
-.talent-slot.selected {
-  background-color: #a0d8ff;
-  font-weight: bold;
+/* 中間：攻擊卡片 */
+#combat-panel {
+  flex: 1;
+  background-color: #2e2e3e;
+  padding: 15px;
+  border-radius: 8px;
 }
+
+#card-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.card {
+  background-color: #3e3e4e;

@@ -3,18 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Game03 Talent Viewer</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>Game03 UI Restoration</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <h1>角色天賦卡片</h1>
-    <div id="card-container"></div>
-    <div id="feedback"></div>
+  <div id="main-container">
+    <!-- 左側：天賦格子 -->
+    <section id="talents-panel">
+      <h2>天賦選擇</h2>
+      <div id="talents-grid" class="grid"></div>
+    </section>
+
+    <!-- 中間：攻擊選擇卡片 -->
+    <section id="combat-panel">
+      <h2>攻擊方式</h2>
+      <div id="card-container"></div>
+    </section>
+
+    <!-- 右側：敵人資訊與血量條 -->
+    <section id="enemy-panel">
+      <h2>敵人資訊</h2>
+      <div id="enemy-info">
+        <p id="enemy-name">敵人名稱</p>
+        <div id="enemy-hp-bar">
+          <div id="enemy-hp-fill"></div>
+        </div>
+        <p id="enemy-hp-text">HP: 100 / 100</p>
+      </div>
+    </section>
   </div>
 
-  <!-- 主邏輯與 UI 模組 -->
-  <script src="JS/main.js"></script>
-  <script src="JS/ui.js"></script>
+  <!-- 主 JS 模組 -->
+  <script type="module" src="JS/main.js"></script>
 </body>
 </html>
