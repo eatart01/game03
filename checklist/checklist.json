@@ -1,22 +1,16 @@
-[
-  {
-    "id": "task01",
-    "label": "完成左塔自動生成球的邏輯",
-    "done": false
+{
+  "parry.js": {
+    "status": "error",
+    "message": "缺少 parryTrigger()",
+    "type": "missing-function",
+    "suggest": "請在 parry.js 中定義 function parryTrigger() {...}",
+    "line": null
   },
-  {
-    "id": "task02",
-    "label": "建立右塔的碰撞與反應模組",
-    "done": false
-  },
-  {
-    "id": "task03",
-    "label": "整合 parry.js 的視覺反饋效果",
-    "done": false
-  },
-  {
-    "id": "task04",
-    "label": "測試 talents.json 的載入與解析",
-    "done": false
+  "checklist.js": {
+    "status": "error",
+    "message": "未定義 checklistRenderer()",
+    "type": "missing-function",
+    "suggest": "請新增 checklistRenderer() 並掛載到 DOM",
+    "line": 42
   }
-]
+}
