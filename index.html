@@ -1,39 +1,116 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Game03 UI Restoration</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回合制戰鬥遊戲</title>
+    <!-- 引入外部CSS文件 -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div id="main-container">
-    <!-- 左側：天賦格子 -->
-    <section id="talents-panel">
-      <h2>天賦選擇</h2>
-      <div id="talents-grid" class="grid"></div>
-    </section>
+    <div class="container">
+        <header>
+            <div class="game-info">
+                <div class="info-box">回合制戰鬥遊戲</div>
+            </div>
+            <div class="game-info">
+                <div class="info-box">版本: 1.0</div>
+            </div>
+        </header>
+        
+        <section class="talents-section">
+            <div class="talents-header">
+                <h2>戰鬥天賦</h2>
+                <div class="talent-points">可配置點數: <span id="available-points">0</span></div>
+            </div>
+            <div class="talents-container">
+                <div class="talents-grid" id="talents-grid">
+                    <!-- 天赋格子将由JavaScript动态生成 -->
+                </div>
+            </div>
+            <div class="game-stats">
+                <div class="stat-box">
+                    <div>回合數</div>
+                    <div id="turn-counter">1</div>
+                </div>
+                <div class="stat-box">
+                    <div>玩家等級</div>
+                    <div id="player-level">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>敵人</div>
+                    <div id="enemy-id">001</div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="battle-section">
+            <div class="status-text" id="battle-log">
+                <p>點擊「戰鬥開始」按鈕開始遊戲！</p>
+            </div>
+            <div class="combatants">
+                <div class="character">
+                    <div class="character-box player" id="player-character" title="每回合恢復1HP">
+                        玩家
+                        <div class="enemy-id">Lv.<span id="player-level-display">0</span></div>
+                    </div>
+                    <div class="hp-bar">
+                        <div class="hp-fill" id="player-hp-bar" style="width: 100%;"></div>
+                    </div>
+                    <div class="hp-text" id="player-hp-text">100/100</div>
+                </div>
 
-    <!-- 中間：攻擊選擇卡片 -->
-    <section id="combat-panel">
-      <h2>攻擊方式</h2>
-      <div id="card-container"></div>
-    </section>
+                <div class="turn-indicator" id="turn-indicator">
+                    <div id="turn-text"></div>
+                    <div class="enemy-thinking" id="enemy-thinking">
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                        <div class="thinking-dot"></div>
+                    </div>
+                </div>
 
-    <!-- 右側：敵人資訊與血量條 -->
-    <section id="enemy-panel">
-      <h2>敵人資訊</h2>
-      <div id="enemy-info">
-        <p id="enemy-name">敵人名稱</p>
-        <div id="enemy-hp-bar">
-          <div id="enemy-hp-fill"></div>
-        </div>
-        <p id="enemy-hp-text">HP: 100 / 100</p>
-      </div>
-    </section>
-  </div>
+                <button class="action-button" id="start-button" style="display: none;">戰鬥開始</button>
+                <button class="action-button" id="continue-button" style="display: none;">繼續戰鬥</button>
+                <button class="action-button minigame-action-button" id="minigame-action-button" style="display: none;"></button>
 
-  <!-- 主 JS 模組 -->
-  <script type="module" src="JS/main.js"></script>
+                <div id="parry-minigame" class="minigame-container" style="display: none;">
+                    <h3>招架</h3>
+                    <p class="damage-text" id="parry-damage-text"></p>
+                    <div id="parry-timer">0.00</div>
+                    <p>在時間停在11.0 +/- 0.2秒時點擊招架按鈕</p>
+                </div>
+
+                <div id="ultra-sensation-minigame" class="minigame-container" style="display: none;">
+                    <h3>超感受</h3>
+                    <p class="damage-text" id="ultra-sensation-damage-text"></p>
+                    <div id="ultra-sensation-bar">
+                        <div id="ultra-sensation-red"></div>
+                        <div id="ultra-sensation-ball"></div>
+                    </div>
+                    <p>在綠球進入紅色區域時點擊按鈕</p>
+                </div>
+
+                <div class="character">
+                    <div class="character-box enemy" id="enemy-character">
+                        敵人
+                        <div class="enemy-id"><span id="enemy-id-display">001</span></div>
+                    </div>
+                    <div class="hp-bar">
+                        <div class="hp-fill" id="enemy-hp-bar" style="width: 100%;"></div>
+                    </div>
+                    <div class="hp-text" id="enemy-hp-text">100/100</div>
+                </div>
+            </div>
+            
+            <div class="attack-cards" id="attack-cards">
+                <!-- 攻击卡片将由JavaScript动态生成 -->
+            </div>
+        </section>
+    </div>
+    
+    <div id="talent-tooltip" class="talent-tooltip"></div>
+    
+    <!-- 引入外部JavaScript文件 -->
+    <script src="js/ui.js"></script>
 </body>
 </html>
