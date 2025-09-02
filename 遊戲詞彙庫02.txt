@@ -1,0 +1,55 @@
+# 遊戲詞彙庫02.txt
+# 確保AI輔助開發時的術語一致性
+
+[核心屬性詞彙]
+生命值 = health (currentHealth)
+最大生命值 = maxHealth 
+護盾值 = shield
+攻擊力 = attack
+防禦力 = defense  
+命中率 = accuracy
+暴擊率 = critRate
+堅韌值 = resilience (減少被暴擊機率)
+閃避率 = evasion
+
+[戰鬥詞彙]
+輕攻擊 = light attack (light)
+中攻擊 = medium attack (medium) 
+重攻擊 = heavy attack (heavy)
+真實傷害 = true damage
+未命中 = miss
+暴擊 = critical hit
+連擊 = combo
+序列 = sequence
+
+[系統詞彙]
+天賦 = talent (不是skill)
+天賦點 = talent point
+激活天賦 = activate talent
+解鎖天賦 = unlock talent
+獎勵選擇 = reward selection
+戰鬥回合 = turn
+戰鬥場次 = battle
+
+[界面詞彙]
+手牌區 = hand area
+抽牌堆 = draw pile
+棄牌堆 = discard pile
+戰鬥日誌 = combat log
+狀態欄 = status bar
+
+[文件命名約定]
+玩家數據: PlayerProgress.cs
+實體屬性: EntityStats.cs
+戰鬥解析: BattleResolver.cs
+流程管理: BattleFlowManager.cs
+天賦系統: TalentManager.cs
+卡牌管理: DeckManager.cs
+連擊系統: ComboManager.cs
+界面管理: UIManager.cs
+主控制器: Main.cs
+
+[重要數值約定]
+百分比範圍: 5%-95% (clamp範圍)
+傷害計算: 小數點無條件進位
+生命值: 整數
