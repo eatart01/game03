@@ -1,0 +1,15 @@
+dark-caverns-ui-prototype/
+├── index.html          # 主入口文件，只包含HTML结构
+├── css/
+│   ├── style.css       # 基础样式与变量定义
+│   └── components/     # 组件样式（为后续扩展准备）
+│       ├── panels.css
+│       ├── cards.css
+│       └── talents.css
+├── js/
+│   ├── config/         # 配置目录（为后续扩展准备）
+│   │   └── constants.js
+│   ├── core/           # 核心模块目录
+│   │   └── GameManager.js
+│   └── main.js         # 应用初始化入口
+└── README.md           # 项目说明文档

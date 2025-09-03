@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑暗魔窟 - 完整遊戲</title>
+    <meta name="description" content="黑暗魔窟：一個基於HTML5的回合制戰鬥遊戲">
+    <meta name="author" content="黑暗魔窟開發團隊">
+    <meta name="keywords" content="黑暗魔窟, 回合制, RPG, 遊戲, HTML5遊戲">
+    
+    <!-- CSS 樣式文件 -->
+<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="./css/components/panels.css">
+<link rel="stylesheet" href="./css/components/cards.css">
+<link rel="stylesheet" href="./css/components/talents.css">
+<link rel="stylesheet" href="./css/components/settings.css">
+    
+    <!-- 預加載字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+        /* 預載入樣式避免FOUT */
+        body {
+            font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+        
+        /* 載入動畫 */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .loading-subtext {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 遊戲版本標識 */
+        .version-badge {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            color: rgba(255, 255, 255, 0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 載入畫面 -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">黑暗魔窟 載入中...</div>
+        <div class="loading-subtext">準備進入神秘的洞穴冒險</div>
+    </div>
+
+    <!-- 遊戲主容器 -->
+    <div id="game-container" style="display: none;">
+        <!-- 左側天賦面板 -->
+        <div id="talent-panel" class="panel">
+            <div class="panel-header">天賦技能</div>
+            <div id="talents-grid"></div>
+        </div>
+
+        <!-- 中央遊戲區域 -->
+        <div id="main-game-area">
+            <!-- 敵我顯示區 -->
+            <div id="battle-field">
+                <div id="enemy-container" class="battle-entity">
+                    <div class="health-bar">
+                        <div class="health-fill"></div>
+                        <div class="health-text">100/100</div>
+                    </div>
+                    <div class="entity-display enemy">敵</div>
+                    <div class="entity-level">001</div>
+                    <div class="enemy-attributes">無屬性加成</div>
+                </div>
+                
+                <div id="player-container" class="battle-entity">
+                    <div class="health-bar">
+                        <div class="health-fill"></div>
+                        <div class="health-text">100/100</div>
+                    </div>
+                    <div class="entity-display player">我</div>
+                    <div class="entity-stats">
+                        攻:0 防:0 命:0% 暴:0%
+                    </div>
+                </div>
+            </div>
+
+            <!-- 灰色功能區 -->
+            <div id="action-panel" class="panel">
+                <button id="start-battle-btn" class="action-btn">開始戰鬥</button>
+                <div id="enemy-next-attack">敵人下次攻擊：未知</div>
+                
+                <div id="battle-controls">
+                    <button id="save-game-btn" class="secondary-btn">儲存遊戲</button>
+                    <button id="load-game-btn" class="secondary-btn">載入遊戲</button>
+                    <button id="settings-btn" class="secondary-btn">設定</button>
+                    <button id="help-btn" class="secondary-btn">說明</button>
+                </div>
+                
+                <div id="battle-log"></div>
+            </div>
+        </div>
+
+        <!-- 右下卡牌區 -->
+        <div id="card-hand" class="panel">
+            <div class="card" data-type="light">
+                <div class="card-content">輕</div>
+                <div class="card-stats">16傷害 | 72%命中</div>
+            </div>
+            <div class="card" data-type="medium">
+                <div class="card-content">中</div>
+                <div class="card-stats">24傷害 | 64%命中</div>
+            </div>
+            <div class="card" data-type="heavy">
+                <div class="card-content">重</div>
+                <div class="card-stats">49傷害 | 57%命中</div>
+            </div>
+        </div>
+
+        <!-- 右上戰鬥信息區 -->
+        <div id="combat-info" class="panel">
+            <div class="panel-header">
+                <span>戰鬥信息</span>
+                <span id="game-version">v1.4.0</span>
+            </div>
+            <div id="combat-messages"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲控制面板 -->
+    <div id="game-controls" class="panel" style="display: none;">
+        <div class="panel-header">遊戲控制</div>
+        <div class="control-group">
+            <button id="toggle-debug-btn" class="control-btn">切換除錯模式</button>
+            <button id="export-save-btn" class="control-btn">匯出存檔</button>
+            <button id="import-save-btn" class="control-btn">匯入存檔</button>
+            <button id="export-config-btn" class="control-btn">匯出設定</button>
+            <button id="reset-stats-btn" class="control-btn">重置統計</button>
+        </div>
+        <div class="control-stats">
+            <h4>遊戲統計</h4>
+            <div id="game-stats"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲說明模態框 -->
+    <div id="help-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>遊戲說明</h3>
+                <button id="close-help-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <h4>🎯 遊戲目標</h4>
+                    <p>擊敗從黑暗魔窟中湧現的敵人，提升你的能力，最終面對最終的挑戰。</p>
+                </div>
+                
+                <div class="help-section">
+                    <h4>⚔️ 戰鬥系統</h4>
+                    <ul>
+                        <li><strong>輕攻擊</strong>: 16傷害，72%命中率</li>
+                        <li><strong>中攻擊</strong>: 24傷害，64%命中率，5%暴擊率</li>
+                        <li><strong>重攻擊</strong>: 49傷害，57%命中率，10%暴擊率</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h4>📈 成長系統</h4>
+                    <ul>
+                        <li>擊敗敵人獲得獎勵選擇</li>
+                        <li>每擊敗3個敵人獲得1個天賦點</li>
+                        <li>激活天賦獲得永久能力提升</li>
+                        <li>敵人會隨著等級提升而變強</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h4>🎮 操作方式</h4>
+                    <ul>
+                        <li><strong>1/2/3</strong>: 使用輕/中/重攻擊</li>
+                        <li><strong>Enter</strong>: 開始戰鬥</li>
+                        <li><strong>Escape</strong>: 打開遊戲選單</li>
+                        <li><strong>Ctrl+S</strong>: 快速存檔</li>
+                    </ul>
+                </div>
+                
+                <div class="help-section">
+                    <h4>💡 遊戲提示</h4>
+                    <ul>
+                        <li>注意敵人下次攻擊的預告</li>
+                        <li>合理選擇獎勵來建構你的戰鬥風格</li>
+                        <li>天賦系統提供強大的被動能力</li>
+                        <li>記得定期保存遊戲進度</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="start-tutorial-btn" class="action-btn">開始教學</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲存檔模態框 -->
+    <div id="save-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>遊戲存檔</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="save-slots"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="export-all-saves-btn" class="secondary-btn">匯出所有存檔</button>
+                <button id="import-save-file-btn" class="secondary-btn">匯入存檔文件</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲設定模態框 -->
+    <div id="settings-modal" class="settings-modal" style="display: none;">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>遊戲設定</h2>
+                <button id="close-settings-btn" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="graphics">畫面</button>
+                <button class="settings-tab" data-tab="audio">音效</button>
+                <button class="settings-tab" data-tab="gameplay">遊戲</button>
+                <button class="settings-tab" data-tab="controls">控制</button>
+                <button class="settings-tab" data-tab="interface">界面</button>
+            </div>
+            
+            <div class="settings-panels">
+                <div class="settings-panel active" id="graphics-panel">
+                    <div class="setting-group">
+                        <h3>畫面品質</h3>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h4>畫質設定</h4>
+                                <p>調整遊戲畫面品質</p>
+                            </div>
+                            <div class="setting-control">
+                                <select id="graphics-quality">
+                                    <option value="low">低</option>
+                                    <option value="medium" selected>中</option>
+                                    <option value="high">高</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <h3>視覺效果</h3>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h4>動畫效果</h4>
+                                <p>啟用/禁用戰鬥動畫</p>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox" id="animations-enabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-panel" id="audio-panel">
+                    <div class="setting-group">
+                        <h3>音量控制</h3>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h4>主音量</h4>
+                                <p>調整整體音量大小</p>
+                            </div>
+                            <div class="setting-control">
+                                <input type="range" id="master-volume" min="0" max="100" value="80">
+                                <span class="slider-value">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-panel" id="gameplay-panel">
+                    <div class="setting-group">
+                        <h3>遊戲難度</h3>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <h4>難度等級</h4>
+                                <p>選擇遊戲難度</p>
+                            </div>
+                            <div class="setting-control">
+                                <select id="difficulty-level">
+                                    <option value="easy">簡單</option>
+                                    <option value="normal" selected>普通</option>
+                                    <option value="hard">困難</option>
+                                    <option value="nightmare">噩夢</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-footer">
+                <button id="reset-settings-btn" class="secondary-btn">恢復預設</button>
+                <button id="apply-settings-btn" class="action-btn">套用設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知區域 -->
+    <div id="notification-area"></div>
+
+    <!-- 版本標識 -->
+    <div class="version-badge">v1.4.0</div>
+
+    <!-- JavaScript 文件 -->
+<script src="./js/config/constants.js"></script>
+<script src="./js/core/Entity.js"></script>
+<script src="./js/core/BattleSystem.js"></script>
+<script src="./js/core/EnemyAI.js"></script>
+<script src="./js/core/EnemySystem.js"></script>
+<script src="./js/core/RewardSystem.js"></script>
+<script src="./js/core/TalentSystem.js"></script>
+<script src="./js/core/SaveManager.js"></script>
+<script src="./js/core/ConfigManager.js"></script>
+<script src="./js/core/GameManager.js"></script>
+<script src="./js/main.js"></script>
+
+    <!-- 遊戲初始化腳本 -->
+    <script>
+        // 頁面載入完成後初始化遊戲
+        window.addEventListener('load', function() {
+            // 隱藏載入畫面
+            const loadingScreen = document.getElementById('loading-screen');
+            const gameContainer = document.getElementById('game-container');
+            
+            // 模擬載入時間
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    gameContainer.style.display = 'grid';
+                    
+                    // 顯示歡迎訊息
+                    if (window.game && window.game.addCombatMessage) {
+                        window.game.addCombatMessage('歡迎來到黑暗魔窟！');
+                        window.game.addCombatMessage('點擊「開始戰鬥」開始你的冒險');
+                    }
+                }, 500);
+            }, 1500);
+            
+            // 添加鍵盤快捷鍵
+            document.addEventListener('keydown', function(e) {
+                // 遊戲控制快捷鍵
+                if (e.key === 'Escape') {
+                    const settingsModal = document.getElementById('settings-modal');
+                    if (settingsModal.style.display === 'block') {
+                        settingsModal.style.display = 'none';
+                    } else {
+                        const controls = document.getElementById('game-controls');
+                        controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+                    }
+                    e.preventDefault();
+                }
+                
+                // 卡牌快捷鍵
+                if (e.key === '1' || e.key === '2' || e.key === '3') {
+                    const cards = document.querySelectorAll('.card');
+                    const index = parseInt(e.key) - 1;
+                    if (cards[index] && !cards[index].classList.contains('disabled')) {
+                        cards[index].click();
+                    }
+                }
+                
+                // 開始戰鬥快捷鍵
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const startBtn = document.getElementById('start-battle-btn');
+                    if (startBtn && !startBtn.disabled) {
+                        startBtn.click();
+                    }
+                }
+                
+                // 快速存檔
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    const saveBtn = document.getElementById('save-game-btn');
+                    if (saveBtn) saveBtn.click();
+                }
+                
+                // 快速載入
+                if (e.ctrlKey && e.key === 'l') {
+                    e.preventDefault();
+                    const loadBtn = document.getElementById('load-game-btn');
+                    if (loadBtn) loadBtn.click();
+                }
+            });
+            
+            // 設定按鈕事件
+            document.getElementById('settings-btn')?.addEventListener('click', function() {
+                const modal = document.getElementById('settings-modal');
+                modal.style.display = 'flex';
+            });
+            
+            document.getElementById('close-settings-btn')?.addEventListener('click', function() {
+                const modal = document.getElementById('settings-modal');
+                modal.style.display = 'none';
+            });
+            
+            // 說明按鈕事件
+            document.getElementById('help-btn')?.addEventListener('click', function() {
+                const modal = document.getElementById('help-modal');
+                modal.style.display = 'block';
+            });
+            
+            document.getElementById('close-help-btn')?.addEventListener('click', function() {
+                const modal = document.getElementById('help-modal');
+                modal.style.display = 'none';
+            });
+            
+            // 設定標籤切換
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    // 切換標籤邏輯
+                });
+            });
+            
+            // 添加觸摸設備支持
+            if ('ontouchstart' in window) {
+                document.body.classList.add('touch-device');
+                // 添加觸摸設備特定的樣式
+                const style = document.createElement('style');
+                style.textContent = `
+                    .touch-device .card {
+                        min-height: 120px;
+                    }
+                    .touch-device .action-btn {
+                        padding: 15px 25px;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        });
+        
+        // 錯誤處理
+        window.addEventListener('error', function(e) {
+            console.error('遊戲錯誤:', e.error);
+            // 顯示用戶友好的錯誤訊息
+            const notification = document.createElement('div');
+            notification.className = 'notification error';
+            notification.innerHTML = `
+                <strong>發生錯誤</strong>
+                <p>請刷新頁面重試</p>
+            `;
+            document.getElementById('notification-area').appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        });
+        
+        // 離線檢測
+        window.addEventListener('offline', function() {
+            if (window.game && window.game.addCombatMessage) {
+                window.game.addCombatMessage('⚠️ 網路連接已斷開，遊戲將在本地運行');
+            }
+        });
+        
+        window.addEventListener('online', function() {
+            if (window.game && window.game.addCombatMessage) {
+                window.game.addCombatMessage('✅ 網路連接已恢復');
+            }
+        });
+        
+        // 頁面可見性變化
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('遊戲切換到後台');
+                // 自動保存遊戲
+                if (window.game?.saveGame) {
+                    window.game.saveGame();
+                }
+            }
+        });
+    </script>
+
+    <!-- 遊戲統計代碼 -->
+    <script>
+        // 基本的遊戲統計
+        window.gameAnalytics = {
+            startTime: Date.now(),
+            playSession: function() {
+                return {
+                    playTime: Math.floor((Date.now() - this.startTime) / 1000),
+                    enemiesDefeated: window.performanceMonitor ? window.performanceMonitor.stats.enemiesDefeated : 0,
+                    totalDamage: window.performanceMonitor ? window.performanceMonitor.stats.totalDamage : 0
+                };
+            },
+            
+            trackEvent: function(eventName, data) {
+                console.log('遊戲事件:', eventName, data);
+                // 這裡可以添加更多統計邏輯
+            }
+        };
+        
+        // 追蹤遊戲事件
+        ['battleStart', 'battleVictory', 'battleDefeat', 'talentActivated', 'rewardObtained'].forEach(eventName => {
+            document.addEventListener(eventName, function(e) {
+                window.gameAnalytics.trackEvent(eventName, e.detail);
+            });
+        });
+    </script>
+
+    <!-- PWA 支持 -->
+    <script>
+        // 註冊Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker 註冊成功:', registration);
+                    })
+                    .catch(function(error) {
+                        console.log('ServiceWorker 註冊失敗:', error);
+                    });
+            });
+        }
+        
+        // 添加到主屏幕提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // 可以顯示安裝按鈕
+            const installBtn = document.createElement('button');
+            installBtn.textContent = '安裝應用';
+            installBtn.className = 'action-btn';
+            installBtn.style.position = 'fixed';
+            installBtn.style.bottom = '20px';
+            installBtn.style.left = '50%';
+            installBtn.style.transform = 'translateX(-50%)';
+            installBtn.style.zIndex = '1000';
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('安裝結果:', outcome);
+                    deferredPrompt = null;
+                    installBtn.remove();
+                }
+            });
+            
+            document.body.appendChild(installBtn);
+        });
+    </script>
+</body>
+</html>

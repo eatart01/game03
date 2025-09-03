@@ -1,0 +1,619 @@
+class GameManager {
+    constructor() {
+        this.isBattleActive = false;
+        this.isPlayerTurn = true;
+        this.player = null;
+        this.currentEnemy = null;
+        this.enemySystem = new EnemySystem();
+        this.rewardSystem = new RewardSystem();
+        this.talentSystem = new TalentSystem();
+        this.saveManager = new SaveManager(this);
+        this.showingRewards = false;
+        this.talentPointsEarned = 0;
+        this.battleStartTime = 0;
+        this.totalPlayTime = 0;
+        this.initializeGame();
+    }
+
+    initializeGame() {
+        this.player = new Entity({ maxHealth: 100 });
+        this.currentEnemy = this.enemySystem.createEnemy(1);
+        
+        this.setupEventListeners();
+        this.initializeTalentGrid();
+        this.updateUI();
+        
+        // 初始化存檔管理器
+        this.saveManager.initialize();
+        
+        // 嘗試自動載入存檔
+        this.autoLoadGame();
+
+        // 初始化遊戲統計
+        this.initializeGameStats();
+
+        console.log('✅ 遊戲初始化完成');
+    }
+
+    initializeGameStats() {
+        this.gameStats = {
+            totalBattles: 0,
+            victories: 0,
+            defeats: 0,
+            totalDamageDealt: 0,
+            totalDamageTaken: 0,
+            criticalHits: 0,
+            talentsActivated: 0,
+            rewardsObtained: 0
+        };
+    }
+
+    setupEventListeners() {
+        // 開始戰鬥按鈕
+        const startBattleBtn = document.querySelector(CONSTANTS.SELECTORS.START_BATTLE_BTN);
+        if (startBattleBtn) {
+            startBattleBtn.addEventListener('click', () => this.startBattle());
+        }
+        
+        // 卡牌點擊事件
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', (e) => this.handleCardClick(e));
+        });
+
+        // 獎勵選擇事件委託
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.reward-option')) {
+                this.handleRewardSelection(e);
+            }
+        });
+
+        // 天賦點顯示
+        this.createTalentPointsDisplay();
+
+        // 鍵盤快捷鍵
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.isBattleActive) {
+                this.toggleGameMenu();
+            }
+        });
+
+        // 遊戲重置事件
+        document.addEventListener('gameReset', () => {
+            this.handleGameReset();
+        });
+    }
+
+    createTalentPointsDisplay() {
+        const talentPanel = document.querySelector('#talent-panel');
+        if (talentPanel && !document.getElementById('talent-points-display')) {
+            const pointsDisplay = document.createElement('div');
+            pointsDisplay.id = 'talent-points-display';
+            pointsDisplay.className = 'talent-points';
+            pointsDisplay.textContent = '天賦點: 0';
+            talentPanel.insertBefore(pointsDisplay, talentPanel.firstChild);
+        }
+    }
+
+    initializeTalentGrid() {
+        this.talentSystem.updateTalentUI();
+    }
+
+    startBattle() {
+        if (this.isBattleActive) return;
+        
+        this.isBattleActive = true;
+        this.isPlayerTurn = true;
+        this.battleStartTime = Date.now();
+        this.currentEnemy = this.enemySystem.createEnemy(this.enemySystem.enemyCounter);
+        this.updateUI();
+        
+        this.gameStats.totalBattles++;
+        if (window.performanceMonitor) {
+            window.performanceMonitor.recordBattle();
+        }
+        
+        this.addCombatMessage(`⚔️ 戰鬥開始！對戰敵人 ${this.enemySystem.enemyCounter.toString().padStart(3, '0')}`);
+        
+        // 預覽敵人第一次攻擊
+        this.enemySystem.decideNextAttack(this.currentEnemy, this.player);
+        this.updateEnemyNextAttack();
+        
+        document.querySelector(CONSTANTS.SELECTORS.START_BATTLE_BTN).disabled = true;
+        this.setCardsEnabled(true);
+
+        // 發送戰鬥開始事件
+        this.dispatchGameEvent('battleStart', {
+            enemyLevel: this.enemySystem.enemyCounter,
+            enemyAttributes: this.enemySystem.getCurrentEnemyAttributes()
+        });
+    }
+
+    async handleCardClick(event) {
+        if (!this.isBattleActive || !this.isPlayerTurn) return;
+        
+        const cardType = event.currentTarget.dataset.type;
+        const attackName = BattleSystem.getAttackName(cardType);
+        this.addCombatMessage(`🎯 使用了${attackName}攻擊`);
+        
+        this.setCardsEnabled(false);
+        this.isPlayerTurn = false;
+        
+        // 稍微延遲讓玩家看到訊息
+        await this.delay(500);
+        
+        const result = BattleSystem.calculateDamage(
+            this.player,
+            this.currentEnemy,
+            cardType
+        );
+        
+        // 記錄傷害統計
+        this.gameStats.totalDamageDealt += result.damage;
+        if (result.isCrit) {
+            this.gameStats.criticalHits++;
+        }
+        
+        if (result.isHit) {
+            const critText = result.isCrit ? '【暴擊！】' : '';
+            this.addCombatMessage(`${critText}命中！造成 ${result.damage} 點傷害 (命中率:${result.hitRate}%)`);
+            
+            this.currentEnemy.takeDamage(result.damage);
+            this.updateUI();
+            
+            if (!this.currentEnemy.isAlive()) {
+                await this.handleEnemyDefeated();
+                return;
+            }
+        } else {
+            this.addCombatMessage(`❌ 攻擊未命中！造成 1 點傷害 (命中率:${result.hitRate}%)`);
+            this.currentEnemy.takeDamage(1);
+            this.updateUI();
+        }
+        
+        // 敵人反擊
+        await this.delay(1000);
+        await this.enemyTurn();
+        
+        this.isPlayerTurn = true;
+        this.setCardsEnabled(true);
+    }
+
+    async enemyTurn() {
+        this.addCombatMessage('⚔️ 敵人回合...');
+        await this.delay(800);
+        
+        const attackResult = this.enemySystem.performAttack(this.currentEnemy, this.player);
+        
+        // 顯示特殊效果訊息
+        if (attackResult.specialEffect) {
+            this.addCombatMessage(attackResult.specialEffect);
+            await this.delay(600);
+        }
+        
+        if (attackResult.isHit) {
+            const critText = attackResult.isCrit ? '【暴擊！】' : '';
+            this.addCombatMessage(`敵人${critText}${attackResult.attackDescription}，造成 ${attackResult.damage} 點傷害`);
+            
+            // 記錄傷害統計
+            this.gameStats.totalDamageTaken += attackResult.damage;
+            
+            this.player.takeDamage(attackResult.damage);
+            this.updateUI();
+            
+            // 檢查玩家是否死亡
+            if (!this.player.isAlive()) {
+                await this.handlePlayerDefeated();
+                return;
+            }
+        } else {
+            this.addCombatMessage(`🎯 敵人攻擊未命中！造成 1 點傷害`);
+            this.player.takeDamage(1);
+            this.gameStats.totalDamageTaken += 1;
+            this.updateUI();
+        }
+        
+        // 更新下一次攻擊預覽
+        this.updateEnemyNextAttack();
+        
+        await this.delay(800);
+    }
+
+    async handleEnemyDefeated() {
+        const battleTime = ((Date.now() - this.battleStartTime) / 1000).toFixed(1);
+        this.addCombatMessage(`🎉 擊敗敵人！戰鬥時間: ${battleTime}秒`);
+        
+        this.gameStats.victories++;
+        if (window.performanceMonitor) {
+            window.performanceMonitor.recordEnemyDefeated();
+        }
+        
+        // 檢查是否獲得天賦點
+        const earnedTalentPoint = this.checkForTalentPoint(this.enemySystem.enemyCounter);
+        
+        // 玩家回復
+        const healAmount = 20 + (this.player.healOnVictory || 0);
+        const maxHpIncrease = 5;
+        
+        this.player.heal(healAmount);
+        this.player.increaseMaxHealth(maxHpIncrease);
+        
+        this.addCombatMessage(`❤️ 生命回復 ${healAmount}點，最大生命增加 ${maxHpIncrease}點`);
+        
+        // 如果不是獲得天賦點的敵人，顯示獎勵選擇
+        if (!earnedTalentPoint) {
+            await this.showRewardSelection();
+        }
+        
+        // 獲取下一個敵人
+        this.currentEnemy = this.enemySystem.getNextEnemy();
+        this.isBattleActive = false;
+        
+        this.updateUI();
+        document.querySelector(CONSTANTS.SELECTORS.START_BATTLE_BTN).disabled = false;
+        this.setCardsEnabled(false);
+        
+        this.addCombatMessage('準備好後點擊「開始戰鬥」迎接下一個敵人');
+
+        // 發送戰鬥勝利事件
+        this.dispatchGameEvent('battleVictory', {
+            enemyLevel: this.enemySystem.enemyCounter - 1,
+            battleTime: parseFloat(battleTime),
+            damageDealt: this.gameStats.totalDamageDealt
+        });
+    }
+
+    async handlePlayerDefeated() {
+        this.addCombatMessage('💀 你被擊敗了...');
+        this.isBattleActive = false;
+        this.gameStats.defeats++;
+        
+        if (window.performanceMonitor) {
+            window.performanceMonitor.recordPlayerDeath();
+        }
+        
+        // 重置玩家生命值
+        this.player.currentHealth = this.player.maxHealth;
+        
+        await this.delay(2000);
+        
+        this.addCombatMessage('💪 生命值已恢復，準備再次挑戰');
+        this.updateUI();
+        
+        document.querySelector(CONSTANTS.SELECTORS.START_BATTLE_BTN).disabled = false;
+        this.setCardsEnabled(false);
+
+        // 發送戰鬥失敗事件
+        this.dispatchGameEvent('battleDefeat', {
+            enemyLevel: this.enemySystem.enemyCounter,
+            damageTaken: this.gameStats.totalDamageTaken
+        });
+    }
+
+    checkForTalentPoint(enemyNumber) {
+        // 敵人001, 004, 007, 010... 079 獲得天賦點
+        if ((enemyNumber - 1) % 3 === 0 && enemyNumber <= 79) {
+            this.earnTalentPoint();
+            return true;
+        }
+        return false;
+    }
+
+    earnTalentPoint() {
+        this.talentPointsEarned++;
+        const newPoints = this.talentSystem.addTalentPoint();
+        
+        this.addCombatMessage(`✨ 獲得天賦點！當前天賦點: ${newPoints}`);
+        this.addCombatMessage('點擊左側天賦面板激活新能力');
+        
+        return newPoints;
+    }
+
+    setCardsEnabled(enabled) {
+        document.querySelectorAll('.card').forEach(card => {
+            card.classList.toggle('disabled', !enabled);
+            card.style.pointerEvents = enabled ? 'all' : 'none';
+        });
+    }
+
+    updateUI() {
+        this.updateHealthBars();
+        this.updateHealthText();
+        this.updatePlayerStats();
+        this.updateEnemyLevel();
+        this.updateEnemyAttributesDisplay();
+        this.updateEnemyNextAttack();
+        this.talentSystem.updateTalentPointsDisplay();
+        this.updateTurnIndicator();
+    }
+
+    updateHealthBars() {
+        const playerHealth = this.player.getHealthPercentage();
+        const enemyHealth = this.currentEnemy.getHealthPercentage();
+        
+        const playerBar = document.querySelector(CONSTANTS.SELECTORS.PLAYER_HEALTH);
+        const enemyBar = document.querySelector(CONSTANTS.SELECTORS.ENEMY_HEALTH);
+        
+        if (playerBar) playerBar.style.width = `${playerHealth}%`;
+        if (enemyBar) enemyBar.style.width = `${enemyHealth}%`;
+    }
+
+    updateHealthText() {
+        const playerHealthText = document.querySelector(CONSTANTS.SELECTORS.PLAYER_HEALTH_TEXT);
+        const enemyHealthText = document.querySelector(CONSTANTS.SELECTORS.ENEMY_HEALTH_TEXT);
+        
+        if (playerHealthText) {
+            playerHealthText.textContent = `${this.player.currentHealth}/${this.player.maxHealth}`;
+        }
+        if (enemyHealthText) {
+            enemyHealthText.textContent = `${this.currentEnemy.currentHealth}/${this.currentEnemy.maxHealth}`;
+        }
+    }
+
+    updatePlayerStats() {
+        const stats = this.player.getStats();
+        const statsElement = document.querySelector(CONSTANTS.SELECTORS.PLAYER_STATS);
+        
+        if (statsElement) {
+            statsElement.textContent = `攻:${stats.attack} 防:${stats.defense} 命:${stats.hitChance}% 暴:${stats.critChance}%`;
+        }
+    }
+
+    updateEnemyLevel() {
+        const levelElement = document.querySelector(CONSTANTS.SELECTORS.ENEMY_LEVEL);
+        if (levelElement) {
+            levelElement.textContent = this.enemySystem.enemyCounter.toString().padStart(3, '0');
+        }
+    }
+
+    updateEnemyAttributesDisplay() {
+        const attributes = this.enemySystem.getCurrentEnemyAttributes();
+        let attributesText = '';
+        
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (value > 0) {
+                const attributeName = CONSTANTS.UI.ATTRIBUTE_NAMES[key] || key;
+                attributesText += `${attributeName}+${value} `;
+            }
+        });
+        
+        const enemyAttributesElement = document.querySelector(CONSTANTS.SELECTORS.ENEMY_ATTRIBUTES);
+        if (enemyAttributesElement) {
+            enemyAttributesElement.textContent = attributesText || '無屬性加成';
+        }
+    }
+
+    updateEnemyNextAttack() {
+        const nextAttack = this.enemySystem.getNextAttackDescription();
+        this.updateEnemyNextAttackText(nextAttack);
+    }
+
+    updateEnemyNextAttackText(attackType) {
+        const element = document.querySelector(CONSTANTS.SELECTORS.ENEMY_NEXT_ATTACK);
+        if (element) {
+            element.textContent = `敵人下次攻擊：${attackType}`;
+            
+            // 根據攻擊類型添加顏色提示
+            element.className = '';
+            if (attackType.includes('重攻擊') || attackType.includes('猛烈') || attackType.includes('狂暴')) {
+                element.classList.add('attack-heavy');
+            } else if (attackType.includes('中攻擊') || attackType.includes('謹慎')) {
+                element.classList.add('attack-medium');
+            } else if (attackType.includes('輕攻擊')) {
+                element.classList.add('attack-light');
+            } else if (attackType.includes('特殊') || attackType.includes('防禦')) {
+                element.classList.add('attack-special');
+            }
+        }
+    }
+
+    updateTurnIndicator() {
+        // 更新回合指示器
+        let indicator = document.getElementById('turn-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'turn-indicator';
+            indicator.className = 'turn-indicator';
+            document.getElementById('action-panel')?.appendChild(indicator);
+        }
+        
+        indicator.className = `turn-indicator ${this.isPlayerTurn ? 'turn-player' : 'turn-enemy'}`;
+        indicator.textContent = this.isPlayerTurn ? '你的回合' : '敵人回合';
+    }
+
+    addCombatMessage(message) {
+        const messagesContainer = document.querySelector(CONSTANTS.SELECTORS.COMBAT_MESSAGES);
+        if (!messagesContainer) return;
+        
+        const messageElement = document.createElement('div');
+        messageElement.textContent = `> ${message}`;
+        messageElement.className = 'combat-message';
+        
+        // 根據訊息類型添加樣式
+        if (message.includes('擊敗') || message.includes('獲得') || message.includes('回復')) {
+            messageElement.classList.add('message-positive');
+        } else if (message.includes('未命中') || message.includes('擊敗') || message.includes('死亡')) {
+            messageElement.classList.add('message-negative');
+        } else if (message.includes('天賦') || message.includes('獎勵')) {
+            messageElement.classList.add('message-special');
+        }
+        
+        messagesContainer.appendChild(messageElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // 限制訊息數量
+        const messages = messagesContainer.querySelectorAll('.combat-message');
+        if (messages.length > 50) {
+            messages[0].remove();
+        }
+    }
+
+    async showRewardSelection() {
+        this.showingRewards = true;
+        
+        // 獲取隨機獎勵
+        const rewards = this.rewardSystem.getRandomRewards(5, this.enemySystem.enemyCounter);
+        
+        // 創建獎勵選擇界面
+        const rewardModal = this.createRewardModal(rewards);
+        document.body.appendChild(rewardModal);
+        
+        // 等待玩家選擇
+        return new Promise((resolve) => {
+            this.rewardResolve = resolve;
+        });
+    }
+
+    createRewardModal(rewards) {
+        const modal = document.createElement('div');
+        modal.className = 'reward-modal';
+        modal.innerHTML = `
+            <div class="reward-modal-content">
+                <div class="reward-modal-header">
+                    <h3>選擇獎勵</h3>
+                    <p>擊敗敵人後獲得以下獎勵選擇：</p>
+                </div>
+                <div class="reward-options-grid">
+                    ${rewards.map((reward, index) => `
+                        <div class="reward-option ${reward.rarity}" data-reward-id="${reward.id}">
+                            <div class="reward-header">
+                                <span class="reward-name">${reward.name}</span>
+                                <span class="reward-rarity ${reward.rarity}">${this.rewardSystem.getRarityName(reward.rarity)}</span>
+                            </div>
+                            <div class="reward-description">${reward.description}</div>
+                            <div class="reward-type">${this.rewardSystem.getTypeName(reward.type)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="reward-modal-footer">
+                    <p>選擇一個獎勵來增強你的能力</p>
+                </div>
+            </div>
+        `;
+        return modal;
+    }
+
+    handleRewardSelection(event) {
+        if (!this.showingRewards) return;
+
+        const rewardOption = event.target.closest('.reward-option');
+        if (!rewardOption) return;
+
+        const rewardId = parseInt(rewardOption.dataset.rewardId);
+        const rewards = this.rewardSystem.allRewards;
+        const selectedReward = rewards.find(r => r.id === rewardId);
+
+        if (selectedReward) {
+            // 應用獎勵效果
+            const resultMessage = this.rewardSystem.applyReward(selectedReward, this.player);
+            this.addCombatMessage(`🎁 獲得獎勵: ${selectedReward.name} (${resultMessage})`);
+            
+            this.gameStats.rewardsObtained++;
+            
+            // 移除彈窗
+            const modal = document.querySelector('.reward-modal');
+            if (modal) {
+                modal.remove();
+            }
+
+            this.showingRewards = false;
+            if (this.rewardResolve) {
+                this.rewardResolve();
+            }
+
+            // 更新UI顯示新屬性
+            this.updateUI();
+        }
+    }
+
+    autoLoadGame() {
+        const hasSave = SaveSystem.hasSave();
+        if (hasSave && confirm('發現存檔，是否載入？')) {
+            this.loadGame();
+        }
+    }
+
+    saveGame() {
+        return this.saveManager.manualSave();
+    }
+
+    loadGame(saveData = null) {
+        if (this.isBattleActive) {
+            console.log('❌ 戰鬥中無法載入遊戲');
+            return false;
+        }
+
+        if (!saveData) {
+            saveData = SaveSystem.loadGame();
+            if (!saveData) return false;
+        }
+
+        try {
+            // 載入遊戲數據
+            this.enemySystem.enemyCounter = saveData.enemyCounter || 1;
+            this.enemySystem.enemyAttributes = saveData.enemyAttributes || this.enemySystem.initializeEnemyAttributes();
+            
+            // 載入玩家數據
+            const playerData = saveData.player || {};
+            this.player = new Entity({
+                maxHealth: playerData.maxHealth || 100,
+                attack: playerData.attack || 0,
+                defense: playerData.defense || 0,
+                hitChance: playerData.hitChance || 0,
+                critChance: playerData.critChance || 0,
+                toughness: playerData.toughness || 0,
+                dodge: playerData.dodge || 0
+            });
+            this.player.currentHealth = playerData.currentHealth || this.player.maxHealth;
+            this.player.healPerTurn = playerData.healPerTurn || 0;
+            this.player.healOnVictory = playerData.healOnVictory || 0;
+            this.player.shield = playerData.shield || 0;
+
+            // 載入天賦系統
+            if (saveData.talentSystem) {
+                this.talentSystem.load(saveData.talentSystem);
+            }
+
+            this.currentEnemy = this.enemySystem.createEnemy(this.enemySystem.enemyCounter);
+            this.updateUI();
+            
+            this.addCombatMessage('💾 遊戲載入完成');
+            
+            return true;
+        } catch (error) {
+            console.error('❌ 載入失敗:', error);
+            this.addCombatMessage('❌ 存檔載入失敗');
+            return false;
+        }
+    }
+
+    toggleGameMenu() {
+        const menu = document.getElementById('game-controls');
+        if (menu) {
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    handleGameReset() {
+        this.initializeGame();
+        this.addCombatMessage('🔄 遊戲已重置');
+    }
+
+    dispatchGameEvent(eventName, detail) {
+        const event = new CustomEvent(eventName, { detail });
+        document.dispatchEvent(event);
+    }
+
+    getGameStats() {
+        return { ...this.gameStats };
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    cleanup() {
+        if (this.saveManager) {
+            this.saveManager.cleanup();
+        }
+    }
+}

@@ -1,0 +1,59 @@
+:root {
+    /* 颜色变量 */
+    --color-bg-primary: #1a1a2e;
+    --color-bg-secondary: #16213e;
+    --color-bg-panel: #0f3460;
+    --color-bg-card: #e6e6e6;
+    --color-text: #f0f0f0;
+    --color-accent: #e94560;
+    --color-enemy: #ff4757;
+    --color-player: #5352ed;
+    --color-health: #2ed573;
+    
+    /* 尺寸变量 */
+    --panel-border-radius: 8px;
+    --panel-padding: 15px;
+    --card-width: 100px;
+    --card-height: 150px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text);
+    overflow: hidden;
+    height: 100vh;
+}
+
+#game-container {
+    display: grid;
+    grid-template-columns: 250px 1fr 300px;
+    grid-template-rows: 1fr 200px;
+    gap: 10px;
+    padding: 10px;
+    height: 100vh;
+    grid-template-areas:
+        "talent main combat"
+        "talent cards combat";
+}
+
+.panel {
+    background-color: var(--color-bg-panel);
+    border-radius: var(--panel-border-radius);
+    padding: var(--panel-padding);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--color-accent);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 5px;
+}
