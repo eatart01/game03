@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>甦醒深淵 Awakening: Void of Depths</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<style>
+  :root{
+    --stone-black:#151009;
+    --stone-dark:#1f1810;
+    --stone-mid:#332618;
+    --parchment:#e9dcc3;
+    --parchment-dim:#c9b98f;
+    --ember:#e8963c;
+    --ember-dim:#a8621f;
+    --blood:#9c2f2f;
+    --blood-bright:#c94a3a;
+    --steel:#6f8a9c;
+    --gold-light:#e8c468;
+    --shield-cyan:#5ea3a3;
+    --hp-red:#b23a3a;
+    --energy-blue:#4f7fb2;
+  }
+  .story-overlay{
+    position:fixed; inset:0; z-index:9999;
+    background:#000;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0;
+    cursor:pointer;
+    user-select:none;
+  }
+  .story-overlay .story-glow{
+    position:absolute; left:50%; top:50%;
+    width:60%; height:60%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(ellipse, rgba(232,196,104,0.05) 0%, transparent 70%);
+    pointer-events:none;
+  }
+  .story-overlay .story-text{
+    position:relative; z-index:1;
+    max-width:640px; padding:0 30px;
+    color:#e9dcc3; font-family:Georgia, serif;
+    font-size:16px; line-height:2.2; text-align:center;
+    letter-spacing:1px; white-space:pre-line;
+  }
+  .story-overlay .skip-hint{
+    position:absolute; right:20px; bottom:16px;
+    font-family:'Courier New', monospace; font-size:11px;
+    color:#5a5248;
+  }
+  #stage{ opacity:0; }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;
+    background:var(--stone-black);
+    color:var(--parchment);
+    font-family:Georgia,'Times New Roman',serif;
+    width:100%;
+  }
+  .stage{
+    position:relative;
+    width:100%;
+    max-width:1120px;
+    margin:0 auto;
+    aspect-ratio:16/10;
+    background:
+      radial-gradient(ellipse at 50% 62%, rgba(232,150,60,0.16) 0%, rgba(232,150,60,0.05) 28%, transparent 55%),
+      linear-gradient(180deg, #0e0b07 0%, #1a140d 45%, #0c0a06 100%);
+    overflow:hidden;
+    border:2px solid #000;
+    box-shadow: inset 0 0 120px rgba(0,0,0,0.85), 0 0 40px rgba(0,0,0,0.6);
+    user-select:none;
+  }
+  .stage::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 4px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.12) 0 1px, transparent 1px 3px);
+    pointer-events:none;
+    mix-blend-mode:overlay;
+  }
+  .torch-glow{
+    position:absolute; left:50%; top:58%;
+    width:56%; height:60%;
+    transform:translate(-50%,-50%);
+    background:radial-gradient(ellipse, rgba(232,150,60,0.22) 0%, rgba(180,90,20,0.08) 40%, transparent 70%);
+    animation:flicker 3.2s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes flicker{
+    0%,100%{opacity:1;}
+    45%{opacity:0.82;}
+    60%{opacity:0.95;}
+    78%{opacity:0.75;}
+  }
+  .vignette{
+    position:absolute; inset:0;
+    box-shadow: inset 0 0 160px 60px rgba(0,0,0,0.9);
+    pointer-events:none;
+  }
+
+  .top-bar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:14px 16px;
+    z-index:5;
+    pointer-events:none;
+  }
+  .top-bar > *{ pointer-events:auto; }
+  .talent-node{
+    width:28px; height:28px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px;
+    background:radial-gradient(circle at 35% 30%, #2a2018, #100c08);
+    border:2px solid #4a3f30;
+    box-shadow:0 2px 4px rgba(0,0,0,0.6);
+    flex-shrink:0;
+    cursor:help;
+  }
+  .talent-node.locked{opacity:0.35; filter:grayscale(0.6);}
+  .talent-node.active{border-color:var(--glow); box-shadow:0 0 9px var(--glow), inset 0 0 6px var(--glow-dim);}
+  .talent-node.light.active{ --glow:var(--gold-light); --glow-dim:rgba(232,196,104,0.4); }
+  .talent-node.mid.active{ --glow:var(--steel); --glow-dim:rgba(111,138,156,0.4); }
+  .talent-node.heavy.active{ --glow:var(--blood-bright); --glow-dim:rgba(201,74,58,0.4); }
+  .talent-node.aggressive.active{ --glow:var(--ember); --glow-dim:rgba(232,150,60,0.4); }
+  .talent-node.princess-glow{
+    box-shadow: 0 0 0 1px #e05a5a, 0 0 8px 2px rgba(224,90,90,0.6),
+      0 -7px 4px -5px rgba(224,90,90,0.55), 7px 0 4px -5px rgba(224,90,90,0.55),
+      -7px 0 4px -5px rgba(224,90,90,0.55), 0 7px 4px -5px rgba(224,90,90,0.55);
+    border-color:#e05a5a;
+  }
+
+  .debuff-node{
+    width:28px; height:28px; border-radius:50%;
+    display:none; align-items:center; justify-content:center;
+    font-size:13px; font-weight:bold;
+    background:radial-gradient(circle at 35% 30%, #3a1414, #150808);
+    border:2px solid var(--blood-bright);
+    box-shadow:0 0 9px var(--blood-bright), inset 0 0 6px rgba(201,74,58,0.5);
+    color:var(--parchment);
+    flex-shrink:0;
+    position:relative;
+    cursor:help;
+  }
+
+  .talent-tooltip{
+    position:absolute; z-index:30;
+    background:rgba(15,12,8,0.96); border:1px solid var(--gold-light); border-radius:4px;
+    padding:6px 13px 7px; max-width:230px; line-height:1.3;
+    color:var(--parchment); font-size:11px;
+    pointer-events:none; display:none;
+    box-shadow:0 4px 12px rgba(0,0,0,0.6);
+    white-space:pre-line;
+  }
+  .talent-tooltip .ttname{ color:var(--gold-light); font-size:12px; font-weight:bold; margin-bottom:2px; letter-spacing:1px; }
+
+  .battle-no{
+    font-family:'Courier New',monospace; font-size:10px; color:var(--parchment-dim);
+    display:none; /* 改成只在懸浮腦之音時，於資訊視窗右下角顯示 */
+  }
+
+  .enemy-card{
+    background:rgba(10,8,5,0.72);
+    border:1px solid var(--blood);
+    border-radius:5px;
+    padding:12px 18px;
+    min-width:210px;
+    text-align:right;
+    cursor:help;
+  }
+  .enemy-card .name{font-size:17px; color:var(--parchment); letter-spacing:2px;}
+  .stat-line{display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:6px;}
+  .stat-line .stat-label{font-family:'Courier New',monospace; font-size:11px; color:var(--parchment-dim);}
+  .stat-line .stat-val{font-family:'Courier New',monospace; font-size:15px;}
+  .bar-track{width:140px; height:9px; background:#241a10; border:1px solid #000; border-radius:2px; overflow:hidden;}
+  .bar-fill{height:100%; transition:width 0.25s ease;}
+  .bar-fill.hp-enemy{background:linear-gradient(90deg,var(--hp-red),#e05a5a);}
+
+  .dialogue-box{
+    position:absolute; top:42px; left:50%; transform:translateX(-50%);
+    width:408px; max-width:82%;
+    background:rgba(18,13,8,0.88);
+    border:1px solid var(--ember-dim);
+    border-radius:3px;
+    padding:12px 17px;
+    z-index:5;
+    text-align:center;
+  }
+  .dialogue-box .who{font-family:'Courier New',monospace; font-size:11px; color:var(--blood-bright); letter-spacing:2px; display:block;}
+  .dialogue-box .who:empty{display:none;}
+  .dialogue-box .who:not(:empty)::after{content:'：';}
+  .dialogue-box .line{font-size:15px; color:var(--parchment); line-height:1.5; white-space:pre-line; display:block; margin-top:4px;}
+
+  .scene{
+    position:absolute; top:127px; bottom:190px; left:0; right:0;
+    display:flex; align-items:center; justify-content:center;
+    z-index:3;
+  }
+  .enemy-sprite{
+    width:120px; height:150px;
+    background:
+      radial-gradient(circle at 50% 30%, var(--e-glow,rgba(160,40,40,0.5)), transparent 60%),
+      linear-gradient(180deg, var(--e-base1,#2a1414), var(--e-base2,#150a0a) 70%);
+    clip-path:polygon(50% 0%, 78% 12%, 92% 40%, 84% 78%, 62% 100%, 38% 100%, 16% 78%, 8% 40%, 22% 12%);
+    border:1px solid #000;
+    box-shadow:0 0 30px var(--e-glow, rgba(180,50,30,0.25));
+    position:relative;
+    transform:translateY(-22px);
+    transition:width 0.3s ease, height 0.3s ease;
+    cursor:pointer;
+  }
+  .enemy-sprite::after{
+    content:"";
+    position:absolute; top:34%; left:28%; width:12px; height:6px;
+    background:var(--e-eye,#e8963c); border-radius:50%;
+    box-shadow:14px 0 var(--e-eye,#e8963c), 0 0 8px var(--e-eye,#e8963c);
+    opacity:0.85;
+  }
+  .enemy-wrap{ position:relative; display:flex; align-items:center; justify-content:center; }
+
+  /* 9種額外形狀 */
+  .enemy-shape-horn{ clip-path:polygon(15% 0%, 30% 25%, 50% 18%, 70% 25%, 85% 0%, 95% 45%, 75% 85%, 50% 100%, 25% 85%, 5% 45%); }
+  .enemy-shape-horn::after{ top:35%; left:32%; width:6px; height:14px; border-radius:40%; box-shadow:18px 0 var(--e-eye,#e8963c), 0 0 12px var(--e-eye,#e8963c), 18px 0 12px var(--e-eye,#e8963c); }
+  .enemy-shape-shroom{ clip-path:polygon(50% 0%, 90% 20%, 100% 50%, 75% 55%, 65% 100%, 35% 100%, 25% 55%, 0% 50%, 10% 20%); }
+  .enemy-shape-shroom::after{ top:22%; left:50%; transform:translateX(-50%); width:22px; height:22px; background:#000; border-radius:50%; box-shadow:inset 0 0 0 3px var(--e-eye,#e8963c), 0 0 15px var(--e-eye,#e8963c); }
+  .enemy-shape-crystal{ clip-path:polygon(50% 0%, 95% 25%, 80% 75%, 50% 100%, 20% 75%, 5% 25%); }
+  .enemy-shape-crystal::after{ content:none; }
+  .enemy-shape-crystal::before{ content:""; position:absolute; top:28%; left:50%; transform:translateX(-50%) rotate(45deg); width:26px; height:26px; background:var(--e-eye,#e8963c); box-shadow:0 0 18px var(--e-eye,#e8963c), inset 0 0 8px #fff; }
+  .enemy-shape-jelly{ clip-path:polygon(20% 0%, 80% 0%, 100% 35%, 85% 60%, 75% 100%, 60% 65%, 50% 100%, 40% 65%, 25% 100%, 15% 60%, 0% 35%); }
+  .enemy-shape-jelly::after{ top:25%; left:28%; width:7px; height:7px; background:var(--e-eye,#e8963c); border-radius:50%; box-shadow:15px -5px var(--e-eye,#e8963c), 30px 0 var(--e-eye,#e8963c), 8px 12px var(--e-eye,#e8963c), 22px 12px var(--e-eye,#e8963c), 0 0 10px var(--e-eye,#e8963c), 15px -5px 10px var(--e-eye,#e8963c), 30px 0 10px var(--e-eye,#e8963c), 8px 12px 10px var(--e-eye,#e8963c), 22px 12px 10px var(--e-eye,#e8963c); }
+  .enemy-shape-golem{ clip-path:polygon(30% 0%, 70% 0%, 100% 25%, 90% 70%, 75% 100%, 25% 100%, 10% 70%, 0% 25%); }
+  .enemy-shape-golem::after{ top:30%; left:32%; width:16px; height:5px; border-radius:2px; box-shadow:20px 0 var(--e-eye,#e8963c), 0 0 12px var(--e-eye,#e8963c), 20px 0 12px var(--e-eye,#e8963c); }
+  .enemy-shape-angler{ clip-path:polygon(60% 10%, 90% 30%, 100% 65%, 80% 90%, 30% 100%, 10% 70%, 0% 30%, 35% 20%); }
+  .enemy-shape-angler::after{ top:33%; left:60%; width:9px; height:9px; border-radius:50%; box-shadow:0 0 8px var(--e-eye,#e8963c); }
+  .enemy-shape-angler::before{ content:""; position:absolute; top:-8px; left:15%; width:13px; height:13px; background:var(--e-eye,#e8963c); border-radius:50%; box-shadow:0 0 16px var(--e-eye,#e8963c), 0 0 6px #fff; }
+  .enemy-shape-specter{ clip-path:polygon(50% 0%, 85% 20%, 95% 55%, 70% 80%, 85% 100%, 50% 85%, 20% 100%, 30% 80%, 5% 55%, 15% 20%); }
+  .enemy-shape-specter::after{ top:22%; left:33%; width:7px; height:17px; border-radius:4px; box-shadow:14px 0 var(--e-eye,#e8963c), 0 0 12px var(--e-eye,#e8963c), 14px 0 12px var(--e-eye,#e8963c); }
+  .enemy-shape-bat{ clip-path:polygon(50% 15%, 60% 0%, 75% 25%, 100% 10%, 85% 60%, 65% 75%, 50% 100%, 35% 75%, 15% 60%, 0% 10%, 25% 25%, 40% 0%); }
+  .enemy-shape-bat::after{ top:25%; left:42%; width:6px; height:6px; box-shadow:10px 0 var(--e-eye,#e8963c), 0 0 10px var(--e-eye,#e8963c), 10px 0 10px var(--e-eye,#e8963c); }
+  .enemy-shape-hydra{ clip-path:polygon(20% 10%, 35% 0%, 50% 20%, 65% 0%, 80% 10%, 95% 45%, 80% 85%, 50% 100%, 20% 85%, 5% 45%); }
+  .enemy-shape-hydra::after{ top:28%; left:20%; width:7px; height:7px; box-shadow: 22px -8px var(--e-eye,#e8963c), 44px 0 var(--e-eye,#e8963c), 0 0 8px var(--e-eye,#e8963c), 22px -8px 8px var(--e-eye,#e8963c), 44px 0 8px var(--e-eye,#e8963c); }
+
+  .enemy-hud{
+    position:absolute; top:-58px; left:50%; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    pointer-events:none; z-index:4;
+  }
+  .enemy-hud-name{
+    font-family:'Courier New',monospace; font-size:11px; letter-spacing:1px;
+    color:var(--parchment); text-shadow:0 2px 4px rgba(0,0,0,0.85);
+    white-space:nowrap;
+  }
+  .enemy-hud-bar{
+    width:110px; height:10px; background:#1a0e0e; border:1px solid #000; border-radius:3px;
+    position:relative; overflow:hidden;
+    box-shadow:0 2px 4px rgba(0,0,0,0.6);
+  }
+  .enemy-hud-fill{
+    height:100%; background:linear-gradient(90deg, var(--blood), var(--blood-bright));
+    transition:width 0.25s ease;
+  }
+  .enemy-hud-hptext{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Courier New',monospace; font-size:8.5px; color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,0.9);
+  }
+  .enemy-intent-row{
+    position:absolute; top:-58px; left:100%; margin-left:9px;
+    display:flex; align-items:center; gap:8px;
+    z-index:4;
+  }
+  .enemy-intent{
+    display:flex; align-items:center; gap:4px;
+    background:rgba(15,10,8,0.85); border:1px solid var(--steel); border-radius:14px;
+    padding:4px 10px;
+    animation:intentPulse 2.4s ease-in-out infinite;
+    pointer-events:auto; cursor:help;
+  }
+  .enemy-intent .intent-icon{ font-size:13px; color:var(--steel); }
+  .enemy-intent .intent-value{ font-family:'Courier New',monospace; font-size:12px; color:var(--parchment); font-weight:bold; }
+  .heavy-strike-warning{
+    display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px;
+    background:rgba(15,10,8,0.85); border:1px solid var(--blood-bright); border-radius:50%;
+    cursor:help; pointer-events:auto;
+  }
+  .heavy-strike-warning .hsw-icon{ font-size:14px; color:var(--blood-bright); }
+  @keyframes intentPulse{
+    0%,100%{ transform:scale(1); opacity:0.92; }
+    50%{ transform:scale(1.06); opacity:1; }
+  }
+  .player-hands{
+    position:absolute; bottom:0; left:0; right:0; height:130px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding:0 8%;
+    pointer-events:none;
+  }
+  .hand{width:70px; height:100px; background:linear-gradient(180deg,#3a2c1c,#1c130b); clip-path:polygon(20% 100%, 0 40%, 30% 0, 70% 0, 100% 40%, 80% 100%);}
+  .torch-hand{position:relative;}
+  .torch-flame{
+    position:absolute; top:-26px; left:50%; transform:translateX(-50%);
+    width:20px; height:30px;
+    background:radial-gradient(ellipse at 50% 100%, var(--ember) 0%, var(--blood-bright) 55%, transparent 80%);
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    filter:blur(0.3px);
+  }
+
+  .bottom-left-anchor{
+    position:absolute; left:16px; bottom:16px;
+    z-index:7;
+    display:flex; flex-direction:column-reverse; align-items:flex-start; gap:8px;
+  }
+  .buff-cluster{
+    display:flex; flex-direction:row; flex-wrap:wrap-reverse;
+    align-content:flex-start; align-items:flex-start;
+    gap:6px; width:164px; 
+  }
+  .player-card{
+    position:relative;
+    background:rgba(10,8,5,0.75);
+    border:1px solid var(--steel);
+    border-radius:4px;
+    padding:8px 12px;
+    min-width:150px;
+  }
+  .player-card .name{font-size:13px; letter-spacing:2px;}
+  .bar-fill.hp-player{background:linear-gradient(90deg,var(--hp-red),#e05a5a);}
+  .bar-fill.shield{background:linear-gradient(90deg,#2f6f6f,var(--shield-cyan));}
+  .bar-fill.energy{background:linear-gradient(90deg,#2a5486,var(--energy-blue));}
+  .icon-shape{ display:inline-block; vertical-align:middle; flex-shrink:0; }
+  .icon-shield{
+    width:13px; height:15px;
+    background:#ffffff;
+    clip-path: polygon(50% 0%, 100% 15%, 100% 55%, 50% 100%, 0% 55%, 0% 15%);
+  }
+  .icon-lightning{
+    width:11px; height:16px;
+    background: var(--energy-blue);
+    clip-path: polygon(55% 0%, 0% 60%, 40% 60%, 30% 100%, 100% 35%, 50% 35%);
+  }
+
+  .cycle-wrap{
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px solid rgba(111,138,156,0.3);
+  }
+  .cycle-wrap .cycle-label{
+    font-family:'Courier New',monospace; font-size:9px; letter-spacing:1px;
+    color:var(--parchment-dim); text-transform:uppercase; margin-bottom:5px;
+  }
+  .cycle-grid{
+    display:grid; grid-template-columns:repeat(2,1fr); gap:6px; width:60px;
+  }
+  .cycle-active-info{
+    margin-top:7px;
+    padding:5px 7px;
+    border-radius:3px;
+    background:rgba(0,0,0,0.28);
+    border-left:2px solid var(--parchment-dim);
+    transition:border-color 0.25s ease;
+    cursor:default;
+  }
+  .cycle-active-info .cai-name-big{
+    font-family:'Courier New',monospace;
+    font-size:13px;
+    font-weight:bold;
+    letter-spacing:0.5px;
+  }
+  .cycle-node{
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px;
+    background:radial-gradient(circle at 35% 30%, #241f16, #100c08);
+    border:2px solid #4a3f30;
+    color:var(--parchment-dim);
+    opacity:0.4;
+    cursor:help;
+    transition:all 0.25s ease;
+  }
+  .cycle-node.active{ opacity:1; color:var(--parchment); border-color:var(--glow); box-shadow:0 0 9px var(--glow), inset 0 0 6px var(--glow-dim); }
+  .cycle-node.tl.active{ --glow:var(--gold-light); --glow-dim:rgba(232,196,104,0.4); }
+  .cycle-node.bl.active{ --glow:#7ed957; --glow-dim:rgba(126,217,87,0.4); }
+  .cycle-node.br.active{ --glow:var(--shield-cyan); --glow-dim:rgba(94,163,163,0.4); }
+  .cycle-node.tr.active{ --glow:var(--steel); --glow-dim:rgba(111,138,156,0.4); }
+
+  .bottom-panel{
+    position:absolute; left:0; right:0; bottom:0; height:190px;
+    background:linear-gradient(180deg, rgba(10,8,5,0) 0%, rgba(8,6,4,0.92) 22%, #0a0705 100%);
+    z-index:6;
+    display:flex; flex-direction:column; align-items:center;
+    padding-top:0;
+  }
+
+  .card-tooltip-wrap{
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    transform:translateX(-50%);
+    margin-bottom:10px;
+    pointer-events:none;
+    z-index:10;
+  }
+  .sheep-canvas{
+    position:absolute;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    width:480px;
+    height:78px;
+    max-width:100%;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    z-index:3;
+    pointer-events:none;
+  }
+
+  .card-tooltip{
+    width:560px; max-width:92vw;
+    background:rgba(20,15,9,0.94);
+    border:1px solid var(--gold-light);
+    border-radius:4px;
+    padding:10px 16px;
+    text-align:center;
+    max-height:220px;
+    overflow-y:auto;
+    display:flex; flex-direction:column; justify-content:center;
+    pointer-events:none;
+    box-shadow:0 4px 16px rgba(0,0,0,0.8);
+    position:relative;
+  }
+  .tooltip-battle-no{
+    position:absolute; right:8px; bottom:6px;
+    font-family:'Courier New',monospace; font-size:10px; color:var(--parchment-dim);
+    display:none;
+  }
+  .card-tooltip .cname{font-size:18px; font-weight:bold; color:var(--gold-light); letter-spacing:1.5px;}
+  .card-tooltip .cstats{font-family:'Courier New',monospace; font-size:13px; color:var(--parchment-dim); margin-top:4px; white-space:pre-line; line-height:1.4;}
+  .card-tooltip .cstats .stats-line{ color:var(--parchment-dim); }
+  .card-tooltip .cstats .effect-line{ color:#7ed957; margin-top:3px; }
+  .card-tooltip .cstats .story-line{ color:var(--parchment); text-align:left; }
+  .stat-boost{color:#7ed957; font-weight:bold;}
+  .stat-debuff{color:var(--blood-bright); font-weight:bold;}
+
+  .hand-row{
+    display:flex; align-items:center; justify-content:center; gap:14px;
+    width:100%;
+    min-height:144px;
+    position:relative;
+    z-index:2;
+  }
+  .early-attack-wrap{
+    position:absolute;
+    right:22px;
+    bottom:26px;
+    z-index:8;
+    display:flex; flex-direction:column; align-items:stretch; gap:8px;
+  }
+  .early-attack-inner{ position:relative; }
+  .brain-voice-btn{
+    padding:9px 16px;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:1px;
+    text-align:center;
+    color:var(--parchment-dim);
+    background:rgba(20,15,9,0.9);
+    border:1px solid var(--steel);
+    border-radius:4px;
+    cursor:help;
+    transition:all 0.2s ease;
+  }
+  .brain-voice-btn:hover{
+    border-color:var(--gold-light);
+    color:var(--gold-light);
+    box-shadow:0 0 8px rgba(232,196,104,0.3);
+  }
+  .early-attack-btn{
+    position:relative;
+    padding:9px 16px;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:1px;
+    color:var(--parchment-dim);
+    background:rgba(20,15,9,0.9);
+    border:1px solid var(--steel);
+    border-radius:4px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .early-attack-btn:disabled{
+    opacity:0.35;
+    cursor:not-allowed;
+  }
+  .early-attack-btn:not(:disabled):hover{
+    border-color:var(--gold-light);
+    color:var(--gold-light);
+    box-shadow:0 0 8px rgba(232,196,104,0.3);
+  }
+  .early-attack-hint{
+    position:absolute;
+    bottom:100%;
+    right:0;
+    margin-bottom:6px;
+    white-space:nowrap;
+    font-family:'Courier New',monospace;
+    font-size:9px;
+    color:var(--parchment-dim);
+    background:rgba(0,0,0,0.8);
+    border:1px solid var(--steel);
+    padding:3px 7px;
+    border-radius:3px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.15s ease;
+  }
+  .early-attack-hint.show{ opacity:1; }
+  .card{
+    width:96px; height:144px;
+    border-radius:7px;
+    position:relative;
+    display:flex; flex-direction:column; align-items:center;
+    padding:8px 5px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.6);
+    border:1px solid #000;
+    cursor:pointer;
+    transition:transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  }
+  .card.light{background:linear-gradient(160deg,#4a3c1e,#241c0e); border-color:var(--gold-light);}
+  .card.mid{background:linear-gradient(160deg,#2e3f47,#141d21); border-color:var(--steel);}
+  .card.heavy{background:linear-gradient(160deg,#4a2020,#210d0d); border-color:var(--blood-bright);}
+  .card:hover:not(.disabled){transform:translateY(-6px);}
+  .card.selected{transform:translateY(-10px); box-shadow:0 0 16px rgba(232,196,104,0.5), 0 6px 14px rgba(0,0,0,0.7);}
+  .card.disabled{opacity:0.4; filter:grayscale(0.5); cursor:not-allowed;}
+  .card .cost{
+    position:absolute; top:5px; left:5px;
+    width:19px; height:19px; border-radius:50%;
+    background:var(--energy-blue); border:1px solid #0a1622;
+    font-family:'Courier New',monospace; font-size:11px;
+    display:flex; align-items:center; justify-content:center; color:#fff;
+  }
+  .card .order{
+    position:absolute; top:5px; right:5px;
+    width:19px; height:19px; border-radius:50%;
+    background:var(--gold-light); border:1px solid #3a2f14;
+    font-family:'Courier New',monospace; font-size:11px; font-weight:bold;
+    display:flex; align-items:center; justify-content:center; color:#241c0e;
+  }
+  .card .icon{font-size:24px; margin-top:16px;}
+  .card .cardname{font-size:12px; margin-top:7px; text-align:center; color:var(--parchment); letter-spacing:1px;}
+  .card .dmg{font-family:'Courier New',monospace; font-size:13px; margin-top:3px; color:var(--parchment);}
+  .card .mini-stats{font-family:'Courier New',monospace; font-size:8.5px; margin-top:3px; color:var(--parchment-dim); text-align:center;}
+
+  .battle-banner{
+    position:absolute; top:26%; left:50%; transform:translate(-50%,-50%);
+    font-size:26px; letter-spacing:6px; color:var(--parchment);
+    text-shadow:0 0 24px rgba(0,0,0,0.9), 0 0 10px var(--ember);
+    opacity:0; transition:opacity 0.4s ease; pointer-events:none;
+    z-index:9; text-align:center; white-space:pre-line; line-height:1.5;
+  }
+  .battle-banner.show{opacity:1;}
+
+  .choice-overlay{
+    position:absolute; inset:0; background:rgba(10,8,5,0.95);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px;
+    z-index:20;
+  }
+  .choice-overlay .choice-title{font-size:19px; letter-spacing:5px; color:var(--parchment);}
+  .choice-overlay .choice-row{display:flex; gap:20px;}
+  .choice-card{
+    width:253px; min-height:196px; background:rgba(18,13,8,0.92);
+    border:1px solid var(--stone-mid); border-radius:6px;
+    padding:16px; color:var(--parchment); font-size:12.5px; line-height:1.7; cursor:pointer;
+    transition:border-color 0.15s ease, transform 0.15s ease;
+  }
+  .choice-card:hover{border-color:var(--gold-light); transform:translateY(-5px);}
+  .choice-card .choice-name{font-size:14.5px; font-weight:bold; margin-bottom:8px;}
+  .choice-card.light .choice-name{color:var(--gold-light);}
+  .choice-card.mid .choice-name{color:var(--steel);}
+  .choice-card.heavy .choice-name{color:var(--blood-bright);}
+
+  .dmg-number{
+    position:absolute; font-family:'Courier New',monospace; font-weight:bold;
+    pointer-events:none; z-index:16; text-shadow:0 2px 3px rgba(0,0,0,0.85);
+    animation:dmgFloat 0.8s ease-out forwards;
+    transform:translate(-50%,-50%);
+  }
+  .dmg-number.graze{animation-duration:0.65s;}
+  @keyframes dmgFloat{
+    0%{opacity:1; transform:translate(-50%,-50%);}
+    100%{opacity:0; transform:translate(-50%,calc(-50% - 60px));}
+  }
+  #tabInfoPanel{
+    display:none;
+    margin-top:8px;
+    z-index:8000;
+  }
+  .tab-info-box{
+    background:var(--stone-dark);
+    border:1px solid var(--gold-light);
+    border-radius:6px;
+    padding:14px 18px;
+    min-width:460px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.7);
+  }
+  .tab-info-title{
+    font-family:Georgia,serif; color:var(--gold-light);
+    font-size:14px; letter-spacing:2px; text-align:center; margin-bottom:10px;
+  }
+  .tab-info-table{ width:100%; border-collapse:collapse; font-family:'Courier New',monospace; font-size:11.5px; color:var(--parchment); }
+  .tab-info-table th, .tab-info-table td{ padding:6px 10px; text-align:center; border-bottom:1px solid var(--stone-mid); }
+  .tab-info-table th{ color:var(--parchment-dim); font-weight:normal; font-size:10px; letter-spacing:1px; }
+  .tab-info-table td:first-child, .tab-info-table th:first-child{ text-align:left; }
+  .tab-info-table td:first-child{ color:var(--gold-light); font-weight:bold; }
+  .tab-info-table .expected-col{ color:#7ed957; font-weight:bold; }
+  .tab-info-hint{ margin-top:14px; font-size:10.5px; color:var(--parchment-dim); text-align:center; line-height:1.6; }
+  .tab-info-close-hint{ margin-top:6px; font-size:10px; color:var(--parchment-dim); text-align:center; opacity:0.6; }
+</style>
+</head>
+<body>
+
+<div class="story-overlay" id="storyScreen1">
+  <div class="story-glow"></div>
+  <div class="story-text">聖殿祭司在王國慶典上敲碎了守護石，
+對整個王國施加了未知詛咒，導致世界陷入瘋狂與毀滅。
+失去記憶的你，憑藉著最後一絲求生意識，
+前往被稱為「黑暗魔窟」洞穴，尋找深處被封印的強大力量，</div>
+  <div class="skip-hint">按 E 略過</div>
+</div>
+
+<div class="story-overlay" id="storyScreen2" style="display:none;">
+  <div class="story-glow"></div>
+  <div class="story-text">你... 現在失去一切記憶在錯亂的大腦中...
+嘗試拼湊..曾經的自己與一切的真相...</div>
+  <div class="skip-hint">按 E 略過</div>
+</div>
+
+<div class="stage" id="stage">
+  <div class="torch-glow"></div>
+  <div class="vignette"></div>
+
+  <div class="talent-tooltip" id="talentTooltip">
+    <div class="ttname" id="ttName"></div>
+    <div id="ttDesc"></div>
+  </div>
+
+  <div class="top-bar" style="justify-content:flex-end;">
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+      <div class="enemy-card" id="enemyCard" style="display:none;">
+        <div class="name" id="enemyName">小怪</div>
+        <div class="stat-line">
+          <span class="stat-label">HP</span>
+          <div class="bar-track"><div class="bar-fill hp-enemy" id="enemyHpFill"></div></div>
+          <span class="stat-val" id="enemyHpNum">1/1</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">攻擊力</span>
+          <span class="stat-val" id="enemyAtkNum" style="color:var(--blood-bright);">1</span>
+        </div>
+      </div>
+      <div class="battle-no" id="battleNo">戰鬥001</div>
+  <div id="tabInfoPanel">
+    <div class="tab-info-box">
+      <div class="tab-info-title">攻擊數值總覽</div>
+      <table class="tab-info-table">
+        <thead>
+          <tr><th></th><th>命中率</th><th>暴擊率</th><th>暴傷加成</th><th>可能造成傷害</th><th>可能擦傷傷害</th><th>期望傷害</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>輕攻擊</td>
+            <td id="tab-light-hit"></td><td id="tab-light-crit"></td><td id="tab-light-critdmg"></td>
+            <td id="tab-light-hitdmg"></td><td id="tab-light-graze"></td><td class="expected-col" id="tab-light-expected"></td>
+          </tr>
+          <tr>
+            <td>中攻擊</td>
+            <td id="tab-mid-hit"></td><td id="tab-mid-crit"></td><td id="tab-mid-critdmg"></td>
+            <td id="tab-mid-hitdmg"></td><td id="tab-mid-graze"></td><td class="expected-col" id="tab-mid-expected"></td>
+          </tr>
+          <tr>
+            <td>重攻擊</td>
+            <td id="tab-heavy-hit"></td><td id="tab-heavy-crit"></td><td id="tab-heavy-critdmg"></td>
+            <td id="tab-heavy-hitdmg"></td><td id="tab-heavy-graze"></td><td class="expected-col" id="tab-heavy-expected"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="tab-info-hint">可能造成傷害＝一般命中／暴擊各自的傷害；期望傷害＝綜合命中率、暴擊率、擦傷後，平均一次出牌大概能造成的傷害</div>
+      <div class="tab-info-close-hint">放開 Tab 即可關閉</div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <div class="dialogue-box" id="dialogueBox">
+    <div class="who" id="dlgWho"></div>
+    <div class="line" id="dlgLine">一股濕冷的空氣灌入肺腑……你在黑暗中甦醒。</div>
+  </div>
+
+  <div class="scene">
+    <div class="enemy-wrap">
+      <div class="enemy-hud">
+        <div class="enemy-hud-name" id="enemyHudName"></div>
+        <div class="enemy-hud-bar">
+          <div class="enemy-hud-fill" id="enemyHudFill"></div>
+          <div class="enemy-hud-hptext" id="enemyHudHpText"></div>
+        </div>
+      </div>
+      <div class="enemy-intent-row">
+        <div class="enemy-intent" id="enemyIntent">
+          <span class="intent-icon">⚔</span><span class="intent-value" id="enemyIntentValue"></span>
+        </div>
+        <div class="heavy-strike-warning" id="heavyStrikeWarning">
+          <span class="hsw-icon">⚠</span><span class="intent-value" id="heavyCountdownValue"></span>
+        </div>
+      </div>
+      <div class="enemy-sprite" id="enemySprite"></div>
+    </div>
+  </div>
+  <div class="player-hands">
+    <div class="hand torch-hand"><div class="torch-flame"></div></div>
+    <div class="hand"></div>
+  </div>
+
+  <div class="bottom-left-anchor">
+  <div class="player-card">
+    <div class="name">失去記憶的戰士...</div>
+    <div class="stat-line" style="justify-content:flex-start;">
+      <span class="stat-label" style="font-size:13px; color:var(--hp-red);" title="生命值">❤</span>
+      <div class="bar-track"><div class="bar-fill hp-player" id="playerHpFill"></div></div>
+      <span class="stat-val" id="playerHpNum">100/100</span>
+    </div>
+    <div class="stat-line" style="justify-content:flex-start;">
+      <span class="icon-shape icon-shield" title="護盾"></span>
+      <div class="bar-track"><div class="bar-fill shield" id="playerShieldFill"></div></div>
+      <span class="stat-val" id="playerShieldNum">0/16</span>
+    </div>
+    <div class="stat-line" style="justify-content:flex-start;">
+      <span class="icon-shape icon-lightning" title="能量"></span>
+      <div class="bar-track"><div class="bar-fill energy" id="playerEnergyFill"></div></div>
+      <span class="stat-val" id="playerEnergyNum">3/3</span>
+    </div>
+    <div class="stat-line" style="justify-content:flex-start;">
+      <span class="stat-label" style="font-size:13px;" title="防禦">🛡️</span>
+      <span class="stat-val" id="playerDefenseNum" style="color:var(--gold-light);">0</span>
+      <span class="stat-label" style="margin-left:10px; font-size:13px;" title="命中率">🎯</span>
+      <span class="stat-val" id="playerHitBonusNum" style="color:var(--shield-cyan);">+0%</span>
+      <span class="stat-label" style="margin-left:10px; font-size:13px;" title="本回合可出牌數">⚔️</span>
+      <span class="stat-val" id="playerCardCountNum">0/1</span>
+    </div>
+    <div class="cycle-wrap">
+      <div class="cycle-label">甦醒循環</div>
+      <div class="cycle-grid">
+        <div class="cycle-node tl" id="cycleTL">❤</div>
+        <div class="cycle-node tr" id="cycleTR">⊕</div>
+        <div class="cycle-node bl" id="cycleBL">⚔</div>
+        <div class="cycle-node br" id="cycleBR">☗</div>
+      </div>
+      <div class="cycle-active-info" id="cycleActiveInfo"><span class="cai-name-big" id="cycleActiveName"></span></div>
+    </div>
+  </div>
+  <div class="buff-cluster" id="buffCluster">
+    <div id="baseBuffGrid" style="display:contents;"></div>
+    <div id="talentGrid" style="display:contents;"></div>
+    <div class="debuff-node" id="debuffNode">0</div>
+  </div>
+  </div>
+
+  <div class="bottom-panel">
+    <canvas id="sheepCanvas" class="sheep-canvas"></canvas>
+    <div class="card-tooltip-wrap">
+      <div class="card-tooltip" id="cardTooltip" style="display:none;">
+        <div class="cname" id="tipName"></div>
+        <div class="cstats" id="tipStats"></div>
+        <div class="tooltip-battle-no" id="tooltipBattleNo"></div>
+      </div>
+    </div>
+    <div class="hand-row" id="handRow"></div>
+    <div class="early-attack-wrap">
+      <div class="brain-voice-btn" id="brainVoiceBtn">腦之音</div>
+      <div class="early-attack-inner">
+        <span class="early-attack-hint" id="earlyAttackHint">點擊按鈕提前出手</span>
+        <button class="early-attack-btn" id="earlyAttackBtn" disabled>提前攻擊</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="battle-banner" id="battleBanner"></div>
+
+  <div id="choiceOverlay" class="choice-overlay" style="display:none;">
+    <div class="choice-title">選擇一項強化</div>
+    <div class="choice-row" id="choiceRow"></div>
+  </div>
+</div>
+
+
+<script>
+/* ============================================================
+   卡片定義
+============================================================ */
+const CARD_ICON = { light:'✊', mid:'🗡', heavy:'🪓' };
+const CARD_DEFS = {
+  light:{ name:'輕攻擊', dmg:1, hit:100, crit:0, cost:0,
+    effect:'命中: 全攻命中+3%\n次回能量+1、恢復1生命\n(單場疊加)' },
+  mid:{ name:'中攻擊', dmg:2, hit:78, crit:5, cost:1,
+    effect:'命中:獲得護盾2（跨場保留）' },
+  heavy:{ name:'重攻擊', dmg:3, hit:56, crit:72, cost:2,
+    effect:'使用:暴率+1% (單場疊加)' }
+};
+
+/* ============================================================
+   四象限循環系統
+============================================================ */
+const CYCLE_INFO = {
+  tl:{ name:'甦醒：治癒', desc:'切回時:生命+1' },
+  bl:{ name:'甦醒：猛攻', desc:'本回合:暴擊率+100%' },
+  br:{ name:'甦醒：守勢', desc:'本回合：受傷-50%（最低1）' },
+  tr:{ name:'甦醒：精準', desc:'本回合：命中率+20%' }
+};
+const CYCLE_ORDER = ['tl','bl','br','tr'];
+
+/* ============================================================
+   無能狂怒（DEBUFF）
+============================================================ */
+const RAGE_MAX_STACKS = 24;
+const RAGE_NAME = '無能狂怒';
+function rageDesc(stacks){
+  const totalPct = Math.floor(stacks/3);
+  return `連續兩次未命中疊1層\n每3層-1%命中率\n最多${RAGE_MAX_STACKS}層 (-${Math.floor(RAGE_MAX_STACKS/3)}%)(全局疊加)(目前-${totalPct}%)`;
+}
+
+/* ============================================================
+   戰鬥設定：戰鬥001~020
+============================================================ */
+const BATTLES = [
+  { id:1,  name:'戰鬥001', hp:1,   atk:1,  enemyDefense:0, maxCardsPerTurn:1, handLimit:1, intro:'戰鬥吧!\n用輕攻擊擊倒前方魔物', who:'腦之音', flavor:'瘦弱、行動遲緩，但眼神帶著飢餓。', enemyName:'瘦弱爬行者' },
+  { id:2,  name:'戰鬥002', hp:5,  atk:3,  enemyDefense:0, maxCardsPerTurn:1, handLimit:3, intro:'輕攻擊是一切的基礎，\n你會用他不斷確認與偵查敵人', who:'腦之音', flavor:'和前一隻幾乎一模一樣，警戒心稍高。', enemyName:'瘦弱爬行者' },
+  { id:3,  name:'戰鬥003', hp:11,  atk:2,  enemyDefense:0, maxCardsPerTurn:1, handLimit:4, intro:'中攻擊是鞏固防守到創造攻擊的重要手段...', who:'腦之音', flavor:'牠似乎很怕火，動作有些猶豫。', enemyName:'畏光爬行者' },
+  { id:4,  name:'戰鬥004', hp:14,  atk:3, enemyDefense:0, maxCardsPerTurn:2, handLimit:4, intro:'戰鬥意識甦醒..\n現在可以做出兩次攻擊..', who:'', flavor:'皮膚粗糙，看起來比之前的更耐打。', enemyName:'硬皮爬行者' },
+  { id:5,  name:'戰鬥005', hp:15,  atk:4, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'如果你腦中的想法\n完全充滿重攻擊...\n會死喔...', who:'腦之音', flavor:'肌肉緊繃，隨時準備撲擊。', enemyName:'膨脹爬行者' },
+  { id:6,  name:'戰鬥006', hp:17,  atk:5, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'你過去的戰鬥意識不斷在輪轉甦醒..\n跟隨著那些感覺去戰鬥吧...', who:'腦之音', flavor:'傷痕累累卻依然凶猛。', enemyName:'腐臭爬行者' },
+  { id:7,  name:'戰鬥007', hp:19,  atk:4, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出三次攻擊..', who:'', flavor:'攻勢變得更加凌厲。', enemyName:'深穴爬行者' },
+  { id:8,  name:'戰鬥008', hp:21,  atk:5, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'我好像聽到亡魂說......\n他看過無數人戰敗在這隻怪物了...', who:'腦之音', flavor:'體型龐大，動作卻異常敏捷。', enemyName:'裂爪爬行者' },
+  { id:9,  name:'戰鬥009', hp:23, atk:4, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'亡魂終於走了吵死了...', who:'腦之音', flavor:'渾身散發著猙獰的氣息。', enemyName:'深淵爬行者' },
+  { id:10, name:'戰鬥010', hp:25, atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出四次攻擊..', who:'', flavor:'體型比之前所有對手都巨大，散發著壓迫感。', enemyName:'噬影爬行者' },
+  { id:11, name:'戰鬥011', hp:31, atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'魔物越來越強...\n終將一死嗎..?\n必須專注...', who:'腦之音', flavor:'皮膚堅硬如岩石，行動卻出乎意料地敏捷。', enemyName:'裂岩爬行者' },
+  { id:12, name:'戰鬥012', hp:37, atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'專注...', who:'腦之音', flavor:'渾身纏繞著詭異的黑霧，眼神彷彿能看穿你的恐懼。', enemyName:'深淵主宰' },
+  { id:13, name:'戰鬥013', hp:43,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'深淵主宰倒下後，地底深處卻傳來更多騷動——這裡遠比你想像的還要深。', flavor:'渾身覆滿尖銳的骨刺，啃咬過的痕跡遍布全身。', enemyName:'噬骨爬行者' },
+  { id:14, name:'戰鬥014', hp:49,  atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'空氣逐漸變得灼熱，腳下的岩石隱隱發紅。', flavor:'皮膚彷彿與熔岩融為一體，靠近就能感受到高溫。', enemyName:'熔岩爬行者' },
+  { id:15, name:'戰鬥015', hp:57,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'眼前的生物身形忽明忽滅，彷彿不完全存在於這個世界。', flavor:'輪廓模糊不清，攻擊時卻異常真實而沉重。', enemyName:'虛空爬行者' },
+  { id:16, name:'戰鬥016', hp:60,  atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的咆哮中夾雜著另一個聲音，彷彿不只一個靈魂困在這副軀體裡。', flavor:'裂開的軀殼中，隱約能看見扭動的黑影。', enemyName:'裂魂爬行者' },
+  { id:17, name:'戰鬥017', hp:62,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的雙眼佈滿血絲，狂躁地朝你衝來，完全不顧自身安危。', flavor:'渾身肌肉賁張，攻擊帶著失控般的狠勁。', enemyName:'血怒爬行者' },
+  { id:18, name:'戰鬥018', hp:64,  atk:7, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'地面劇烈震動，一頭遠比之前所有生物都巨大的存在浮出黑暗。', flavor:'體型龐大到幾乎填滿整條通道，每次動作都震得洞窟嘎嘎作響。', enemyName:'深潛巨獸' },
+  { id:19, name:'戰鬥019', hp:66,  atk:8, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠周身的空間彷彿正在崩解，靠近牠讓人感到一陣暈眩。', flavor:'存在本身就在侵蝕著四周，彷彿隨時會將一切拖入虛無。', enemyName:'崩壞使者' },
+  { id:20, name:'戰鬥020', hp:71,  atk:9, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'一股凌駕於先前一切的威壓籠罩而下——你知道，這才是這片深淵真正的裁決者。', flavor:'渾身散發著審判般的冷冽氣息，彷彿在衡量你是否有資格活下去。', enemyName:'深淵審判者' }
+];
+
+const UPGRADE_TIER_1 = [
+  { key:'light1', tier:1, line:'light', name:'升級輕攻擊', desc:'每次擊中敵人效果提升為\n全攻命中+4%、次回能量+2、恢復1生命\n（單場疊加）' },
+  { key:'mid1',   tier:1, line:'mid',   name:'升級中攻擊', desc:'命中後，角色防禦+1\n（單場疊加，最高2層）' },
+  { key:'heavy1', tier:1, line:'heavy', name:'升級重攻擊', desc:'命中:傷害+1\n(每場限+1)' }
+];
+const UPGRADE_TIER_2 = [
+  { key:'light2', tier:2, line:'light', name:'穩定呼吸', desc:'敵我回合開始時，恢復生命1（全局）' },
+  { key:'mid2',   tier:2, line:'mid',   name:'強化中攻擊', desc:'使用中攻擊擊中敵人時獲得的護盾量+2，護盾上限+2' },
+  { key:'heavy2', tier:2, line:'heavy', name:'強化重攻擊', desc:'暴擊時額外附加1傷害' }
+];
+const UPGRADE_TIER_3 = [
+  { key:'light3', tier:3, line:'light', name:'精準擦傷', desc:'擦傷傷害由68%提升為82%\n（無條件捨棄）\n（擦傷為未命中的傷害）' },
+  { key:'mid3',   tier:3, line:'mid',   name:'侵略本性', desc:'輕中重攻擊+1\n防禦永久-3' },
+  { key:'restheal', tier:3, line:'heavy', name:'絕境冥想', desc:'立即恢復生命12\n+2護盾上限\n立即補滿護盾' }
+];
+const UPGRADE_TIER_4 = [
+  { key:'waterflow', tier:4, line:'light', name:'記憶甦醒：水流拳', desc:'一次使用三個輕攻擊，恢復12生命 (每場限一次)' },
+  { key:'shepherd', tier:4, line:'mid', name:'記憶甦醒：牧羊之歌', desc:'同一回合依序使用輕輕重攻擊。召喚2隻綿羊，被擊中時每隻綿羊有2%機率犧牲為你阻擋一次攻擊，戰鬥結束每隻綿羊提供羊奶恢復2生命 (綿羊存在可跨場)(上限4隻)' },
+  { key:'princess', tier:4, line:'heavy', name:'記憶甦醒：戰鬥公主', desc:'同一回合依序使用輕重輕。壓縮護盾與能量召喚你的武士刀，該場戰鬥護盾上限-6，次回合能量-3，該場戰鬥攻擊+1 (單場效果)' }
+];
+const TIER_TABLE = { 1:UPGRADE_TIER_1, 2:UPGRADE_TIER_2, 3:UPGRADE_TIER_3, 4:UPGRADE_TIER_4 };
+
+/* ============================================================
+   狀態
+============================================================ */
+const state = {
+  battleIndex:0,
+  roundNum:1, // 怪物狂暴回合計算
+  defaultWho:'', defaultLine:'',
+  player:{
+    hp:98, hpMax:98,
+    shield:0, shieldMaxBase:11,
+    energy:3, energyMax:3,
+    nextTurnBonusEnergy:0,
+    defenseThisBattle:0,
+    defenseReductionThisBattle:0,
+    bonusHitPct:0,
+    heavyUseCritBonus:0, // 重攻擊每次使用的暴擊率加成(不論命中與否)
+    heavyHitAtkBonus:0,
+    bonusDefenseFlat:0,
+    
+    upgLight1:false, upgMid1:false, upgHeavy1:false,
+    upgStableBreathing:false, upgMid2:false, upgHeavy2:false,
+    upgPreciseGraze:false, upgAggressive:false,
+    
+    cyclePos:0,
+    missStreak:0,   // 跨場保留
+    rageStacks:0,   // 跨場保留
+    
+    upgWaterflow:false, waterflowTriggered:false,
+    upgShepherd:false, sheepAlive:0,
+    upgPrincess:false, princessTriggered:false,
+    princessShieldPenalty:0, princessEnergyPenalty:0, princessAtkBonus:0,
+
+    pips:[]
+  },
+  enemy:{ hp:1, hpMax:1, atk:1, defenseBase:0, defenseReduction:0, dmgMult:1, name:'小怪', flavor:'' },
+  hand:[],
+  handLimit:3,
+  queue:[],
+  maxCardsPerTurn:1,
+  turn:'PLAYER',
+  busy:false
+};
+
+function getShieldMax() {
+  const reduced = state.player.shieldMaxBase - (state.player.princessShieldPenalty || 0) - (state.player.roundShieldCapReduction || 0);
+  return Math.max(0, reduced);
+}
+function predictedIncomingDamage(){
+  const roarActive = state.battleIndex >= 5;
+  let atk = state.enemy.atk;
+  if(state.roundNum >= 3 && roarActive) atk += 1;
+  const nextRoundIsHeavy = state.roundNum >= 4 && state.roundNum % 4 === 0;
+  const rawDmg = nextRoundIsHeavy ? Math.ceil(atk * 1.3) : atk;
+  const totalDefense = state.player.defenseThisBattle + state.player.bonusDefenseFlat - (state.player.defenseReductionThisBattle || 0);
+  return Math.max(1, rawDmg - totalDefense);
+}
+
+function recomputeBattleBonuses(){
+  const p = state.player;
+  p.upgLight1 = false;
+  p.upgMid1 = false;
+  p.upgHeavy1 = false;
+  p.upgStableBreathing = false;
+  p.upgMid2 = false;
+  p.upgHeavy2 = false;
+  p.upgPreciseGraze = false;
+  p.upgAggressive = false;
+  p.bonusDefenseFlat = 0;
+  p.upgWaterflow = false;
+  p.upgShepherd = false;
+  p.upgPrincess = false;
+
+  p.pips.forEach(pip=>{
+    switch(pip.key){
+      case 'light1': p.upgLight1 = true; break;
+      case 'mid1':   p.upgMid1 = true; break;
+      case 'heavy1': p.upgHeavy1 = true; break;
+      case 'light2': p.upgStableBreathing = true; break;
+      case 'mid2':   p.upgMid2 = true; break;
+      case 'heavy2': p.upgHeavy2 = true; break;
+      case 'light3': p.upgPreciseGraze = true; break;
+      case 'mid3':   p.upgAggressive = true; p.bonusDefenseFlat -= 3; break; // 侵略本性
+      case 'waterflow': p.upgWaterflow = true; break; 
+      case 'shepherd': p.upgShepherd = true; break; 
+      case 'princess': p.upgPrincess = true; break; 
+    }
+  });
+
+  if(p.hp > p.hpMax) p.hp = p.hpMax;
+  p.shield = Math.min(p.shield, getShieldMax());
+}
+
+function triggerTurnStartHeal(){
+  if(state.player.upgStableBreathing){
+    const before = state.player.hp;
+    state.player.hp = Math.min(state.player.hpMax, state.player.hp + 1);
+    if(state.player.hp > before) sfxHeal();
+  }
+}
+
+function applyDefense(rawDmg, defense){
+  if(rawDmg<=0) return rawDmg;
+  return Math.max(1, rawDmg - defense); 
+}
+function effectiveEnemyDefense(){
+  return (state.enemy.defenseBase||0) - (state.enemy.defenseReduction||0); 
+}
+
+function cardStat(type){
+  const base = CARD_DEFS[type];
+  let hit = base.hit + (state.player.bonusHitPct || 0) - (type==='light' ? 0 : (state.player.hitReductionThisBattle || 0)); 
+  let crit = base.crit, dmg = base.dmg;
+
+  // 侵略本性 (永久加傷)
+  if(state.player.upgAggressive){
+    if(type==='light') dmg += 1;
+    if(type==='mid') dmg += 1;
+    if(type==='heavy') dmg += 1;
+  }
+
+  // 戰鬥公主 (單場加攻)
+  if(state.player.princessAtkBonus){
+    dmg += state.player.princessAtkBonus;
+  }
+
+  let critMult = 2;
+  if(type==='heavy'){
+    dmg += (state.player.heavyHitAtkBonus || 0);
+    crit += (state.player.heavyUseCritBonus || 0);
+  }
+  const curCycle = CYCLE_ORDER[state.player.cyclePos];
+  if(curCycle==='bl'){ crit += 100; }
+  if(curCycle==='tr'){ hit += 20; }
+  const rage = state.player.rageStacks||0;
+  if(rage>0){
+    hit -= Math.floor(rage/3);
+  }
+  return { 
+    name:base.name, 
+    dmg:dmg, 
+    hit:Math.max(0,Math.min(100,hit)), 
+    crit:Math.max(0,Math.min(100,crit)),
+    critMult: critMult,
+    critExtraDmg: (type === 'heavy' && state.player.upgHeavy2) ? 1 : 0,
+    cost:base.cost 
+  };
+}
+
+function statSpan(value, suffix, isBoosted, isDebuffed){
+  if(isDebuffed) return `<span class="stat-debuff">${value}${suffix}</span>`;
+  return isBoosted ? `<span class="stat-boost">${value}${suffix}</span>` : `${value}${suffix}`;
+}
+
+/* ⚠️ 內部提醒：這個函式跟下面的 renderBaseBuffs() 是兩套「各自維護」的天賦效果顯示邏輯，
+   歷史上已經復發過好幾次「這裡改了、那裡忘記改」的問題（升級輕/中/重攻擊、強化中/重攻擊的效果
+   常常只更新其中一邊）。之後任何一個攻擊的Tier1/Tier2效果有變動，
+   請務必同時檢查 cardStatsLine() 跟 renderBaseBuffs() 兩處是否都同步更新。 */
+function cardStatsLine(type, stat){
+  const base = CARD_DEFS[type];
+  const rage = state.player.rageStacks||0;
+  const hitHtml = statSpan(stat.hit, '%', stat.hit>base.hit, rage>0 && stat.hit<base.hit);
+  const critHtml = statSpan(stat.crit, '%', stat.crit>base.crit, rage>0 && stat.crit<base.crit);
+  const dmgHtml = statSpan(stat.dmg, '', stat.dmg>base.dmg);
+  const statsLine = `傷害 ${dmgHtml}｜命中 ${hitHtml}｜暴擊 ${critHtml}｜消耗 ${stat.cost} 能量`;
+
+  const effectLines = [];
+  const p = state.player;
+  
+  if(type==='light'){
+    const energyGain = p.upgLight1 ? 2 : 1;
+    const hitGain = p.upgLight1 ? 4 : 3;
+    effectLines.push(`命中：該場命中率+${hitGain}%、次回合能量+${energyGain}、恢復1生命（可疊加）`);
+  } else if(type==='mid'){
+    const shieldGain = 2 + (p.upgMid2 ? 2 : 0);
+    effectLines.push(`命中：獲得護盾+${shieldGain}（跨場保留）`);
+    if(p.upgMid1) effectLines.push('命中：該場角色防禦+1（最高2層）');
+    if(p.upgMid2) effectLines.push('護盾上限+2（永久）');
+  } else if(type==='heavy'){
+    effectLines.push(`使用:暴率+1% (單場疊加)`);
+    if(p.upgHeavy1) effectLines.push(`命中:傷害+1 (每場限+1)`);
+    if(p.upgHeavy2) effectLines.push(`暴擊時額外附加1傷害`);
+  }
+  
+  if(rage>0) effectLines.push(`⚠${RAGE_NAME}x${rage}：命中-${Math.floor(rage/3)}%（跨場保留）`);
+  return { statsLine, effectLines };
+}
+function renderTooltipHtml(statsLine, effectLines){
+  let html = '';
+  if(statsLine) html += `<div class="stats-line">${statsLine}</div>`;
+  effectLines.forEach(l=>{
+    html += `<div>${l}</div>`;
+  });
+  return html;
+}
+
+let dialogueFadeTimer = null;
+function renderDialogue(who, line){
+  document.getElementById('dlgWho').textContent = who;
+  document.getElementById('dlgLine').textContent = line;
+}
+function setStory(who, line){
+  state.defaultWho = who || '';
+  state.defaultLine = line;
+  renderDialogue(state.defaultWho, state.defaultLine);
+
+  const box = document.getElementById('dialogueBox');
+  clearTimeout(dialogueFadeTimer);
+  box.style.transition = 'none';
+  box.style.opacity = '1';
+  void box.offsetWidth;
+  box.style.transition = 'opacity 1s linear';
+  dialogueFadeTimer = setTimeout(()=>{ box.style.opacity = '0'; }, 15000);
+}
+function hoverStory(who, line){ renderDialogue(who, line); }
+function unhoverStory(){ renderDialogue(state.defaultWho, state.defaultLine); }
+
+function setTooltipDefault(){
+  const tip = document.getElementById('cardTooltip');
+  tip.style.display = 'none';
+  document.getElementById('tipName').textContent = '';
+  document.getElementById('tipStats').innerHTML = '';
+  const badge = document.getElementById('tooltipBattleNo');
+  if(badge) badge.style.display = 'none';
+}
+function hoverTooltip(type, stat){
+  const tip = document.getElementById('cardTooltip');
+  tip.style.display = 'flex';
+  document.getElementById('tipName').textContent = stat.name;
+  const { statsLine, effectLines } = cardStatsLine(type, stat);
+  document.getElementById('tipStats').innerHTML = renderTooltipHtml(statsLine, effectLines);
+  const badge = document.getElementById('tooltipBattleNo');
+  if(badge) badge.style.display = 'none';
+}
+function hoverBrainVoiceIntro(){
+  const tip = document.getElementById('cardTooltip');
+  tip.style.display = 'flex';
+  document.getElementById('tipName').textContent = '腦之音';
+  const line = (state.currentIntro||'').replace(/\n/g, '<br>');
+  document.getElementById('tipStats').innerHTML = `<div style="text-align:center;">${line}</div>`;
+  const badge = document.getElementById('tooltipBattleNo');
+  if(badge){ badge.textContent = BATTLES[state.battleIndex].name; badge.style.display = 'block'; }
+}
+function unhoverBrainVoiceIntro(){
+  const badge = document.getElementById('tooltipBattleNo');
+  if(badge) badge.style.display = 'none';
+  setTooltipDefault();
+}
+
+function drawRandomCard(){
+  const r = Math.random()*3;
+  if(r<1) return 'light';
+  if(r<2) return 'mid';
+  return 'heavy';
+}
+function refillHand(){
+  const lightOnly = state.battleIndex === 0; // 戰鬥001：半教學、也避免玩家一開始就學到「中攻擊拿護盾最優解」
+  while(state.hand.length < state.handLimit){
+    state.hand.push({ type: lightOnly ? 'light' : drawRandomCard(), uid: Math.random().toString(36).slice(2) });
+  }
+}
+function startBattleHand(){
+  if(state.battleIndex === 0){
+    // 戰鬥001：手牌只有1張輕攻擊，純粹體驗一次輕攻擊，不讓中/重攻擊出現
+    state.hand = [
+      { type:'light', uid: Math.random().toString(36).slice(2) }
+    ];
+  } else {
+    state.hand = [
+      { type:'light', uid: Math.random().toString(36).slice(2) },
+      { type:'mid',   uid: Math.random().toString(36).slice(2) },
+      { type:'heavy', uid: Math.random().toString(36).slice(2) }
+    ];
+  }
+  refillHand();
+}
+
+function grazeSplit(total){
+  if(total<=0) return [];
+  const n = 3 + Math.floor(Math.random()*3);
+  const cuts=[];
+  for(let i=0;i<n-1;i++) cuts.push(Math.random());
+  cuts.sort((a,b)=>a-b);
+  const parts=[]; let prev=0;
+  for(let i=0;i<n-1;i++){ parts.push(cuts[i]-prev); prev=cuts[i]; }
+  parts.push(1-prev);
+  let sum=0;
+  const ints = parts.map(p=>{ const v=Math.floor(p*total); sum+=v; return v; });
+  ints[ints.length-1] += (total-sum);
+  return ints.filter(v=>v>0);
+}
+
+const stageEl = document.getElementById('stage');
+function numberFontSize(v, base=16, cap=52){ return Math.max(base, Math.min(cap, base + v*1.4)); }
+function getAnchorPct(target){
+  return target==='enemy' ? { xPct:50, yPct:33 } : { xPct:14, yPct:78 };
+}
+function spawnNumber(target, value, opts={}){
+  const a = getAnchorPct(target);
+  const jitterXPct = opts.jitterXPct!=null ? opts.jitterXPct : (Math.random()*6-3);
+  const jitterYPct = opts.jitterYPct!=null ? opts.jitterYPct : (Math.random()*4-2);
+  const el = document.createElement('div');
+  el.className = 'dmg-number' + (opts.isGraze?' graze':'');
+  el.style.left = (a.xPct+jitterXPct) + '%';
+  el.style.top = (a.yPct+jitterYPct) + '%';
+  el.style.fontSize = (opts.size || numberFontSize(value, target==='player' ? 36 : 16, target==='player' ? 66 : 52)) + 'px';
+  el.style.color = opts.isHeal ? '#7ed957' : (opts.isGraze ? '#a89c86' : (opts.isCrit ? '#e8c468' : '#e05a5a'));
+  el.textContent = opts.isBlock ? ('格檔'+value) : (opts.isHeal ? ('+'+value) : ('-'+value));
+  if(opts.delay){
+    el.style.opacity = '0';
+    setTimeout(()=>{ el.style.opacity=''; }, opts.delay);
+  }
+  stageEl.appendChild(el);
+  const lifetime = opts.isGraze?700:850;
+  setTimeout(()=>el.remove(), (opts.delay||0) + lifetime);
+}
+function playDamageSequence(target, parts, opts, onDone){
+  const isGraze = !!opts.isGraze;
+  const stagger = isGraze ? 200 : 0;
+  parts.forEach((v,i)=>{
+    spawnNumber(target, v, {
+      delay: i*stagger,
+      isCrit: opts.isCrit,
+      isGraze: isGraze,
+      isBlock: opts.isBlock,
+      jitterXPct: isGraze ? (i-(parts.length-1)/2)*3.2 + (Math.random()*1.2-0.6) : undefined
+    });
+  });
+  const totalDelay = (parts.length-1)*stagger;
+  const life = isGraze ? 650 : 800;
+  setTimeout(onDone, totalDelay + life + 150);
+}
+
+function currentQueueCost(){
+  return state.queue.reduce((sum,u)=>{
+    const c = state.hand.find(h=>h.uid===u);
+    return sum + (c?cardStat(c.type).cost:0);
+  },0);
+}
+
+function toggleCardSelect(uid){
+  if(state.turn!=='PLAYER' || state.busy) return;
+  const qIdx = state.queue.indexOf(uid);
+  if(qIdx>=0){
+    state.queue.splice(qIdx,1);
+    renderAll();
+    return;
+  }
+  if(state.queue.length>=state.maxCardsPerTurn) return;
+  const card = state.hand.find(c=>c.uid===uid);
+  if(!card) return;
+  const costSoFar = currentQueueCost();
+  const thisCost = cardStat(card.type).cost;
+  if(costSoFar + thisCost > state.player.energy) return;
+  state.queue.push(uid);
+  renderAll();
+  if(state.queue.length>=state.maxCardsPerTurn){
+    executeQueue();
+  }
+}
+
+function resolveSingleCard(uid, onDone){
+  const idx = state.hand.findIndex(c=>c.uid===uid);
+  if(idx<0){ onDone(); return; }
+  const card = state.hand[idx];
+  const stat = cardStat(card.type);
+  state.player.energy = Math.max(0, state.player.energy - stat.cost);
+  state.hand.splice(idx,1);
+
+  const hitRoll = Math.random()*100;
+  const isHit = hitRoll < stat.hit;
+  let sequenceOpts, parts;
+
+  if(card.type==='heavy'){
+    state.player.heavyUseCritBonus = (state.player.heavyUseCritBonus || 0) + 1;
+  }
+
+  if(isHit){
+    const critRoll = Math.random()*100;
+    const isCrit = critRoll < stat.crit;
+    let rawDmg = Math.round(stat.dmg * (isCrit ? stat.critMult : 1)) + (isCrit ? stat.critExtraDmg : 0);
+    const dmg = applyDefense(rawDmg, effectiveEnemyDefense());
+    state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+    sfxHit();
+    parts = [dmg];
+    sequenceOpts = { isCrit };
+
+    if(card.type==='light'){
+      const energyGain = state.player.upgLight1 ? 2 : 1;
+      const hitGain = state.player.upgLight1 ? 4 : 3;
+      const healGain = 1;
+      state.player.nextTurnBonusEnergy = (state.player.nextTurnBonusEnergy||0) + energyGain; 
+      state.player.bonusHitPct = (state.player.bonusHitPct||0) + hitGain; 
+      const hpBefore = state.player.hp;
+      state.player.hp = Math.min(state.player.hpMax, state.player.hp + healGain);
+      if(state.player.hp > hpBefore){ spawnNumber('player', state.player.hp - hpBefore, { isHeal:true, jitterXPct:-8 }); sfxHeal(); }
+    } else if(card.type==='mid'){
+      const shieldGain = 2;
+      const shieldBefore = state.player.shield;
+      state.player.shield = Math.min(getShieldMax(), state.player.shield + shieldGain); 
+      if(state.player.shield > shieldBefore) sfxShield();
+      if(state.player.upgMid1) state.player.defenseThisBattle = Math.min(2, state.player.defenseThisBattle + 1); 
+    } else if(card.type==='heavy'){
+      if(state.player.upgHeavy1) {
+        state.player.heavyHitAtkBonus = Math.min(1, (state.player.heavyHitAtkBonus || 0) + 1);
+      }
+    }
+  } else {
+    const grazeMult = state.player.upgPreciseGraze ? 0.82 : 0.68;
+    const rawTotal = Math.floor(stat.dmg * grazeMult);
+    const total = applyDefense(rawTotal, effectiveEnemyDefense());
+    parts = grazeSplit(total);
+    state.enemy.hp = Math.max(0, state.enemy.hp - total);
+    sfxHit();
+    sequenceOpts = { isGraze:true };
+  }
+
+  /* 無能狂怒：輕/中/重攻擊連續2次未命中觸發1層，命中不會重置進度 */
+  if(!isHit){
+    state.player.missStreak = (state.player.missStreak||0) + 1;
+    if(state.player.missStreak>=2){
+      state.player.missStreak = 0;
+      if(state.player.rageStacks < RAGE_MAX_STACKS){
+        state.player.rageStacks += 1;
+      }
+    }
+  }
+
+  renderAll();
+
+  if(parts.length===0){
+    setTimeout(onDone, 200);
+  } else {
+    playDamageSequence('enemy', parts, sequenceOpts, onDone);
+  }
+}
+
+function executeQueue(){
+  if(state.queue.length===0) return;
+  state.busy = true;
+  const order = state.queue.slice();
+  const orderTypes = order.map(uid=>{
+    const c = state.hand.find(h=>h.uid===uid);
+    return c ? c.type : null;
+  });
+  state.queue = [];
+
+  const p = state.player;
+
+  if (orderTypes.length === 3) {
+    if (p.upgWaterflow && !p.waterflowTriggered && orderTypes[0]==='light' && orderTypes[1]==='light' && orderTypes[2]==='light') {
+      p.waterflowTriggered = true;
+      const before = p.hp;
+      p.hp = Math.min(p.hpMax, p.hp + 12);
+      if (p.hp > before) sfxHeal();
+      showBanner('水流拳！恢復生命');
+    }
+    else if (p.upgShepherd && (p.sheepAlive || 0) < 4 && orderTypes[0]==='light' && orderTypes[1]==='light' && orderTypes[2]==='heavy') {
+      p.sheepAlive = Math.min(4, (p.sheepAlive || 0) + 2);
+      spawnSheepFlock();
+      showBanner('牧羊之歌！召喚綿羊');
+    }
+    else if (p.upgPrincess && !p.princessTriggered && orderTypes[0]==='light' && orderTypes[1]==='heavy' && orderTypes[2]==='light') {
+      p.princessTriggered = true;
+      p.princessShieldPenalty = 6;
+      p.princessEnergyPenalty = 3;
+      p.princessAtkBonus = 1;
+      p.shield = Math.min(p.shield, getShieldMax());
+      showBanner('戰鬥公主！武士刀覺醒');
+    }
+  }
+
+  renderAll();
+  function step(i){
+    if(i>=order.length) return;
+    const uid = order[i];
+    const isLast = i===order.length-1;
+    resolveSingleCard(uid, ()=>{
+      if(isLast){
+        state.busy = false;
+        advanceCycle(); 
+        renderAll();
+        if(state.enemy.hp<=0){ onEnemyDefeated(); }
+        else { endPlayerTurn(); }
+      }
+    });
+    if(!isLast) setTimeout(()=>step(i+1), 500);
+  }
+  step(0);
+}
+
+function endPlayerTurn(){
+  if(state.turn!=='PLAYER') return;
+  state.queue = [];
+  state.turn='ENEMY';
+  triggerTurnStartHeal(); 
+  renderAll();
+  setTimeout(enemyAttack, 700);
+}
+
+function advanceCycle(){
+  state.player.cyclePos = (state.player.cyclePos + 1) % 4;
+  if(CYCLE_ORDER[state.player.cyclePos]==='tl'){
+    const before = state.player.hp;
+    state.player.hp = Math.min(state.player.hpMax, state.player.hp + 1);
+    const healed = state.player.hp - before;
+    if(healed>0){ spawnNumber('player', healed, { isHeal:true, jitterXPct:-8 }); sfxHeal(); }
+  }
+}
+
+function enemyAttack(){
+  const roarSystemActive = state.battleIndex >= 5; // 咆哮系統：戰鬥006起才開始生效
+  if (state.roundNum >= 3 && roarSystemActive) {
+    state.enemy.atk += 1;
+  }
+
+  let attackCount = 1;
+
+  function singleEnemyHit(idx, callback) {
+    let totalDefense = state.player.defenseThisBattle + state.player.bonusDefenseFlat - (state.player.defenseReductionThisBattle || 0);
+    
+    const isHeavyStrikeRound = state.roundNum >= 4 && state.roundNum % 4 === 0; // 第4回合起，每4回合(4/8/12/16/20)取代原本攻擊,改成重擊
+    let rawDmg = isHeavyStrikeRound ? Math.ceil(state.enemy.atk * 1.3) : state.enemy.atk;
+    if(isHeavyStrikeRound){ /* 重擊發動時不再另外顯示訊息，改由回合開始時的咆哮預告告知 */ }
+    let dmg = Math.max(1, rawDmg - totalDefense);
+
+    if(CYCLE_ORDER[state.player.cyclePos]==='br'){
+      dmg = Math.max(1, Math.round(dmg*0.5));
+    }
+
+    let sheepSaved = false;
+    if(state.player.sheepAlive > 0) {
+       for(let i=0; i<state.player.sheepAlive; i++) {
+          if (Math.random() < 0.02) {
+             sheepSaved = true;
+             state.player.sheepAlive -= 1;
+             spawnSheepFlock();
+             showBanner('綿羊犧牲了！');
+             break; 
+          }
+       }
+    }
+
+    let remaining = dmg;
+    let blocked = 0;
+    if(!sheepSaved){
+      if(state.player.shield>0){
+        blocked = Math.min(state.player.shield, remaining);
+        state.player.shield -= blocked;
+        remaining -= blocked;
+      }
+      // 第5回合起，每次擊中額外扣減玩家護盾上限與防禦（本場重置，戰鬥006起才生效）
+      if(state.roundNum >= 5 && roarSystemActive) {
+         state.player.roundShieldCapReduction = (state.player.roundShieldCapReduction || 0) + 1;
+         state.player.defenseReductionThisBattle = (state.player.defenseReductionThisBattle || 0) + 1;
+         state.player.shield = Math.min(state.player.shield, getShieldMax());
+      }
+      // 第6回合起，每次擊中額外扣減玩家命中率（本場重置，不影響輕攻擊，戰鬥006起才生效）
+      if(state.roundNum >= 6 && roarSystemActive) {
+         state.player.hitReductionThisBattle = (state.player.hitReductionThisBattle || 0) + 1;
+      }
+      if(remaining>0){
+        state.player.hp = Math.max(0, state.player.hp - remaining);
+      }
+      sfxHit();
+    }
+    
+    renderAll();
+
+    if(!sheepSaved) spawnNumber('player', dmg, {});
+
+    setTimeout(() => {
+       if (state.player.hp <= 0) {
+           callback(true);
+       } else {
+           callback(false);
+       }
+    }, 950);
+  }
+
+  function loopHits(idx) {
+     if (idx >= attackCount) {
+        state.roundNum += 1;
+
+        if(roarSystemActive && state.roundNum === 2){ showBanner('怪物咆哮!下回合起\n攻擊力將持續提升!'); state.roaredAtkGrowth = true; }
+        if(roarSystemActive && state.roundNum === 4){ showBanner('怪物咆哮!\n下回合起擊中將扣除\n防禦與護盾上限!'); state.roaredShieldDef = true; }
+        if(roarSystemActive && state.roundNum === 5){ showBanner('怪物咆哮!下回合起\n擊中將削弱命中!'); state.roaredHitReduce = true; }
+        if(state.roundNum >= 3 && (state.roundNum + 1) % 4 === 0){ showBanner('怪物咆哮!\n下回合將使出重擊!!'); }
+        
+        const bonus = state.player.nextTurnBonusEnergy || 0;
+        const penalty = state.player.princessEnergyPenalty || 0;
+        state.player.energy = Math.max(0, 3 + bonus - penalty);
+        state.player.nextTurnBonusEnergy = 0;
+        state.player.princessEnergyPenalty = 0;
+
+        refillHand();
+        state.turn = 'PLAYER';
+        triggerTurnStartHeal();
+        renderAll();
+        return;
+     }
+     singleEnemyHit(idx, (isDead) => {
+        if (isDead) {
+            showBanner('你倒下了……');
+            state.turn='LOCKED';
+            renderAll();
+        } else {
+            loopHits(idx + 1);
+        }
+     });
+  }
+
+  loopHits(0);
+}
+
+function loadBattle(index){
+  const b = BATTLES[index];
+  state.currentIntro = b.intro || '';
+  state.enemy = { hp:b.hp, hpMax:b.hp, atk:b.atk, defenseBase:b.enemyDefense||0, defenseReduction:0, dmgMult:1, name:b.enemyName, flavor:b.flavor };
+  
+  state.player.defenseThisBattle = 0;
+  state.player.defenseReductionThisBattle = 0;
+  state.player.heavyUseCritBonus = 0;
+  state.player.heavyHitAtkBonus = 0;
+  state.player.bonusHitPct = 0;
+  
+  state.roundNum = 1;
+  state.player.nextTurnBonusEnergy = 0;
+  state.player.energy = 3; 
+  state.queue = [];
+  state.maxCardsPerTurn = b.maxCardsPerTurn;
+  state.handLimit = b.handLimit;
+  state.turn='PLAYER';
+  state.busy = false;
+
+  state.player.waterflowTriggered = false;
+  state.player.princessTriggered = false;
+  state.player.princessShieldPenalty = 0;
+  state.player.princessEnergyPenalty = 0;
+  state.player.princessAtkBonus = 0;
+
+  recomputeBattleBonuses();
+  state.player.roundShieldCapReduction = 0; // 第5回合起，敵人每次擊中會扣減的護盾上限(本場重置)
+  state.roaredAtkGrowth = false;   // 是否已咆哮預告「攻擊力持續提升」(第2回合)
+  state.roaredShieldDef = false;   // 是否已咆哮預告「扣護盾上限與防禦」(第4回合)
+  state.roaredHitReduce = false;   // 是否已咆哮預告「扣命中率」(第5回合)
+  state.player.hitReductionThisBattle = 0;  // 第6回合起，敵人每次擊中會扣減的命中率(本場重置，不影響輕攻擊)
+  triggerTurnStartHeal(); 
+  
+  spawnSheepFlock();
+
+  setStory(b.who, b.intro);
+  document.getElementById('battleNo').textContent = b.name;
+  applyEnemyPalette(index);
+  startBattleHand();
+  renderAll();
+}
+
+const CHOICE_MILESTONES = { 3:1, 6:2, 9:3, 12:4 };
+const ENDING_LINE = '你擊敗了深淵審判者——目前雛形涵蓋的戰鬥001~020到此結束。';
+
+function advanceToNextBattleOrEnd(storyLine){
+  const next = state.battleIndex+1;
+  if(next < BATTLES.length){
+    if(storyLine) setStory('', storyLine);
+    state.battleIndex = next;
+    loadBattle(next);
+  } else {
+    setStory('', ENDING_LINE);
+    state.turn='LOCKED';
+  }
+}
+
+function onEnemyDefeated(){
+  state.turn='LOCKED';
+
+  if((state.player.sheepAlive||0) > 0){
+    const healAmt = state.player.sheepAlive * 2;
+    const before = state.player.hp;
+    state.player.hp = Math.min(state.player.hpMax, state.player.hp + healAmt);
+    if(state.player.hp > before) sfxHeal();
+  }
+
+  renderAll();
+  showBanner('戰鬥勝利');
+  setTimeout(()=>{
+    const completed = state.battleIndex+1;
+    const tier = CHOICE_MILESTONES[completed];
+    if(tier && !state.player.pips.find(p=>p.tier===tier)){
+      openChoiceScreen(tier);
+      return;
+    }
+    advanceToNextBattleOrEnd();
+  }, 1100);
+}
+
+function showBanner(text){
+  const b = document.getElementById('battleBanner');
+  b.textContent = text;
+  b.classList.add('show');
+  setTimeout(()=>b.classList.remove('show'), 3000);
+}
+
+function openChoiceScreen(tier){
+  const overlay = document.getElementById('choiceOverlay');
+  const row = document.getElementById('choiceRow');
+  row.innerHTML='';
+  TIER_TABLE[tier].forEach(opt=>{
+    const div = document.createElement('div');
+    div.className = `choice-card ${opt.line}`;
+    div.innerHTML = `<div class="choice-name">${opt.name}</div><div>${opt.desc.replace(/\n/g, '<br>')}</div>`;
+    div.onclick = ()=>chooseUpgrade(opt);
+    row.appendChild(div);
+  });
+  overlay.style.display='flex';
+}
+
+function chooseUpgrade(opt){
+  state.player.pips.push({ key:opt.key, tier:opt.tier, line: opt.line, name: opt.name, desc: opt.desc });
+  
+  if(opt.key === 'mid2'){
+    state.player.shieldMaxBase += 2;
+  }
+  
+  recomputeBattleBonuses();
+  sfxBuff();
+
+  if(opt.key === 'restheal'){
+    const before = state.player.hp;
+    state.player.hp = Math.min(state.player.hpMax, state.player.hp + 12);
+    const healed = state.player.hp - before;
+    if(healed>0){ spawnNumber('player', healed, { isHeal:true, jitterXPct:-8 }); sfxHeal(); }
+
+    state.player.shieldMaxBase += 2;
+    state.player.shield = getShieldMax();
+  }
+
+  document.getElementById('choiceOverlay').style.display='none';
+  renderTalents();
+  renderBaseBuffs();
+  renderStats();
+  const next = state.battleIndex+1;
+  const storyLine = next < BATTLES.length
+    ? `你感覺體內某種本能被喚醒了……接下來會繼續進入${BATTLES[next].name}。`
+    : null;
+  advanceToNextBattleOrEnd(storyLine);
+}
+
+/* 暗黑霓虹風格 */
+const ENEMY_PALETTES = [
+  { glow:'rgba(255,153,0,0.35)',  base1:'#0a0806', base2:'#040302', eye:'#ff9900' }, 
+  { glow:'rgba(255,42,42,0.35)',  base1:'#0a0505', base2:'#040202', eye:'#ff2a2a' }, 
+  { glow:'rgba(255,42,42,0.35)',  base1:'#080505', base2:'#030202', eye:'#ff2a2a' }, 
+  { glow:'rgba(126,217,87,0.3)',  base1:'#050a05', base2:'#020402', eye:'#7ed957' }, 
+  { glow:'rgba(0,255,255,0.35)',  base1:'#050a0e', base2:'#020404', eye:'#00ffff' }, 
+  { glow:'rgba(255,0,204,0.3)',   base1:'#0d0612', base2:'#040207', eye:'#ff00cc' }, 
+  { glow:'rgba(255,102,0,0.35)',  base1:'#0f0a05', base2:'#040302', eye:'#ff6600' }, 
+  { glow:'rgba(0,191,255,0.3)',   base1:'#04080c', base2:'#020304', eye:'#00bfff' }, 
+  { glow:'rgba(0,255,204,0.35)',  base1:'#040d0d', base2:'#020505', eye:'#00ffcc' }, 
+  { glow:'rgba(255,0,0,0.35)',    base1:'#0c0404', base2:'#040101', eye:'#ff0000' }, 
+  { glow:'rgba(232,196,104,0.35)',base1:'#0e0b06', base2:'#040302', eye:'#e8c468' }, 
+  { glow:'rgba(176,38,255,0.35)', base1:'#0a0510', base2:'#030208', eye:'#b026ff' }, 
+  { glow:'rgba(170,255,0,0.3)',   base1:'#080a04', base2:'#030402', eye:'#aaff00' }, 
+  { glow:'rgba(153,234,255,0.35)',base1:'#050a0e', base2:'#020406', eye:'#99eaff' }, 
+  { glow:'rgba(204,0,255,0.3)',   base1:'#0c0410', base2:'#040108', eye:'#cc00ff' }, 
+  { glow:'rgba(255,204,0,0.35)',  base1:'#0f0c05', base2:'#040302', eye:'#ffcc00' }, 
+  { glow:'rgba(255,16,80,0.3)',   base1:'#0d0408', base2:'#040103', eye:'#ff1050' }, 
+  { glow:'rgba(0,224,160,0.35)',  base1:'#040d0a', base2:'#020504', eye:'#00e0a0' }, 
+  { glow:'rgba(255,85,64,0.35)',  base1:'#0d0705', base2:'#040302', eye:'#ff5540' }, 
+  { glow:'rgba(255,255,255,0.4)', base1:'#0d0808', base2:'#040303', eye:'#ffffff' }  
+];
+const SHAPE_ORDER = [
+  null, 'horn', 'shroom', 'crystal', 'jelly', 'golem', 'angler', 'specter', 'bat', 'hydra',
+  'horn', 'shroom', 'crystal', 'jelly', 'golem', 'angler', 'specter', 'bat', 'hydra', null
+];
+const SHAPE_BASE_SIZE = {
+  null:    { w:120, h:150 },
+  horn:    { w:110, h:170 },
+  shroom:  { w:150, h:140 },
+  crystal: { w:120, h:160 },
+  jelly:   { w:140, h:150 },
+  golem:   { w:170, h:130 },
+  angler:  { w:150, h:130 },
+  specter: { w:100, h:170 },
+  bat:     { w:180, h:120 },
+  hydra:   { w:160, h:140 }
+};
+function applyEnemyPalette(index){
+  const p = ENEMY_PALETTES[index % ENEMY_PALETTES.length];
+  const el = document.getElementById('enemySprite');
+  el.style.setProperty('--e-glow', p.glow);
+  el.style.setProperty('--e-base1', p.base1);
+  el.style.setProperty('--e-base2', p.base2);
+  el.style.setProperty('--e-eye', p.eye);
+
+  const shape = SHAPE_ORDER[index] || null;
+  el.className = 'enemy-sprite' + (shape ? ` enemy-shape-${shape}` : '');
+
+  const size = SHAPE_BASE_SIZE[shape] || SHAPE_BASE_SIZE[null];
+  const growth = 1 + index*0.045;
+  el.style.width = Math.round(size.w*growth) + 'px';
+  el.style.height = Math.round(size.h*growth) + 'px';
+}
+
+const BASE_BUFF_INFO = {
+  light:{ name:'輕攻擊之力', desc:'命中：該場永久命中率+3%、次回合能量+1、恢復1生命（三種攻擊皆適用，可疊加）' },
+  mid:  { name:'中攻擊之力', desc:'命中：獲得護盾+11（跨場保留，每次使用後-3，最低0，本場重置）' },
+  heavy:{ name:'重攻擊之力', desc:'使用:暴率+1% (單場疊加)' },
+  aggressive:{ name:'侵略本性', desc:'輕中重攻擊力+1；但角色防禦永久-3（全局）' }
+};
+function renderBaseBuffs(){
+  const grid = document.getElementById('baseBuffGrid');
+  grid.innerHTML = '';
+  ['light','mid','heavy'].forEach(line=>{
+    const info = BASE_BUFF_INFO[line];
+    const div = document.createElement('div');
+    div.className = `talent-node ${line} active`;
+    div.textContent = CARD_ICON[line];
+    const lines = [];
+    if(line==='light'){
+      const energyGain = state.player.upgLight1 ? 2 : 1;
+      const hitGain = state.player.upgLight1 ? 4 : 3;
+      lines.push(`命中：該場永久命中率+${hitGain}%、次回合能量+${energyGain}、恢復1生命（三種攻擊皆適用，可疊加）`);
+      lines.push(`(目前疊加:+${state.player.bonusHitPct||0}%)`);
+    } else if(line==='mid'){
+      const shieldGain = 2 + (state.player.upgMid2 ? 2 : 0);
+      lines.push(`命中：獲得護盾+${shieldGain}（跨場保留）`);
+      if(state.player.upgMid1) lines.push('命中：該場角色防禦+1（最高2層）');
+      if(state.player.upgMid2) lines.push('護盾上限+2（永久）');
+    } else if(line==='heavy'){
+      lines.push('使用:暴率+1% (單場疊加)');
+      if(state.player.upgHeavy1) lines.push('命中:傷害+1 (每場限+1)');
+      if(state.player.upgHeavy2) lines.push('暴擊時額外附加1傷害');
+      if(state.player.heavyUseCritBonus>0) lines.push(`(目前疊加:+${state.player.heavyUseCritBonus}%)`);
+    }
+    const desc = lines.join('\n');
+    div.onmouseenter = ()=>showTalentTooltip(div, info.name, desc);
+    div.onmouseleave = hideTalentTooltip;
+    grid.appendChild(div);
+  });
+  if(state.player.upgAggressive){
+    const info = BASE_BUFF_INFO.aggressive;
+    const div = document.createElement('div');
+    div.className = `talent-node aggressive active`;
+    div.style.position = 'relative';
+    div.innerHTML = `<svg viewBox="0 0 28 28" style="position:absolute;inset:0;"><path d="M14 1 L16 6 L13 8 L15 12 M27 14 L22 13 L23 16 L20 15 M14 27 L12 22 L15 20 L13 16" stroke="#e8963c" stroke-width="1" fill="none" opacity="0.85"/></svg>`;
+    div.onmouseenter = ()=>showTalentTooltip(div, info.name, info.desc);
+    div.onmouseleave = hideTalentTooltip;
+    grid.appendChild(div);
+  }
+}
+
+const TALENT_ICON_HTML = {
+  light2: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#7ed957" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" opacity="0.5"/><circle cx="12" cy="12" r="10" opacity="0.25"/></svg>`, // 穩定呼吸
+  light3: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#a9c2d1" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><line x1="17" y1="7" x2="21" y2="3" stroke-width="2" stroke-linecap="round"/></svg>`, // 精準擦傷
+  restheal: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e8c468" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 A10 10 0 0 1 22 12 A10 10 0 0 1 12 22"/><path d="M12 2 A10 10 0 0 0 2 12 A10 10 0 0 0 12 22" stroke-dasharray="2 2"/></svg>`, // 絕境冥想
+  waterflow: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5ecbff" stroke-width="2" stroke-linecap="round"><path d="M3 8 Q6 5 9 8 T15 8 T21 8"/><path d="M3 14 Q6 11 9 14 T15 14 T21 14"/></svg>`, // 水流拳
+  shepherd: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#e9dcc3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="13" rx="7" ry="5" fill="#e9dcc3" opacity="0.25"/><circle cx="12" cy="13" r="6"/><circle cx="17" cy="10" r="2.5"/><line x1="9" y1="18" x2="9" y2="21"/><line x1="15" y1="18" x2="15" y2="21"/></svg>`, // 牧羊之歌
+  princess: '' // 戰鬥公主：靠princess-glow這個CSS技法(放射微光)呈現，內容特意留空
+};
+function renderTalents(){
+  const grid = document.getElementById('talentGrid');
+  grid.innerHTML = '';
+  const mergedKeys = ['light1','mid1','mid2','heavy1','heavy2','mid3']; // 這些已經合併進對應的「之力」/獨立基礎buff懸浮視窗，不再顯示獨立圖示
+  state.player.pips.forEach(p=>{
+    if(mergedKeys.includes(p.key)) return;
+    const div = document.createElement('div');
+    div.className = `talent-node ${p.line} active${p.key==='princess' ? ' princess-glow' : ''}`;
+    div.innerHTML = (p.key in TALENT_ICON_HTML) ? TALENT_ICON_HTML[p.key] : CARD_ICON[p.line];
+    div.onmouseenter = ()=>showTalentTooltip(div, p.name, p.desc);
+    div.onmouseleave = hideTalentTooltip;
+    grid.appendChild(div);
+  });
+}
+function showTalentTooltip(iconEl, name, desc){
+  const tt = document.getElementById('talentTooltip');
+  const stageRect = document.getElementById('stage').getBoundingClientRect();
+  const iconRect = iconEl.getBoundingClientRect();
+  tt.style.left = (iconRect.right - stageRect.left + 10) + 'px';
+  tt.style.top = (iconRect.top - stageRect.top - 4) + 'px';
+  const escapedDesc = String(desc).replace(/\n/g, '<br>');
+  tt.innerHTML = `<div style="margin:0; padding:0; color:var(--gold-light); font-size:12px; font-weight:bold; letter-spacing:1px; line-height:1;">${name}</div><div style="margin:3px 0 0 0; padding:0; line-height:1.35;">${escapedDesc}</div>`;
+  tt.style.display = 'block';
+}
+function hideTalentTooltip(){
+  document.getElementById('talentTooltip').style.display = 'none';
+}
+
+function renderDebuff(){
+  const node = document.getElementById('debuffNode');
+  const stacks = state.player.rageStacks||0;
+  const streak = state.player.missStreak||0;
+  if(stacks<=0 && streak<=0){
+    node.style.display='none';
+    return;
+  }
+  node.style.display='flex';
+  node.innerHTML = `<svg viewBox="0 0 24 24" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.4;" fill="none" stroke="#c94a3a" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="#c94a3a"/></svg><span style="position:relative;">${stacks}</span>`;
+}
+
+function renderStats(){
+  const p = state.player;
+  document.getElementById('playerHpFill').style.width = `${(p.hp/p.hpMax*100)}%`;
+  document.getElementById('playerHpNum').textContent = `${p.hp}/${p.hpMax}`;
+  document.getElementById('playerShieldFill').style.width = `${(p.shield/getShieldMax()*100)}%`;
+  document.getElementById('playerShieldNum').textContent = `${p.shield}/${getShieldMax()}`;
+  const queuedCost = currentQueueCost();
+  const displayEnergy = Math.max(0, p.energy - queuedCost);
+  document.getElementById('playerEnergyFill').style.width = `${(displayEnergy/p.energyMax*100)}%`;
+  document.getElementById('playerEnergyNum').textContent = `${displayEnergy}/${p.energyMax}`;
+  document.getElementById('playerDefenseNum').textContent = `${p.defenseThisBattle + p.bonusDefenseFlat - (p.defenseReductionThisBattle||0)}`;
+  document.getElementById('playerHitBonusNum').textContent = `+${p.bonusHitPct||0}%`;
+  document.getElementById('playerCardCountNum').textContent = `${state.queue.length}/${state.maxCardsPerTurn}`;
+
+  const e = state.enemy;
+  document.getElementById('enemyName').textContent = e.name;
+  document.getElementById('enemyHpFill').style.width = `${(e.hp/e.hpMax*100)}%`;
+  document.getElementById('enemyHpNum').textContent = `${e.hp}/${e.hpMax}`;
+  document.getElementById('enemyAtkNum').textContent = `${e.atk}`;
+  document.getElementById('enemyHudName').textContent = e.name;
+  document.getElementById('enemyHudFill').style.width = `${(e.hp/e.hpMax*100)}%`;
+  document.getElementById('enemyHudHpText').textContent = `${e.hp}/${e.hpMax}`;
+  document.getElementById('enemyIntentValue').textContent = predictedIncomingDamage();
+  const roundsUntilHeavy = ((4 - (state.roundNum % 4)) % 4);
+  document.getElementById('heavyCountdownValue').textContent = roundsUntilHeavy;
+}
+
+const CYCLE_GLOW = { tl:'var(--gold-light)', tr:'var(--steel)', bl:'#7ed957', br:'var(--shield-cyan)' };
+const CYCLE_SHORT = { tl:'回血1', bl:'必定暴擊', br:'承傷-50%', tr:'命中+20%' };
+function renderCycle(){
+  const cur = CYCLE_ORDER[state.player.cyclePos];
+  ['tl','tr','bl','br'].forEach(k=>{
+    const el = document.getElementById('cycle'+k.toUpperCase());
+    el.classList.toggle('active', k===cur);
+  });
+  const info = CYCLE_INFO[cur];
+  const glow = CYCLE_GLOW[cur];
+  const box = document.getElementById('cycleActiveInfo');
+  box.style.borderLeftColor = glow;
+  const nameEl = document.getElementById('cycleActiveName');
+  nameEl.style.color = glow;
+  nameEl.textContent = CYCLE_SHORT[cur];
+  box.onmouseenter = ()=>showTalentTooltip(box, info.name, info.desc);
+  box.onmouseleave = hideTalentTooltip;
+}
+
+const CARD_SLOT_MAPS = {
+  1:[0],
+  2:[-0.5, 0.5],
+  3:[-1, 0, 1],
+  4:[-1, 0, 1, -2],
+  5:[-1, 0, 1, -2, 2],
+  6:[-1, 0, 1, -2, 2, 3]
+};
+const CARD_SLOT_UNIT = 110; 
+function renderHand(){
+  const area = document.getElementById('handRow');
+  area.innerHTML='';
+  const n = state.hand.length;
+  const slots = CARD_SLOT_MAPS[n] || state.hand.map((_,i)=> i - (n-1)/2);
+  state.hand.forEach((card, idx)=>{
+    const stat = cardStat(card.type);
+    const base = CARD_DEFS[card.type];
+    const div = document.createElement('div');
+    const queuedIdx = state.queue.indexOf(card.uid);
+    const isQueued = queuedIdx>=0;
+    const costSoFar = currentQueueCost();
+    const disabled = !isQueued && (state.turn!=='PLAYER' || state.busy || state.queue.length>=state.maxCardsPerTurn || (costSoFar+stat.cost)>state.player.energy);
+    div.className = `card ${card.type}${disabled?' disabled':''}${isQueued?' selected':''}`;
+    div.style.position = 'absolute';
+    div.style.left = '50%';
+    div.style.top = '0';
+    div.style.transform = `translateX(calc(${slots[idx]} * ${CARD_SLOT_UNIT}px - 48px))${isQueued ? ' translateY(-10px)' : ''}`;
+    const rage = state.player.rageStacks||0;
+    const dmgHtml = statSpan(stat.dmg, '', stat.dmg>base.dmg, false);
+    const hitHtml = statSpan(stat.hit, '%', stat.hit>base.hit, rage>0 && stat.hit<base.hit);
+    const critHtml = statSpan(stat.crit, '%', stat.crit>base.crit, rage>0 && stat.crit<base.crit);
+    div.innerHTML = `
+      <div class="cost">${stat.cost}</div>
+      ${isQueued && state.maxCardsPerTurn>1 ? `<div class="order">${queuedIdx+1}</div>` : ''}
+      <div class="icon">${CARD_ICON[card.type]}</div>
+      <div class="cardname">${stat.name}</div>
+      <div class="dmg">${dmgHtml} dmg</div>
+      <div class="mini-stats">${hitHtml} 命中｜${critHtml} 爆</div>
+    `;
+    div.onmouseenter = ()=>{ hoverTooltip(card.type, stat); sfxHover(); };
+    div.onmouseleave = setTooltipDefault;
+    div.onclick = ()=>{ if(!disabled || isQueued) toggleCardSelect(card.uid); };
+    area.appendChild(div);
+  });
+  setTooltipDefault(); 
+}
+
+function renderAll(){
+  renderStats();
+  renderHand();
+  renderBaseBuffs();
+  renderTalents();
+  renderCycle();
+  renderDebuff();
+  renderEarlyAttackBtn();
+}
+function renderEarlyAttackBtn(){
+  const btn = document.getElementById('earlyAttackBtn');
+  const canUse = state.turn==='PLAYER' && !state.busy && state.queue.length>=1 && state.queue.length<state.maxCardsPerTurn;
+  btn.disabled = !canUse;
+  btn.textContent = `提前攻擊 ${state.queue.length}/${state.maxCardsPerTurn}`;
+}
+
+const enemyCardEl = document.getElementById('enemyCard');
+enemyCardEl.addEventListener('mouseenter', ()=>{
+  hoverStory(state.enemy.name, state.enemy.flavor||'');
+});
+enemyCardEl.addEventListener('mouseleave', unhoverStory);
+
+const enemyIntentEl = document.getElementById('enemyIntent');
+enemyIntentEl.addEventListener('mouseenter', ()=>{
+  const lines = [`下回合將造成${predictedIncomingDamage()}傷害`];
+  if(state.roaredAtkGrowth) lines.push('接下來每回合攻擊再+1');
+  if(state.roaredShieldDef) lines.push('接下來每回合擊中附加\n-1防禦-1護盾上限\n(跨場重置，護盾上限最低為0)');
+  if(state.roaredHitReduce) lines.push('接下來每回合擊中附加\n-1%命中(跨場重置)');
+  showTalentTooltip(enemyIntentEl, '攻擊預告', lines.join('\n'));
+});
+enemyIntentEl.addEventListener('mouseleave', hideTalentTooltip);
+
+const heavyStrikeWarningEl = document.getElementById('heavyStrikeWarning');
+heavyStrikeWarningEl.addEventListener('mouseenter', ()=>{
+  showTalentTooltip(heavyStrikeWarningEl, '重擊', '每四回合1.3倍傷害重擊，\n會附加怒吼效果。');
+});
+heavyStrikeWarningEl.addEventListener('mouseleave', hideTalentTooltip);
+
+['tl','tr','bl','br'].forEach(k=>{
+  const el = document.getElementById('cycle'+k.toUpperCase());
+  el.addEventListener('mouseenter', ()=> showTalentTooltip(el, CYCLE_INFO[k].name, CYCLE_INFO[k].desc));
+  el.addEventListener('mouseleave', hideTalentTooltip);
+});
+
+const debuffNodeEl = document.getElementById('debuffNode');
+debuffNodeEl.addEventListener('mouseenter', ()=>{
+  const stacks = state.player.rageStacks||0;
+  showTalentTooltip(debuffNodeEl, `${RAGE_NAME} x${stacks}`, rageDesc(stacks));
+});
+debuffNodeEl.addEventListener('mouseleave', hideTalentTooltip);
+
+function tryManualConfirm(){
+  if(state.turn!=='PLAYER' || state.busy) return;
+  if(state.queue.length<1 || state.queue.length>=state.maxCardsPerTurn) return;
+  executeQueue();
+}
+
+const earlyAttackBtn = document.getElementById('earlyAttackBtn');
+const earlyAttackHint = document.getElementById('earlyAttackHint');
+let earlyAttackTooltipTimer = null;
+earlyAttackBtn.addEventListener('click', tryManualConfirm);
+earlyAttackBtn.addEventListener('mouseenter', ()=>{
+  earlyAttackTooltipTimer = setTimeout(()=>{
+    earlyAttackHint.classList.add('show');
+  }, 600);
+});
+earlyAttackBtn.addEventListener('mouseleave', ()=>{
+  clearTimeout(earlyAttackTooltipTimer);
+  earlyAttackHint.classList.remove('show');
+});
+
+const brainVoiceBtn = document.getElementById('brainVoiceBtn');
+brainVoiceBtn.addEventListener('mouseenter', hoverBrainVoiceIntro);
+brainVoiceBtn.addEventListener('mouseleave', unhoverBrainVoiceIntro);
+
+/* ============================================================
+   記憶甦醒：牧羊之歌 — 像素羊視覺
+============================================================ */
+const SHEEP_COLOR_MAP = {
+  1: '#F0F0F0', 2: '#D0D0D0', 3: '#4A4A4A', 4: '#1A1A1A', 5: '#FFB6C1'
+};
+const SHEEP_BODY = [
+  [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0],
+  [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+  [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,0,0],
+  [0,0,2,1,2,2,1,2,2,1,2,2,1,2,2,0,0,0],
+  [0,0,0,2,0,0,2,0,0,2,0,0,2,0,0,0,0,0]
+];
+const SHEEP_HEAD_NORMAL = [
+  [0,0,1,1,1,0,0],
+  [3,5,1,1,1,5,3],
+  [0,3,3,3,3,3,0],
+  [0,3,4,3,4,3,0],
+  [0,3,3,5,3,3,0],
+  [0,0,3,3,3,0,0]
+];
+const SHEEP_HEAD_EAT = [
+  [0,0,1,1,1,0,0],
+  [3,5,1,1,1,5,3],
+  [0,3,3,3,3,3,0],
+  [0,3,4,3,4,3,0],
+  [0,3,3,3,3,3,0],
+  [0,0,3,3,3,0,0]
+];
+
+class PixelSheep {
+  constructor(x, y, boundMinX, boundMaxX){
+    this.x = x; this.y = y;
+    this.boundMinX = boundMinX; this.boundMaxX = boundMaxX;
+    this.facing = 1;
+    this.speed = 0.35;
+    this.state = 'IDLE';
+    this.stateTimer = 0;
+    this.animTimer = 0;
+    this.walkFrame = 0;
+    this.breathOffset = 0;
+    this.eatOffset = 0;
+    this.fleeing = false;
+    this.pickNewState();
+  }
+  pickNewState(){
+    const rand = Math.random();
+    if(this.state === 'WALK'){
+      if(rand < 0.6){ this.state='IDLE'; this.stateTimer = 60 + Math.random()*120; }
+      else { this.state='EAT'; this.stateTimer = 90 + Math.random()*150; }
+    } else {
+      if(rand < 0.4){
+        this.state='WALK'; this.stateTimer = 120 + Math.random()*240;
+        if(Math.random()<0.5 || this.x < this.boundMinX+10 || this.x > this.boundMaxX-10){ this.facing *= -1; }
+      } else if(rand < 0.7){ this.state='EAT'; this.stateTimer = 80 + Math.random()*100; }
+      else { this.state='IDLE'; this.stateTimer = 40 + Math.random()*80; }
+    }
+  }
+  update(){
+    const dx = (this.x + 8) - sheepMouseX;
+    const dy = (this.y + 6) - sheepMouseY;
+    const nearMouse = (dx*dx + dy*dy) < SHEEP_FLEE_RADIUS*SHEEP_FLEE_RADIUS;
+    if(nearMouse){
+      this.state = 'WALK';
+      this.stateTimer = 30; 
+      this.facing = dx < 0 ? -1 : 1; 
+      this.fleeing = true;
+    } else {
+      this.stateTimer--;
+      if(this.fleeing && this.stateTimer<=0){ this.fleeing = false; }
+      if(this.stateTimer<=0 && !this.fleeing){ this.pickNewState(); }
+    }
+
+    if(this.x < this.boundMinX){ this.x = this.boundMinX; this.facing = 1; this.state='WALK'; }
+    else if(this.x > this.boundMaxX){ this.x = this.boundMaxX; this.facing = -1; this.state='WALK'; }
+    this.animTimer++;
+    if(this.state==='WALK'){
+      const spd = this.fleeing ? this.speed*2.4 : this.speed;
+      this.x += spd * this.facing;
+      if(this.animTimer % 10 === 0){ this.walkFrame = (this.walkFrame+1) % 4; }
+      this.breathOffset = (this.walkFrame % 2 === 0) ? 0 : -1;
+      this.eatOffset = 0;
+    } else if(this.state==='IDLE'){
+      this.walkFrame = 0;
+      this.breathOffset = Math.floor(Math.sin(this.animTimer*0.08)*0.8);
+      this.eatOffset = 0;
+    } else if(this.state==='EAT'){
+      this.walkFrame = 0;
+      this.breathOffset = 0;
+      this.eatOffset = Math.floor(Math.sin(this.animTimer*0.2)*1.2) + 2;
+    }
+  }
+  drawMatrix(ctx, matrix, startX, startY, flipX){
+    for(let r=0;r<matrix.length;r++){
+      for(let c=0;c<matrix[r].length;c++){
+        const colorKey = matrix[r][c];
+        if(colorKey!==0){
+          ctx.fillStyle = SHEEP_COLOR_MAP[colorKey];
+          const drawX = flipX ? startX + (matrix[r].length-1-c) : startX + c;
+          ctx.fillRect(Math.floor(drawX), Math.floor(startY+r), 1, 1);
+        }
+      }
+    }
+  }
+  draw(ctx){
+    ctx.save();
+    ctx.scale(SHEEP_SCALE, SHEEP_SCALE); 
+    const flip = this.facing === -1;
+    const posX = Math.floor(this.x);
+    const posY = Math.floor(this.y);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(posX+2, posY+13, 14, 2);
+
+    let legOffsets = [0,0,0,0];
+    if(this.state==='WALK'){
+      switch(this.walkFrame){
+        case 0: legOffsets=[0,1,1,0]; break;
+        case 1: legOffsets=[1,0,0,1]; break;
+        case 2: legOffsets=[1,0,0,1]; break;
+        case 3: legOffsets=[0,1,1,0]; break;
+      }
+    }
+    const legPositions = [3,6,11,14];
+    legPositions.forEach((lx,idx)=>{
+      const ly = posY + 6 + legOffsets[idx];
+      ctx.fillStyle = SHEEP_COLOR_MAP[3];
+      ctx.fillRect(posX+lx, ly, 1, 5);
+      ctx.fillStyle = SHEEP_COLOR_MAP[4];
+      ctx.fillRect(posX+lx, ly+5, 1, 1);
+    });
+
+    const bodyY = posY + this.breathOffset;
+    this.drawMatrix(ctx, SHEEP_BODY, posX, bodyY, flip);
+
+    let headX = flip ? posX-3 : posX+14;
+    let headY = bodyY + 1 + this.eatOffset;
+    const headMatrix = (this.state==='EAT') ? SHEEP_HEAD_EAT : SHEEP_HEAD_NORMAL;
+    this.drawMatrix(ctx, headMatrix, headX, headY, flip);
+
+    if(this.state==='EAT'){
+      const mouthX = flip ? headX+2 : headX+4;
+      const mouthY = headY+5;
+      ctx.fillStyle = '#4D9644';
+      ctx.fillRect(mouthX-1, mouthY+1, 3, 1);
+      ctx.fillRect(mouthX, mouthY+2, 1, 1);
+      if(Math.sin(this.animTimer*0.3)>0){
+        ctx.fillStyle = '#63B358';
+        ctx.fillRect(mouthX+(flip?-1:1), mouthY, 1, 1);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+const sheepCanvas = document.getElementById('sheepCanvas');
+const sheepCtx = sheepCanvas.getContext('2d');
+const SHEEP_SCALE = 3; 
+const SHEEP_CANVAS_W = 160, SHEEP_CANVAS_H = 26; 
+sheepCanvas.width = SHEEP_CANVAS_W * SHEEP_SCALE;
+sheepCanvas.height = SHEEP_CANVAS_H * SHEEP_SCALE;
+let pixelSheepList = [];
+
+const SHEEP_FLEE_RADIUS = 16;
+let sheepMouseX = -9999, sheepMouseY = -9999;
+sheepCanvas.addEventListener('mousemove', (e)=>{
+  const rect = sheepCanvas.getBoundingClientRect();
+  sheepMouseX = (e.clientX - rect.left) / (rect.width / SHEEP_CANVAS_W);
+  sheepMouseY = (e.clientY - rect.top) / (rect.height / SHEEP_CANVAS_H);
+});
+sheepCanvas.addEventListener('mouseleave', ()=>{
+  sheepMouseX = -9999; sheepMouseY = -9999;
+});
+
+function spawnSheepFlock(){
+  const targetCount = state.player.sheepAlive || 0;
+  while (pixelSheepList.length < targetCount) {
+    const i = pixelSheepList.length;
+    pixelSheepList.push(new PixelSheep(6 + (i*25)%120, 5, 4, SHEEP_CANVAS_W-32));
+  }
+  if (pixelSheepList.length > targetCount) {
+    pixelSheepList.splice(targetCount);
+  }
+}
+
+function sheepLoop(){
+  sheepCtx.clearRect(0,0,sheepCanvas.width,sheepCanvas.height);
+  const aliveCount = Math.min(state.player.sheepAlive||0, pixelSheepList.length);
+  for(let i=0;i<aliveCount;i++){
+    pixelSheepList[i].update();
+    pixelSheepList[i].draw(sheepCtx);
+  }
+  requestAnimationFrame(sheepLoop);
+}
+requestAnimationFrame(sheepLoop);
+
+/* ============================================================
+   音效與背景音樂系統
+============================================================ */
+const bgmMaster = new Tone.Gain(0.55).toDestination();
+const sfxMaster = new Tone.Gain(0.56).toDestination(); 
+const hoverMaster = new Tone.Gain(0.70).toDestination(); 
+
+function disposeAfter(node, ms){
+  setTimeout(()=>{ try{ node.dispose(); }catch(e){} }, ms);
+}
+function sfxHit(){
+  const v = 0; 
+  const noise = new Tone.NoiseSynth({ noise:{type:'white'}, envelope:{ attack:0.001, decay:[0.08,0.15,0.25][v], sustain:0 } }).connect(sfxMaster);
+  const tone = new Tone.MembraneSynth({ pitchDecay:[0.02,0.05,0.08][v], octaves:[4,6,8][v], envelope:{ attack:0.001, decay:[0.12,0.2,0.35][v], sustain:0 } }).connect(sfxMaster);
+  tone.triggerAttackRelease(['C3','C2','C1'][v], '16n');
+  noise.triggerAttackRelease('16n');
+  disposeAfter(noise, 800); disposeAfter(tone, 800);
+}
+function sfxHeal(){
+  const n = new Tone.NoiseSynth({ noise:{type:'pink'}, envelope:{attack:0.02, decay:0.18, sustain:0} }).connect(sfxMaster);
+  n.triggerAttackRelease('8n');
+  const low = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{ attack:0.02, decay:0.25, sustain:0, release:0.15 } }).connect(sfxMaster);
+  low.triggerAttackRelease('C3', '8n');
+  disposeAfter(n, 600); disposeAfter(low, 600);
+}
+function sfxShield(){
+  const n = new Tone.NoiseSynth({ noise:{type:'brown'}, envelope:{attack:0.03, decay:0.22, sustain:0} }).connect(sfxMaster);
+  n.triggerAttackRelease('8n');
+  const low = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{ attack:0.02, decay:0.3, sustain:0, release:0.15 } }).connect(sfxMaster);
+  low.triggerAttackRelease('G2', '8n');
+  disposeAfter(n, 600); disposeAfter(low, 600);
+}
+function sfxBuff(){
+  // 改成類似卡片懸浮的低調氣音邏輯，不要明亮高音
+  const n = new Tone.NoiseSynth({ noise:{type:'pink'}, envelope:{attack:0.02, decay:0.16, sustain:0} }).connect(sfxMaster);
+  n.triggerAttackRelease('8n');
+  const low = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{ attack:0.02, decay:0.28, sustain:0, release:0.15 } }).connect(sfxMaster);
+  low.triggerAttackRelease('E3', '8n', Tone.now()+0.04);
+  disposeAfter(n, 500); disposeAfter(low, 600);
+}
+function sfxHover(){
+  const n = new Tone.NoiseSynth({ noise:{type:'pink'}, envelope:{attack:0.01,decay:0.06,sustain:0} }).connect(hoverMaster);
+  n.triggerAttackRelease('32n');
+  disposeAfter(n, 400);
+}
+
+let introActive = true;
+let audioStarted = false;
+async function startAudioOnce(){
+  if(audioStarted) return;
+  audioStarted = true;
+  await Tone.start();
+  if(Tone.Transport.state !== 'started') Tone.Transport.start(); 
+}
+function fadeEl(el, opacityValue, durationSec){
+  return new Promise(resolve=>{
+    el.style.transition = `opacity ${durationSec}s ease`;
+    void el.offsetWidth; 
+    el.style.opacity = opacityValue;
+    setTimeout(resolve, durationSec*1000);
+  });
+}
+const storyScreen1El = document.getElementById('storyScreen1');
+const storyScreen2El = document.getElementById('storyScreen2');
+const stageContainerEl = document.getElementById('stage');
+let storyBusy = false;
+
+let firstBattleLoaded = false;
+async function revealStage(fadeInSec){
+  if(!firstBattleLoaded){
+    firstBattleLoaded = true;
+    loadBattle(0); 
+  }
+  stageContainerEl.style.display = '';
+  await fadeEl(stageContainerEl, 1, fadeInSec);
+  introActive = false;
+  setStory(state.defaultWho, state.defaultLine); 
+}
+async function goScreen1To2(){
+  if(storyBusy) return; storyBusy = true;
+  startAudioOnce();
+  await fadeEl(storyScreen1El, 0, 1);
+  storyScreen1El.style.display = 'none';
+  storyScreen2El.style.display = 'flex';
+  storyScreen2El.style.opacity = 0;
+  await fadeEl(storyScreen2El, 1, 1);
+  storyBusy = false;
+}
+async function goScreen2ToBattle(){
+  if(storyBusy) return; storyBusy = true;
+  startAudioOnce();
+  await fadeEl(storyScreen2El, 0, 2);
+  storyScreen2El.style.display = 'none';
+  await revealStage(5);
+  storyBusy = false;
+}
+async function skipToBattle(fromEl){
+  if(storyBusy) return; storyBusy = true;
+  startAudioOnce();
+  await fadeEl(fromEl, 0, 1);
+  fromEl.style.display = 'none';
+  await revealStage(5);
+  storyBusy = false;
+}
+
+storyScreen1El.addEventListener('click', goScreen1To2);
+storyScreen2El.addEventListener('click', goScreen2ToBattle);
+document.addEventListener('keydown', (e)=>{
+  if(!introActive) return; 
+  if(e.key==='e' || e.key==='E'){
+    if(storyScreen1El.style.display!=='none'){
+      skipToBattle(storyScreen1El);
+    } else if(storyScreen2El.style.display!=='none'){
+      skipToBattle(storyScreen2El);
+    }
+  }
+});
+window.addEventListener('load', ()=>{ fadeEl(storyScreen1El, 1, 2); });
+
+/* ============================================================
+   Tab 顯示：攻擊數值總覽
+============================================================ */
+const tabInfoPanel = document.getElementById('tabInfoPanel');
+function renderTabInfoPanel(){
+  ['light','mid','heavy'].forEach(type=>{
+    const stat = cardStat(type);
+    const normalDmg = stat.dmg;
+    const critDmg = Math.round(stat.dmg * stat.critMult) + stat.critExtraDmg; 
+    const grazeMult = state.player.upgPreciseGraze ? 0.82 : 0.68;
+    const grazeDmg = Math.floor(stat.dmg * grazeMult);
+    const hitFrac = Math.max(0, Math.min(100, stat.hit)) / 100;
+    const critFrac = Math.max(0, Math.min(100, stat.crit)) / 100;
+    const expected = hitFrac * ((1 - critFrac) * normalDmg + critFrac * critDmg) + (1 - hitFrac) * grazeDmg;
+
+    const displayCritMult = Math.round((stat.critMult - 1) * 100);
+
+    document.getElementById(`tab-${type}-hit`).textContent = `${stat.hit}%`;
+    document.getElementById(`tab-${type}-crit`).textContent = `${stat.crit}%`;
+    document.getElementById(`tab-${type}-critdmg`).textContent = stat.critExtraDmg ? `+${displayCritMult}% (+${stat.critExtraDmg})` : `+${displayCritMult}%`;
+    document.getElementById(`tab-${type}-hitdmg`).textContent = `一般${normalDmg}／暴擊${critDmg}`;
+    document.getElementById(`tab-${type}-graze`).textContent = `${grazeDmg}`;
+    document.getElementById(`tab-${type}-expected`).textContent = expected.toFixed(2);
+  });
+}
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    if(tabInfoPanel.style.display !== 'block'){
+      renderTabInfoPanel();
+      tabInfoPanel.style.display = 'block';
+    }
+  }
+});
+document.addEventListener('keyup', (e)=>{
+  if(e.key === 'Tab'){
+    tabInfoPanel.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
