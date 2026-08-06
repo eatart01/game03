@@ -21,6 +21,79 @@
     --hp-red:#b23a3a;
     --energy-blue:#4f7fb2;
   }
+  .main-menu-overlay{
+    position:fixed; inset:0; z-index:10000;
+    background:#0a0705;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    opacity:0;
+    overflow:hidden;
+  }
+  .main-menu-overlay .mm-stage{
+    position:relative; width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    transform:translateY(-10vh);
+  }
+  .main-menu-overlay .mm-slit{
+    position:absolute; top:-10%; left:50%; transform:translateX(-50%);
+    width:60px; height:600px; border-radius:50%;
+    background:radial-gradient(ellipse, #1f1810 0%, #0a0705 60%, transparent 75%);
+  }
+  .main-menu-overlay .mm-glow{
+    position:absolute; top:34%; left:50%; transform:translateX(-50%);
+    width:100px; height:260px; border-radius:50%;
+    background:radial-gradient(circle, rgba(232,150,60,0.28), transparent 70%);
+    filter:blur(10px);
+  }
+  .main-menu-overlay .mm-content{ position:relative; z-index:3; text-align:center; margin-top:150px; }
+  .main-menu-overlay .mm-title{
+    font-size:40px; letter-spacing:9px; color:var(--parchment);
+    text-shadow:0 0 24px rgba(0,0,0,0.9); margin:0; font-weight:bold;
+  }
+  .main-menu-overlay .mm-sub{
+    font-size:10px; letter-spacing:5px; color:var(--parchment-dim); margin-top:6px;
+  }
+  .main-menu-overlay .mm-btn-col{
+    display:flex; flex-direction:column; gap:16px; margin-top:44px; align-items:center;
+  }
+  .main-menu-overlay .mm-btn{
+    padding:12px 30px; font-size:13px; letter-spacing:3px;
+    background:rgba(20,15,9,0.7); color:var(--parchment); border:1px solid var(--ember-dim);
+    cursor:pointer; font-family:'Courier New',monospace; transition:all 0.2s ease;
+    min-width:162px;
+  }
+  .main-menu-overlay .mm-btn:hover{ border-color:var(--gold-light); color:var(--gold-light); background:rgba(232,196,104,0.08); }
+  .main-menu-overlay .mm-btn.secondary{ border-color:var(--steel); }
+  .main-menu-overlay .mm-btn.secondary:hover{ border-color:var(--steel); color:var(--steel); background:rgba(111,138,156,0.08); }
+
+  .guide-overlay{
+    position:fixed; inset:0; z-index:10500;
+    background:rgba(0,0,0,0.8);
+    display:none; align-items:center; justify-content:center;
+  }
+  .guide-overlay.show{ display:flex; }
+  .guide-card{
+    width:80vw; height:80vh; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 30%, #17130e, #0a0705 75%);
+    border-radius:4px; padding:32px 44px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.8);
+    display:flex; flex-direction:column;
+  }
+  .guide-card .g-title{
+    text-align:center; font-size:19px; letter-spacing:5px; margin-bottom:22px; color:var(--steel);
+    font-family:'Courier New',monospace;
+  }
+  .guide-card .stone-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+  }
+  .guide-card .g-sec{
+    background:radial-gradient(circle at 35% 30%, #1c2426, #0d1112);
+    border:1px solid rgba(111,138,156,0.3); border-radius:10px; padding:14px;
+    box-shadow:0 0 14px rgba(111,138,156,0.08);
+  }
+  .guide-card .g-sec-title{ color:var(--steel); font-size:13px; font-weight:bold; margin-bottom:6px; letter-spacing:1px; font-family:'Courier New',monospace; }
+  .guide-card .g-sec-desc{ color:#8a9aa2; font-size:11px; line-height:1.6; font-family:'Courier New',monospace; }
+  .guide-card .g-hint{ text-align:center; font-size:10px; color:var(--parchment-dim); opacity:0.5; margin-top:20px; font-family:'Courier New',monospace; }
+
   .story-overlay{
     position:fixed; inset:0; z-index:9999;
     background:#000;
@@ -280,12 +353,12 @@
   .enemy-intent .intent-icon{ font-size:13px; color:var(--steel); }
   .enemy-intent .intent-value{ font-family:'Courier New',monospace; font-size:12px; color:var(--parchment); font-weight:bold; }
   .heavy-strike-warning{
-    display:flex; align-items:center; justify-content:center;
-    width:26px; height:26px;
-    background:rgba(15,10,8,0.85); border:1px solid var(--blood-bright); border-radius:50%;
+    display:flex; align-items:center; gap:4px;
+    background:rgba(15,10,8,0.85); border:1px solid var(--blood-bright); border-radius:14px;
+    padding:4px 10px;
     cursor:help; pointer-events:auto;
   }
-  .heavy-strike-warning .hsw-icon{ font-size:14px; color:var(--blood-bright); }
+  .heavy-strike-warning .hsw-icon{ font-size:13px; color:var(--blood-bright); }
   @keyframes intentPulse{
     0%,100%{ transform:scale(1); opacity:0.92; }
     50%{ transform:scale(1.06); opacity:1; }
@@ -619,12 +692,31 @@
 </head>
 <body>
 
+<div class="main-menu-overlay" id="mainMenuScreen">
+  <div class="mm-stage">
+    <div class="mm-slit"></div>
+    <div class="mm-glow"></div>
+    <div class="mm-content">
+      <h1 class="mm-title">甦醒深淵</h1>
+      <div class="mm-sub">Awakening: Void of Depths</div>
+    <div class="mm-btn-col">
+      <button class="mm-btn" id="mmNewGameBtn">新的開始</button>
+      <button class="mm-btn secondary" id="mmGuideBtn">甦醒指引</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<div class="guide-overlay" id="guideOverlay">
+  <div class="guide-card" id="guideCardHost"></div>
+</div>
+
 <div class="story-overlay" id="storyScreen1">
   <div class="story-glow"></div>
   <div class="story-text">聖殿祭司在王國慶典上敲碎了守護石，
 對整個王國施加了未知詛咒，導致世界陷入瘋狂與毀滅。
 失去記憶的你，憑藉著最後一絲求生意識，
-前往被稱為「黑暗魔窟」洞穴，尋找深處被封印的強大力量，</div>
+爬往被稱為「黑暗魔窟」洞穴，尋找深處被封印的強大力量，</div>
   <div class="skip-hint">按 E 略過</div>
 </div>
 
@@ -804,7 +896,7 @@ const CARD_DEFS = {
   mid:{ name:'中攻擊', dmg:2, hit:78, crit:5, cost:1,
     effect:'命中:獲得護盾2（跨場保留）' },
   heavy:{ name:'重攻擊', dmg:3, hit:56, crit:72, cost:2,
-    effect:'使用:暴率+1% (單場疊加)' }
+    effect:'使用: 重攻擊暴擊率+1% (單場疊加，不論命中與否)' }
 };
 
 /* ============================================================
@@ -833,36 +925,36 @@ function rageDesc(stacks){
 ============================================================ */
 const BATTLES = [
   { id:1,  name:'戰鬥001', hp:1,   atk:1,  enemyDefense:0, maxCardsPerTurn:1, handLimit:1, intro:'戰鬥吧!\n用輕攻擊擊倒前方魔物', who:'腦之音', flavor:'瘦弱、行動遲緩，但眼神帶著飢餓。', enemyName:'瘦弱爬行者' },
-  { id:2,  name:'戰鬥002', hp:5,  atk:3,  enemyDefense:0, maxCardsPerTurn:1, handLimit:3, intro:'輕攻擊是一切的基礎，\n你會用他不斷確認與偵查敵人', who:'腦之音', flavor:'和前一隻幾乎一模一樣，警戒心稍高。', enemyName:'瘦弱爬行者' },
-  { id:3,  name:'戰鬥003', hp:11,  atk:2,  enemyDefense:0, maxCardsPerTurn:1, handLimit:4, intro:'中攻擊是鞏固防守到創造攻擊的重要手段...', who:'腦之音', flavor:'牠似乎很怕火，動作有些猶豫。', enemyName:'畏光爬行者' },
-  { id:4,  name:'戰鬥004', hp:14,  atk:3, enemyDefense:0, maxCardsPerTurn:2, handLimit:4, intro:'戰鬥意識甦醒..\n現在可以做出兩次攻擊..', who:'', flavor:'皮膚粗糙，看起來比之前的更耐打。', enemyName:'硬皮爬行者' },
-  { id:5,  name:'戰鬥005', hp:15,  atk:4, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'如果你腦中的想法\n完全充滿重攻擊...\n會死喔...', who:'腦之音', flavor:'肌肉緊繃，隨時準備撲擊。', enemyName:'膨脹爬行者' },
-  { id:6,  name:'戰鬥006', hp:17,  atk:5, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'你過去的戰鬥意識不斷在輪轉甦醒..\n跟隨著那些感覺去戰鬥吧...', who:'腦之音', flavor:'傷痕累累卻依然凶猛。', enemyName:'腐臭爬行者' },
-  { id:7,  name:'戰鬥007', hp:19,  atk:4, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出三次攻擊..', who:'', flavor:'攻勢變得更加凌厲。', enemyName:'深穴爬行者' },
+  { id:2,  name:'戰鬥002', hp:5,  atk:1,  enemyDefense:0, maxCardsPerTurn:1, handLimit:3, intro:'輕攻擊是一切的基礎，\n你會用他不斷確認與偵查敵人', who:'腦之音', flavor:'和前一隻幾乎一模一樣，警戒心稍高。', enemyName:'瘦弱爬行者' },
+  { id:3,  name:'戰鬥003', hp:11,  atk:1,  enemyDefense:0, maxCardsPerTurn:1, handLimit:4, intro:'中攻擊是鞏固防守到創造攻擊的重要手段...', who:'腦之音', flavor:'牠似乎很怕火，動作有些猶豫。', enemyName:'畏光爬行者' },
+  { id:4,  name:'戰鬥004', hp:14,  atk:2, enemyDefense:0, maxCardsPerTurn:2, handLimit:4, intro:'戰鬥意識甦醒..\n現在可以做出<span style="color:#7ed957;">2</span>次攻擊..', who:'', flavor:'皮膚粗糙，看起來比之前的更耐打。', enemyName:'硬皮爬行者' },
+  { id:5,  name:'戰鬥005', hp:15,  atk:2, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'如果你腦中的想法\n完全充滿重攻擊...\n會死喔...', who:'腦之音', flavor:'肌肉緊繃，隨時準備撲擊。', enemyName:'膨脹爬行者' },
+  { id:6,  name:'戰鬥006', hp:17,  atk:2, enemyDefense:0, maxCardsPerTurn:2, handLimit:5, intro:'你過去的戰鬥意識不斷在輪轉甦醒..\n跟隨著那些感覺去戰鬥吧...', who:'腦之音', flavor:'傷痕累累卻依然凶猛。', enemyName:'腐臭爬行者' },
+  { id:7,  name:'戰鬥007', hp:19,  atk:7, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出<span style="color:#7ed957;">3</span>次攻擊..', who:'', flavor:'攻勢變得更加凌厲。', enemyName:'深穴爬行者' },
   { id:8,  name:'戰鬥008', hp:21,  atk:5, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'我好像聽到亡魂說......\n他看過無數人戰敗在這隻怪物了...', who:'腦之音', flavor:'體型龐大，動作卻異常敏捷。', enemyName:'裂爪爬行者' },
-  { id:9,  name:'戰鬥009', hp:23, atk:4, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'亡魂終於走了吵死了...', who:'腦之音', flavor:'渾身散發著猙獰的氣息。', enemyName:'深淵爬行者' },
-  { id:10, name:'戰鬥010', hp:25, atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出四次攻擊..', who:'', flavor:'體型比之前所有對手都巨大，散發著壓迫感。', enemyName:'噬影爬行者' },
-  { id:11, name:'戰鬥011', hp:31, atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'魔物越來越強...\n終將一死嗎..?\n必須專注...', who:'腦之音', flavor:'皮膚堅硬如岩石，行動卻出乎意料地敏捷。', enemyName:'裂岩爬行者' },
-  { id:12, name:'戰鬥012', hp:37, atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'專注...', who:'腦之音', flavor:'渾身纏繞著詭異的黑霧，眼神彷彿能看穿你的恐懼。', enemyName:'深淵主宰' },
+  { id:9,  name:'戰鬥009', hp:23, atk:7, enemyDefense:0, maxCardsPerTurn:3, handLimit:6, intro:'亡魂終於走了吵死了...', who:'腦之音', flavor:'渾身散發著猙獰的氣息。', enemyName:'深淵爬行者' },
+  { id:10, name:'戰鬥010', hp:25, atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'戰鬥意識甦醒..\n現在可以做出<span style="color:#7ed957;">4</span>次攻擊..', who:'', flavor:'體型比之前所有對手都巨大，散發著壓迫感。', enemyName:'噬影爬行者' },
+  { id:11, name:'戰鬥011', hp:31, atk:7, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'魔物越來越強...\n終將一死嗎..?\n必須專注...', who:'腦之音', flavor:'皮膚堅硬如岩石，行動卻出乎意料地敏捷。', enemyName:'裂岩爬行者' },
+  { id:12, name:'戰鬥012', hp:37, atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'專注...', who:'腦之音', flavor:'渾身纏繞著詭異的黑霧，眼神彷彿能看穿你的恐懼。', enemyName:'深淵主宰' },
   { id:13, name:'戰鬥013', hp:43,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'深淵主宰倒下後，地底深處卻傳來更多騷動——這裡遠比你想像的還要深。', flavor:'渾身覆滿尖銳的骨刺，啃咬過的痕跡遍布全身。', enemyName:'噬骨爬行者' },
-  { id:14, name:'戰鬥014', hp:49,  atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'空氣逐漸變得灼熱，腳下的岩石隱隱發紅。', flavor:'皮膚彷彿與熔岩融為一體，靠近就能感受到高溫。', enemyName:'熔岩爬行者' },
-  { id:15, name:'戰鬥015', hp:57,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'眼前的生物身形忽明忽滅，彷彿不完全存在於這個世界。', flavor:'輪廓模糊不清，攻擊時卻異常真實而沉重。', enemyName:'虛空爬行者' },
-  { id:16, name:'戰鬥016', hp:60,  atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的咆哮中夾雜著另一個聲音，彷彿不只一個靈魂困在這副軀體裡。', flavor:'裂開的軀殼中，隱約能看見扭動的黑影。', enemyName:'裂魂爬行者' },
-  { id:17, name:'戰鬥017', hp:62,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的雙眼佈滿血絲，狂躁地朝你衝來，完全不顧自身安危。', flavor:'渾身肌肉賁張，攻擊帶著失控般的狠勁。', enemyName:'血怒爬行者' },
-  { id:18, name:'戰鬥018', hp:64,  atk:7, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'地面劇烈震動，一頭遠比之前所有生物都巨大的存在浮出黑暗。', flavor:'體型龐大到幾乎填滿整條通道，每次動作都震得洞窟嘎嘎作響。', enemyName:'深潛巨獸' },
-  { id:19, name:'戰鬥019', hp:66,  atk:8, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠周身的空間彷彿正在崩解，靠近牠讓人感到一陣暈眩。', flavor:'存在本身就在侵蝕著四周，彷彿隨時會將一切拖入虛無。', enemyName:'崩壞使者' },
-  { id:20, name:'戰鬥020', hp:71,  atk:9, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'一股凌駕於先前一切的威壓籠罩而下——你知道，這才是這片深淵真正的裁決者。', flavor:'渾身散發著審判般的冷冽氣息，彷彿在衡量你是否有資格活下去。', enemyName:'深淵審判者' }
+  { id:14, name:'戰鬥014', hp:59,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'空氣逐漸變得灼熱，腳下的岩石隱隱發紅。', flavor:'皮膚彷彿與熔岩融為一體，靠近就能感受到高溫。', enemyName:'熔岩爬行者' },
+  { id:15, name:'戰鬥015', hp:67,  atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'眼前的生物身形忽明忽滅，彷彿不完全存在於這個世界。', flavor:'輪廓模糊不清，攻擊時卻異常真實而沉重。', enemyName:'虛空爬行者' },
+  { id:16, name:'戰鬥016', hp:70,  atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的咆哮中夾雜著另一個聲音，彷彿不只一個靈魂困在這副軀體裡。', flavor:'裂開的軀殼中，隱約能看見扭動的黑影。', enemyName:'裂魂爬行者' },
+  { id:17, name:'戰鬥017', hp:72,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠的雙眼佈滿血絲，狂躁地朝你衝來，完全不顧自身安危。', flavor:'渾身肌肉賁張，攻擊帶著失控般的狠勁。', enemyName:'血怒爬行者' },
+  { id:18, name:'戰鬥018', hp:74,  atk:6, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'地面劇烈震動，一頭遠比之前所有生物都巨大的存在浮出黑暗。', flavor:'體型龐大到幾乎填滿整條通道，每次動作都震得洞窟嘎嘎作響。', enemyName:'深潛巨獸' },
+  { id:19, name:'戰鬥019', hp:90,  atk:4, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'牠周身的空間彷彿正在崩解，靠近牠讓人感到一陣暈眩。', flavor:'存在本身就在侵蝕著四周，彷彿隨時會將一切拖入虛無。', enemyName:'崩壞使者' },
+  { id:20, name:'戰鬥020', hp:120,  atk:5, enemyDefense:0, maxCardsPerTurn:4, handLimit:6, intro:'一股凌駕於先前一切的威壓籠罩而下——你知道，這才是這片深淵真正的裁決者。', flavor:'渾身散發著審判般的冷冽氣息，彷彿在衡量你是否有資格活下去。', enemyName:'深淵審判者' }
 ];
 
 const UPGRADE_TIER_1 = [
-  { key:'light1', tier:1, line:'light', name:'升級輕攻擊', desc:'每次擊中敵人效果提升為\n全攻命中+4%、次回能量+2、恢復1生命\n（單場疊加）' },
+  { key:'light1', tier:1, line:'light', name:'升級輕攻擊', desc:'每次擊中敵人效果提升為\n全攻命中+4%、次回能量+2、\n恢復1生命 (單場疊加)' },
   { key:'mid1',   tier:1, line:'mid',   name:'升級中攻擊', desc:'命中後，角色防禦+1\n（單場疊加，最高2層）' },
-  { key:'heavy1', tier:1, line:'heavy', name:'升級重攻擊', desc:'命中:傷害+1\n(每場限+1)' }
+  { key:'heavy1', tier:1, line:'heavy', name:'升級重攻擊', desc:'命中且暴擊:\n重攻擊傷害+1\n(上限+2)(單場疊加)(每回合限1次)' }
 ];
 const UPGRADE_TIER_2 = [
   { key:'light2', tier:2, line:'light', name:'穩定呼吸', desc:'敵我回合開始時，恢復生命1（全局）' },
-  { key:'mid2',   tier:2, line:'mid',   name:'強化中攻擊', desc:'使用中攻擊擊中敵人時獲得的護盾量+2，護盾上限+2' },
-  { key:'heavy2', tier:2, line:'heavy', name:'強化重攻擊', desc:'暴擊時額外附加1傷害' }
+  { key:'mid2',   tier:2, line:'mid',   name:'強化中攻擊', desc:'命中: 獲得護盾量+2\n\n選擇後角色護盾上限+2\n(一次性)' },
+  { key:'heavy2', tier:2, line:'heavy', name:'強化重攻擊', desc:'連續命中且暴擊: 怪物命中率-15%\n(上限-30%)' }
 ];
 const UPGRADE_TIER_3 = [
   { key:'light3', tier:3, line:'light', name:'精準擦傷', desc:'擦傷傷害由68%提升為82%\n（無條件捨棄）\n（擦傷為未命中的傷害）' },
@@ -891,8 +983,10 @@ const state = {
     defenseThisBattle:0,
     defenseReductionThisBattle:0,
     bonusHitPct:0,
-    heavyUseCritBonus:0, // 重攻擊每次使用的暴擊率加成(不論命中與否)
-    heavyHitAtkBonus:0,
+    heavyUseCritBonus:0, // 重攻擊命中時的暴擊率加成
+    heavy1TriggeredThisRound:false, // 升級重攻擊每回合最多觸發一次的旗標
+    heavyStreakDmgBonus:0, // 升級重攻擊:連續兩次命中疊加的傷害加成
+    enemyHitReductionThisBattle:0, // 強化重攻擊:命中且暴擊時累積的敵人命中率削減
     bonusDefenseFlat:0,
     
     upgLight1:false, upgMid1:false, upgHeavy1:false,
@@ -1003,7 +1097,8 @@ function cardStat(type){
 
   let critMult = 2;
   if(type==='heavy'){
-    dmg += (state.player.heavyHitAtkBonus || 0);
+    // 升級重攻擊已改為連續兩次命中疊加傷害
+    dmg += (state.player.heavyStreakDmgBonus || 0);
     crit += (state.player.heavyUseCritBonus || 0);
   }
   const curCycle = CYCLE_ORDER[state.player.cyclePos];
@@ -1019,7 +1114,7 @@ function cardStat(type){
     hit:Math.max(0,Math.min(100,hit)), 
     crit:Math.max(0,Math.min(100,crit)),
     critMult: critMult,
-    critExtraDmg: (type === 'heavy' && state.player.upgHeavy2) ? 1 : 0,
+    critExtraDmg: (type === 'heavy' && state.player.upgHeavy2) ? 2 : 0,
     cost:base.cost 
   };
 }
@@ -1054,12 +1149,11 @@ function cardStatsLine(type, stat){
     if(p.upgMid1) effectLines.push('命中：該場角色防禦+1（最高2層）');
     if(p.upgMid2) effectLines.push('護盾上限+2（永久）');
   } else if(type==='heavy'){
-    effectLines.push(`使用:暴率+1% (單場疊加)`);
-    if(p.upgHeavy1) effectLines.push(`命中:傷害+1 (每場限+1)`);
-    if(p.upgHeavy2) effectLines.push(`暴擊時額外附加1傷害`);
+    effectLines.push(`使用: 重攻擊暴擊率+1% (單場疊加，不論命中與否)`);
+    if(p.upgHeavy1) effectLines.push(`命中且暴擊: 重攻擊傷害+1 (上限+2)(每回合限1次)`);
+    if(p.upgHeavy2) effectLines.push(`連續命中且暴擊: 怪物命中率-15% (上限-30%)`);
   }
   
-  if(rage>0) effectLines.push(`⚠${RAGE_NAME}x${rage}：命中-${Math.floor(rage/3)}%（跨場保留）`);
   return { statsLine, effectLines };
 }
 function renderTooltipHtml(statsLine, effectLines){
@@ -1074,7 +1168,7 @@ function renderTooltipHtml(statsLine, effectLines){
 let dialogueFadeTimer = null;
 function renderDialogue(who, line){
   document.getElementById('dlgWho').textContent = who;
-  document.getElementById('dlgLine').textContent = line;
+  document.getElementById('dlgLine').innerHTML = line;
 }
 function setStory(who, line){
   state.defaultWho = who || '';
@@ -1278,8 +1372,12 @@ function resolveSingleCard(uid, onDone){
       if(state.player.shield > shieldBefore) sfxShield();
       if(state.player.upgMid1) state.player.defenseThisBattle = Math.min(2, state.player.defenseThisBattle + 1); 
     } else if(card.type==='heavy'){
-      if(state.player.upgHeavy1) {
-        state.player.heavyHitAtkBonus = Math.min(1, (state.player.heavyHitAtkBonus || 0) + 1);
+      if(state.player.upgHeavy1 && isCrit && !state.player.heavy1TriggeredThisRound){
+        state.player.heavyStreakDmgBonus = Math.min(2, (state.player.heavyStreakDmgBonus || 0) + 1);
+        state.player.heavy1TriggeredThisRound = true;
+      }
+      if(state.player.upgHeavy2 && isCrit){
+        state.player.enemyHitReductionThisBattle = Math.min(30, (state.player.enemyHitReductionThisBattle || 0) + 15);
       }
     }
   } else {
@@ -1401,6 +1499,12 @@ function enemyAttack(){
     if(isHeavyStrikeRound){ /* 重擊發動時不再另外顯示訊息，改由回合開始時的咆哮預告告知 */ }
     let dmg = Math.max(1, rawDmg - totalDefense);
 
+    // 強化重攻擊:累積的敵人命中率削減,可能讓這次攻擊變成擦傷
+    const enemyHitChance = Math.max(0, 100 - (state.player.enemyHitReductionThisBattle || 0));
+    if(Math.random()*100 >= enemyHitChance){
+      dmg = Math.max(1, Math.floor(dmg * 0.68));
+    }
+
     if(CYCLE_ORDER[state.player.cyclePos]==='br'){
       dmg = Math.max(1, Math.round(dmg*0.5));
     }
@@ -1472,6 +1576,7 @@ function enemyAttack(){
 
         refillHand();
         state.turn = 'PLAYER';
+        state.player.heavy1TriggeredThisRound = false;
         triggerTurnStartHeal();
         renderAll();
         return;
@@ -1493,12 +1598,14 @@ function enemyAttack(){
 function loadBattle(index){
   const b = BATTLES[index];
   state.currentIntro = b.intro || '';
-  state.enemy = { hp:b.hp, hpMax:b.hp, atk:b.atk, defenseBase:b.enemyDefense||0, defenseReduction:0, dmgMult:1, name:b.enemyName, flavor:b.flavor };
+  state.enemy = { hp:b.hp, hpMax:b.hp, atk:b.atk, baseAtk:b.atk, defenseBase:b.enemyDefense||0, defenseReduction:0, dmgMult:1, name:b.enemyName, flavor:b.flavor };
   
   state.player.defenseThisBattle = 0;
   state.player.defenseReductionThisBattle = 0;
   state.player.heavyUseCritBonus = 0;
-  state.player.heavyHitAtkBonus = 0;
+  state.player.heavy1TriggeredThisRound = false;
+  state.player.heavyStreakDmgBonus = 0;
+  state.player.enemyHitReductionThisBattle = 0;
   state.player.bonusHitPct = 0;
   
   state.roundNum = 1;
@@ -1682,7 +1789,7 @@ function applyEnemyPalette(index){
 const BASE_BUFF_INFO = {
   light:{ name:'輕攻擊之力', desc:'命中：該場永久命中率+3%、次回合能量+1、恢復1生命（三種攻擊皆適用，可疊加）' },
   mid:  { name:'中攻擊之力', desc:'命中：獲得護盾+11（跨場保留，每次使用後-3，最低0，本場重置）' },
-  heavy:{ name:'重攻擊之力', desc:'使用:暴率+1% (單場疊加)' },
+  heavy:{ name:'重攻擊之力', desc:'使用: 重攻擊暴擊率+1% (單場疊加，不論命中與否)' },
   aggressive:{ name:'侵略本性', desc:'輕中重攻擊力+1；但角色防禦永久-3（全局）' }
 };
 function renderBaseBuffs(){
@@ -1697,18 +1804,16 @@ function renderBaseBuffs(){
     if(line==='light'){
       const energyGain = state.player.upgLight1 ? 2 : 1;
       const hitGain = state.player.upgLight1 ? 4 : 3;
-      lines.push(`命中：該場永久命中率+${hitGain}%、次回合能量+${energyGain}、恢復1生命（三種攻擊皆適用，可疊加）`);
-      lines.push(`(目前疊加:+${state.player.bonusHitPct||0}%)`);
+      lines.push(`命中: 該場命中+${hitGain}%、\n次回合能量+${energyGain}、恢復1生命\n（三種攻擊適用）（單場疊加）\n(目前疊加:+${state.player.bonusHitPct||0}%)`);
     } else if(line==='mid'){
       const shieldGain = 2 + (state.player.upgMid2 ? 2 : 0);
       lines.push(`命中：獲得護盾+${shieldGain}（跨場保留）`);
       if(state.player.upgMid1) lines.push('命中：該場角色防禦+1（最高2層）');
       if(state.player.upgMid2) lines.push('護盾上限+2（永久）');
     } else if(line==='heavy'){
-      lines.push('使用:暴率+1% (單場疊加)');
-      if(state.player.upgHeavy1) lines.push('命中:傷害+1 (每場限+1)');
-      if(state.player.upgHeavy2) lines.push('暴擊時額外附加1傷害');
-      if(state.player.heavyUseCritBonus>0) lines.push(`(目前疊加:+${state.player.heavyUseCritBonus}%)`);
+      lines.push(`使用: 重攻擊暴擊率+1%\n(單場疊加)(目前疊加:+${state.player.heavyUseCritBonus||0}%)`);
+      if(state.player.upgHeavy1) lines.push('命中且暴擊: 重攻擊傷害+1 (上限+2)(每回合限1次)');
+      if(state.player.upgHeavy2) lines.push('連續命中且暴擊: 怪物命中率-15% (上限-30%)');
     }
     const desc = lines.join('\n');
     div.onmouseenter = ()=>showTalentTooltip(div, info.name, desc);
@@ -1797,7 +1902,9 @@ function renderStats(){
   document.getElementById('enemyHudName').textContent = e.name;
   document.getElementById('enemyHudFill').style.width = `${(e.hp/e.hpMax*100)}%`;
   document.getElementById('enemyHudHpText').textContent = `${e.hp}/${e.hpMax}`;
-  document.getElementById('enemyIntentValue').textContent = predictedIncomingDamage();
+  const intentValueEl = document.getElementById('enemyIntentValue');
+  intentValueEl.textContent = predictedIncomingDamage();
+  intentValueEl.style.color = (state.enemy.atk > state.enemy.baseAtk) ? 'var(--blood-bright)' : '';
   const roundsUntilHeavy = ((4 - (state.roundNum % 4)) % 4);
   document.getElementById('heavyCountdownValue').textContent = roundsUntilHeavy;
 }
@@ -1892,7 +1999,7 @@ enemyCardEl.addEventListener('mouseleave', unhoverStory);
 
 const enemyIntentEl = document.getElementById('enemyIntent');
 enemyIntentEl.addEventListener('mouseenter', ()=>{
-  const lines = [`下回合將造成${predictedIncomingDamage()}傷害`];
+  const lines = [`下回合將造成${predictedIncomingDamage()}生命傷害`];
   if(state.roaredAtkGrowth) lines.push('接下來每回合攻擊再+1');
   if(state.roaredShieldDef) lines.push('接下來每回合擊中附加\n-1防禦-1護盾上限\n(跨場重置，護盾上限最低為0)');
   if(state.roaredHitReduce) lines.push('接下來每回合擊中附加\n-1%命中(跨場重置)');
@@ -1902,7 +2009,9 @@ enemyIntentEl.addEventListener('mouseleave', hideTalentTooltip);
 
 const heavyStrikeWarningEl = document.getElementById('heavyStrikeWarning');
 heavyStrikeWarningEl.addEventListener('mouseenter', ()=>{
-  showTalentTooltip(heavyStrikeWarningEl, '重擊', '每四回合1.3倍傷害重擊，\n會附加怒吼效果。');
+  const roundsUntilHeavy = ((4 - (state.roundNum % 4)) % 4);
+  const countdownLine = roundsUntilHeavy === 0 ? '下回合重擊' : `${roundsUntilHeavy}回合後重擊`;
+  showTalentTooltip(heavyStrikeWarningEl, '重擊', `每四回合1.3倍傷害重擊，\n會附加怒吼效果。\n${countdownLine}`);
 });
 heavyStrikeWarningEl.addEventListener('mouseleave', hideTalentTooltip);
 
@@ -2260,7 +2369,45 @@ document.addEventListener('keydown', (e)=>{
     }
   }
 });
-window.addEventListener('load', ()=>{ fadeEl(storyScreen1El, 1, 2); });
+const mainMenuScreenEl = document.getElementById('mainMenuScreen');
+document.getElementById('mmNewGameBtn').addEventListener('click', async ()=>{
+  startAudioOnce();
+  await fadeEl(mainMenuScreenEl, 0, 1);
+  mainMenuScreenEl.style.display = 'none';
+  storyScreen1El.style.display = 'flex';
+  storyScreen1El.style.opacity = 0;
+  await fadeEl(storyScreen1El, 1, 1);
+});
+const GUIDE_SECTIONS = [
+  { title:'三種攻擊', desc:'輕：免能量、必中、傷低。中：耗能量、得護盾。重：傷最高、最容易失手。' },
+  { title:'擦傷', desc:'沒命中不等於沒傷害，會打出較低的擦傷傷害。' },
+  { title:'暴擊', desc:'命中後有機率加倍傷害，重攻擊機率最高。' },
+  { title:'護盾', desc:'護盾優先扣，扣完才輪到生命值。' },
+  { title:'甦醒循環', desc:'四象限隨回合輪替：治癒、必爆、減傷、命中提升。' },
+  { title:'無能狂怒', desc:'連續兩次未命中會扣命中率，越衰越難打中。' },
+  { title:'怪物成長', desc:'戰鬥拖越久，怪物越強、還會重擊、扣你防禦命中。' },
+  { title:'天賦選擇', desc:'特定戰鬥後可三選一強化，決定你的路線。' }
+];
+const guideOverlayEl = document.getElementById('guideOverlay');
+const guideCardHostEl = document.getElementById('guideCardHost');
+document.getElementById('mmGuideBtn').addEventListener('click', ()=>{
+  const secsHtml = GUIDE_SECTIONS.map(s=>`
+    <div class="g-sec">
+      <div class="g-sec-title">${s.title}</div>
+      <div class="g-sec-desc">${s.desc}</div>
+    </div>
+  `).join('');
+  guideCardHostEl.innerHTML = `
+    <div class="g-title">甦醒指引</div>
+    <div class="stone-grid">${secsHtml}</div>
+    <div class="g-hint">點擊任意處關閉</div>
+  `;
+  guideOverlayEl.classList.add('show');
+});
+guideOverlayEl.addEventListener('click', ()=>{
+  guideOverlayEl.classList.remove('show');
+});
+window.addEventListener('load', ()=>{ fadeEl(mainMenuScreenEl, 1, 2); });
 
 /* ============================================================
    Tab 顯示：攻擊數值總覽
