@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>星崩：命運共鳴 - 遊俠基礎攻擊力1版</title>
+<title>蘇卡：邊境之歌</title>
 <style>
     :root {
         --bg-color: #08090c; --grid-line: #1c1e24; --cell-bg: #101115;
         --text-main: #7a828e; --text-light: #a3aab5; --text-highlight: #c8d1de;
-        --player-color: hsl(210, 20%, 35%); --enemy-color: hsl(0, 20%, 35%); --boss-color: hsl(0, 40%, 25%);
+        --player-color: hsl(210, 20%, 35%); --enemy-color: hsl(0, 0%, 35%); --boss-color: hsl(0, 40%, 25%);
         --shield-color: #2b7a78; --energy-color: #a48111; --resonance-color: #7b2cbf;
         --move-highlight: rgba(100, 150, 200, 0.15); --attack-highlight: rgba(200, 100, 100, 0.15); --skill-highlight: rgba(150, 200, 100, 0.15);
     }
@@ -17,7 +17,7 @@
     
     #bottom-left-bar {
         position: fixed; bottom: 15px; left: 20px; z-index: 1000;
-        display: flex; gap: 8px; align-items: center;
+        display: none; gap: 8px; align-items: center;
     }
     #bottom-left-bar button {
         background-color: rgba(18, 20, 24, 0.9); color: var(--text-light);
@@ -27,26 +27,49 @@
     }
     #bottom-left-bar button:hover:not(:disabled) { background-color: #2a2f3a; color: #fff; }
     #bottom-left-bar button:disabled { opacity: 0.3; cursor: not-allowed; }
-    
-    #bottom-left-bar #btn-inspect { border-color: #4a90e2; color: #4a90e2; }
-    #bottom-left-bar #btn-inspect:hover:not(:disabled) { background-color: rgba(74, 144, 226, 0.2); }
 
-    .scene { display: none; width: 100%; max-width: 900px; height: 100%; flex-direction: column; align-items: flex-start; justify-content: flex-start; margin-left: 320px; }
+    #esc-menu-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 3500;
+        align-items: center; justify-content: center;
+    }
+    #esc-menu-box {
+        background: #121418; border: 1px solid #333945; border-radius: 8px;
+        padding: 14px; width: 180px; box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    #esc-menu-box button {
+        width: 100%; box-sizing: border-box; margin: 0; padding: 10px;
+        background-color: #1e222b; color: var(--text-light); border: 1px solid #333945;
+        border-radius: 5px; font-size: 13px; cursor: pointer; font-family: inherit;
+    }
+    #esc-menu-box button:hover { background-color: #2a2f3a; color: #fff; }
+
+    .scene { display: none; width: 100%; height: 100vh; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto; padding: 10px; box-sizing: border-box; }
     .scene.active { display: flex; }
 
-    #story-text { text-align: center; line-height: 2.5; font-size: 16px; letter-spacing: 2px; color: var(--text-light); cursor: pointer; padding: 40px; border: 1px solid var(--grid-line); border-radius: 8px; background: #0c0d12; margin-top: 20vh; }
+    #story-text { text-align: center; line-height: 2.5; font-size: 16px; letter-spacing: 2px; color: var(--text-light); cursor: pointer; padding: 40px; border: 1px solid var(--grid-line); border-radius: 8px; background: #0c0d12; margin-top: 5vh; }
     #story-text:hover { color: var(--text-highlight); border-color: #333945; }
 
     .roster-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; width: 100%; max-width: 600px; }
     .class-card { background: #121418; border: 1px solid var(--grid-line); padding: 15px; border-radius: 6px; text-align: center; cursor: pointer; transition: 0.2s; }
-    .class-card:hover:not(.disabled) { border-color: var(--player-color); background: #1a1e26; }
     .class-card.disabled { opacity: 0.3; cursor: not-allowed; }
     .class-card.selected-p1 { border-color: #4a90e2; background: rgba(74, 144, 226, 0.1); }
     .class-card.selected-p2 { border-color: #e24a4a; background: rgba(226, 74, 74, 0.1); }
     #select-status { margin-top: 20px; font-size: 20px; font-weight: bold; color: var(--text-highlight); }
     
-    #battle-container { display: flex; flex-direction: row; gap: 20px; width: 100%; justify-content: flex-start; margin-top: 0; align-items: flex-start; padding-top: 20px;}
+    #battle-container { display: flex; flex-direction: row; gap: 15px; width: auto; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+
+    #left-combo { display: flex; flex-direction: column; gap: 0; flex: 0 0 310px; width: 310px; }
+
+    #order-panel { width: 310px; height: 34px; background-color: #121418; border: 1px solid var(--grid-line); border-radius: 6px 6px 0 0; border-bottom: none; padding: 6px 8px; box-sizing: border-box; display: flex; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+    #order-list { flex: 1; overflow: hidden; font-size: 11px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+    #log-container { width: 310px; height: 528px; background-color: #121418; border: 1px solid var(--grid-line); border-radius: 0 0 6px 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.6); box-sizing: border-box; flex: 0 0 528px; }
+    .order-row { display: flex; align-items: center; justify-content: center; border-radius: 3px; background-color: hsl(0, 0%, 12%); color: #8a8f98; }
+    .order-row.active { background-color: hsl(0, 0%, 16%); color: #a3aab5; font-weight: bold; }
     
+    #log-container h3 { margin-top: 0; margin-bottom: 0; color: var(--text-light); font-size: 14px; border-bottom: 1px solid var(--grid-line); padding-bottom: 5px; }
+    #log { flex: 1; overflow: hidden; font-size: 11px; line-height: 1.4; color: #bbb; display: flex; flex-direction: column; gap: 5px; }
+
     #battlefield { display: grid; grid-template-columns: repeat(9, 50px); grid-template-rows: repeat(11, 50px); gap: 1px; background-color: var(--grid-line); border: 2px solid #2a2d35; border-top: none; }
     .cell { background-color: var(--cell-bg); width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; position: relative; cursor: pointer; color: #ddd; }
     
@@ -55,31 +78,48 @@
     .cell.attack-target { background-color: var(--attack-highlight); } 
     .cell.skill-target { background-color: var(--skill-highlight); }
     
-    .cell.burst-mark { background-color: rgba(220, 80, 50, 0.35) !important; border: 1px dashed #ff5722; }
+    .cell.burst-mark { background-color: rgba(141, 110, 99, 0.45) !important; border: 1px dashed #d7ccc8; }
     .cell.shatter-mark { background-color: rgba(239, 83, 80, 0.45) !important; border: 2px solid #ff1744; animation: blink 1s infinite; }
+    .cell.purple-mark { animation: purpleBreathe 3s ease-in-out infinite; border: 1px dashed #ab47bc; box-sizing: border-box; }
+    .cell.purple-mark.shatter-mark { animation: flickerDual 1.5s infinite !important; }
+
     @keyframes blink { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    @keyframes purpleBreathe {
+        0%   { background-color: rgba(156, 39, 176, 0.22); }
+        25%  { background-color: rgba(170, 60, 190, 0.17); }
+        33%  { background-color: rgba(140, 40, 165, 0.15); }
+        46%  { background-color: rgba(140, 40, 165, 0.15); }
+        60%  { background-color: rgba(120, 30, 150, 0.2); }
+        80%  { background-color: rgba(140, 35, 165, 0.2); }
+        100% { background-color: rgba(156, 39, 176, 0.22); }
+    }
+    @keyframes flickerDual {
+        0%, 100% { background-color: rgba(156, 39, 176, 0.5) !important; border-color: #ab47bc; }
+        50% { background-color: rgba(239, 83, 80, 0.55) !important; border-color: #ff1744; }
+    }
 
     .unit { width: 90%; height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5); text-align: center; line-height: 1.1; position: relative; }
     .unit.player { background-color: var(--player-color); } .unit.enemy { background-color: var(--enemy-color); } .unit.boss { background-color: var(--boss-color); color: #fff;}
-    .unit.active { outline: 2px solid #fff; z-index: 10; }
+    .unit.active { outline: 2px solid #f2f2f2; z-index: 10; }
+    .unit.targeting-glow { box-shadow: 0 0 8px 3px rgba(255, 255, 255, 0.1); }
     
     .unit-name { font-size: 10px; transform: scale(0.9); white-space: nowrap; width: 100%; margin-bottom: 2px; }
     .unit-hp { font-size: 9px; } 
     .unit-shield { font-size: 9px; color: #48c9b0; font-weight: bold; }
     
-    #dashboard { flex: 1; display: flex; flex-direction: column; gap: 0; min-width: 320px; max-width: 340px; }
-    .panel { background-color: #121418; border: 1px solid var(--grid-line); border-top: none; padding: 15px; border-radius: 0 0 6px 6px; margin-bottom: 15px;}
-    h3 { margin-top: 0; color: var(--text-light); font-size: 16px; border-bottom: 1px solid var(--grid-line); padding-bottom: 5px;}
+    #dashboard { flex: 0 0 310px; display: flex; flex-direction: column; gap: 0; width: 310px; }
+    .panel { background-color: #121418; border: 1px solid var(--grid-line); border-top: none; padding: 12px 15px; border-radius: 0 0 6px 6px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+    h3 { margin-top: 0; margin-bottom: 0; color: var(--text-light); font-size: 16px; border-bottom: 1px solid var(--grid-line); padding-bottom: 5px;}
     button { background-color: #1e222b; color: var(--text-light); border: 1px solid #333945; padding: 6px 10px; cursor: pointer; border-radius: 4px; margin-right: 5px; margin-bottom: 5px; font-size: 12px;}
     button:hover:not(:disabled) { background-color: #2a2f3a; } button:disabled { opacity: 0.3; cursor: not-allowed; }
+    #skill-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    #skill-btns button { margin: 0; width: 100%; box-sizing: border-box; }
+    #action-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; margin-bottom: 5px; }
+    #action-btns button { margin: 0; width: 100%; box-sizing: border-box; }
     
-    .wave-info { color: #d4a373; font-weight: bold; margin-bottom: 10px; font-size: 14px;}
-    .c-shield { color: var(--shield-color); } .c-energy { color: var(--energy-color); } .c-reso { color: var(--resonance-color); }
+    .wave-info { color: #d4a373; font-weight: bold; font-size: 14px;}
+    .c-shield { color: var(--shield-color); }
 
-    #log-container { position: fixed; top: 0px; left: 20px; width: 260px; height: 55vh; background-color: #121418; border: 1px solid var(--grid-line); border-top: none; border-radius: 0 0 6px 6px; padding: 12px; display: none; flex-direction: column; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
-    #log-container h3 { margin-top: 0; color: var(--text-light); font-size: 14px; border-bottom: 1px solid var(--grid-line); padding-bottom: 5px; }
-    #log { flex: 1; overflow-y: auto; font-size: 11px; line-height: 1.4; color: #bbb; display: flex; flex-direction: column; gap: 5px; -webkit-overflow-scrolling: touch; }
-    
     .log-item { padding: 4px 7px; border-radius: 3px; word-break: break-all; }
     .log-item.player-log { background-color: hsl(150, 3%, 12%); border-left: 3px solid hsl(150, 20%, 35%); color: #d0d7d3; }
     .log-item.enemy-log { background-color: hsl(0, 3%, 13%); border-left: 3px solid hsl(0, 20%, 38%); color: #d7d0d0; }
@@ -88,14 +128,42 @@
 </head>
 <body>
 
-    <div id="bottom-left-bar">
-        <button id="btn-inspect" onclick="startInspect()">[?] 查看</button>
-        <button id="btn-fullscreen" onclick="toggleFullScreen()">🔲 全螢幕</button>
+    <div id="help-overlay" onclick="if(event.target===this) closeHelpGuide()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:3000; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+        <div style="background:#121418; border:1px solid #333945; border-radius:8px; padding:20px 24px; max-width:720px; width:100%; position:relative; box-shadow:0 8px 30px rgba(0,0,0,0.7); color:#a3aab5; font-size:12px; line-height:1.6;">
+            <button onclick="closeHelpGuide()" style="position:absolute; top:10px; right:10px; background:none; border:1px solid #333945; color:#888; width:22px; height:22px; border-radius:50%; font-size:12px; padding:0; cursor:pointer; line-height:1;">✕</button>
+            <h3 style="margin:0 0 14px 0; color:var(--text-highlight); font-size:15px; border-bottom:1px solid var(--grid-line); padding-bottom:8px;">遊戲系統說明</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px 24px;">
+                <div>
+                    <div style="color:#c8d1de; font-weight:bold; margin-bottom:4px;">核心資源</div>
+                    <div><span class="c-shield">■ 護盾</span>：優先承受傷害，歸零才會扣血</div>
+                    <div>能量：施放技能所需，耗盡就不能放</div>
+                    <div>共鳴：升級 / 隊伍首次進入絕境(生命&lt;30%)時獲得。每層：立即+10護盾/+1能量/+1回血；永久：普攻+1、技能造成傷害追加+1固定傷害(每回合首次擊中生效)、治療與護盾技能效果+1</div>
+                    <div>💚 回血：回合開始時自動恢復生命</div>
+                </div>
+                <div>
+                    <div style="color:#c8d1de; font-weight:bold; margin-bottom:4px;">經驗值與升級</div>
+                    <div>普攻 +1 XP(每回合上限1)｜被擊中 +0.5 XP(不限)</div>
+                    <div>隊友升級時，你額外 +1 XP（絕境觸發不算）</div>
+                    <div style="color:#c8d1de; font-weight:bold; margin:10px 0 4px;">技能按鈕怎麼看</div>
+                    <div>「耗:X」= 消耗能量｜「CD:X」= 冷卻回合數</div>
+                    <div>按鈕變暗 = 能量不足 / 冷卻中 / 共鳴等級不足 / 該技能已用完（限一次）</div>
+                    <div style="color:#c8d1de; font-weight:bold; margin:10px 0 4px;">擊殺加成</div>
+                    <div>近戰擊殺：+1能量、回合回血+2(上限+8)</div>
+                    <div>遠程擊殺：+1能量、回合回血+1(上限+4)</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="log-container">
-        <h3>戰鬥日誌 (最新 10 條)</h3>
-        <div id="log"></div>
+    <div id="esc-menu-overlay" onclick="if(event.target===this) closeEscMenu()">
+        <div id="esc-menu-box">
+            <button onclick="closeEscMenu()">回主選單</button>
+            <button onclick="closeEscMenu(); openHelpGuide();">戰鬥指引</button>
+        </div>
+    </div>
+
+    <div id="bottom-left-bar">
+        <button id="btn-fullscreen" onclick="toggleFullScreen()">🔲 全螢幕</button>
     </div>
 
     <div id="scene-story" class="scene active">
@@ -104,10 +172,37 @@
             隨後魔物不斷地竄出<br>
             但大陸西南方的帝國與王國<br>
             卻依舊處在長年的衝突中<br><br>
-            然而還是有少部分<br>
-            看見這一切急迫<br>
-            挺身而出的勇者<br><br>
+            然而<br>
+            還是有少部分人看見了<br>
+            這一切的急迫<br>
+            他們挺身而出...<br><br>
             <span style="font-size:12px; color:#555;">(點擊畫面繼續)</span>
+        </div>
+    </div>
+
+    <div id="scene-transition" class="scene">
+        <div id="transition-text" onclick="startClassReselect()">
+            有兩個人躲過了攔截怪的追擊<br>
+            趕回去蘇卡村通報情況<br><br>
+            這裡聚集了一些<br>
+            不願繼續長年衝突<br>
+            而離開軍隊的人<br><br>
+            「應該要趕快去通報帝國和王國！」<br>
+            「對，不能繼續這樣下去！！」<br><br>
+            此時正規的偵查軍已經抵達蘇卡村...<br><br>
+            <span style="font-size:12px; color:#555;">(點擊畫面繼續)</span>
+        </div>
+    </div>
+
+    <div id="scene-bonus" class="scene">
+        <div id="bonus-container" style="text-align:center; max-width:600px;">
+            <div style="font-size:15px; line-height:1.8; color:#ccc; margin-bottom:30px;">
+                在先前的戰鬥後<br>
+                人們彼此分享了一點什麼<br>
+                這次戰鬥的你...
+            </div>
+            <div id="bonus-status" style="margin-bottom:20px; font-size:14px;"></div>
+            <div id="bonus-options" style="display:flex; gap:15px; justify-content:center;"></div>
         </div>
     </div>
 
@@ -118,33 +213,48 @@
 
     <div id="scene-battle" class="scene">
         <div id="battle-container">
-            <div id="battlefield"></div>
-            <div id="dashboard">
-                <div class="panel">
-                    <div id="wave-display" class="wave-info">Wave 1-1</div>
-                    <h3>行動佇列</h3>
-                    <div id="queue-list" style="font-size: 12px; line-height: 1.8; min-height: 150px;"></div>
+            <div id="left-combo">
+                <div id="order-panel">
+                    <div id="order-list"></div>
                 </div>
-                <div class="panel" style="border-radius: 6px; border-top: 1px solid var(--grid-line);">
-                    <h3>當前單位狀態</h3>
-                    <div id="unit-info" style="font-size: 13px; line-height: 1.8; min-height: 100px;">等待中...</div>
+
+                <div id="log-container">
+                    <div id="log"></div>
+                </div>
+            </div>
+
+            <div id="battlefield"></div>
+
+            <div id="dashboard">
+                <div class="panel" style="height: 162px; overflow: hidden; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; border: none; padding: 0;">當前資訊</h3>
+                        <div id="wave-display" class="wave-info">Wave 1-1</div>
+                    </div>
+                    <div id="live-info" style="font-size: 12px; line-height: 1.6; margin-top: 10px; height: 98px; overflow-y: auto; text-align: center; color: var(--text-light);">滑鼠移到技能或戰場單位上查看</div>
+                </div>
+                <div class="panel" style="border-radius: 6px; border-top: 1px solid var(--grid-line); height: 390px; overflow: hidden; box-sizing: border-box;">
+                    <h3>當前單位</h3>
+                    <div id="unit-info" style="font-size: 13px; line-height: 1.8; min-height: 100px; margin-top: 10px;">等待中...</div>
                     
-                    <div style="margin-top: 10px;" id="action-btns">
+                    <div id="action-btns">
                         <button id="btn-move" onclick="startMove()">移動</button>
                         <button id="btn-attack" onclick="startAttack()">普攻</button>
                         <button id="btn-end" onclick="endTurn()">結束回合</button>
                     </div>
-                    <div id="skill-btns" style="margin-top: 5px;"></div>
-
-                    <div style="margin-top: 10px; display: none;" id="inspect-ui">
-                        <button onclick="endInspect()" style="border-color: #e24a4a; color: #e24a4a; width: 100%;">🔙 結束查看模式並返回</button>
-                    </div>
+                    <div id="skill-btns"></div>
                 </div>
             </div>
         </div>
     </div>
 
 <script>
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'f' || e.key === 'F') {
+            toggleFullScreen();
+        }
+    });
+
     function toggleFullScreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => { console.log(`全螢幕請求被拒絕: ${err.message}`); });
@@ -153,23 +263,28 @@
         }
     }
 
-    // 修改：將遊俠的基礎攻擊力從 2 修改為 1
     const CLASS_DB = {
-        'warrior': { name: '戰士', hp: 68, atk: 9, spd: 1.5, mov: 3, range: 1, eInit: 3, eMax: 4 },
-        'assassin': { name: '刺客', hp: 46, atk: 6, spd: 1.8, mov: 4, range: 1, eInit: 0, eMax: 4 },
-        'priest': { name: '戰鬥祭司', hp: 46, atk: 1, spd: 1.4, mov: 2, range: 1, eInit: 2, eMax: 4 },
-        'ranger': { name: '遊俠', hp: 52, atk: 1, spd: 1.6, mov: 3, range: 4, eInit: 2, eMax: 4 },
-        'wizard': { name: '巫師', hp: 44, atk: 4, spd: 1.2, mov: 2, range: 3, eInit: 3, eMax: 5 },
-        'cleric': { name: '神官', hp: 42, atk: 2, spd: 1.3, mov: 2, range: 2, eInit: 2, eMax: 4 }
+        'warrior': { name: '戰士', hp: 72, atk: 9, spd: 1.5, mov: 3, range: 1, eInit: 3, eMax: 4, startShield: 0 },
+        'assassin': { name: '刺客', hp: 39, atk: 5, spd: 1.8, mov: 4, range: 1, eInit: 0, eMax: 4, startShield: 0 },
+        'priest': { name: '戰鬥祭司', hp: 46, atk: 1, spd: 1.4, mov: 2, range: 1, eInit: 2, eMax: 4, startShield: 0 },
+        'ranger': { name: '遊俠', hp: 36, atk: 1, spd: 1.6, mov: 3, range: 4, eInit: 0, eMax: 4, startShield: 0 },
+        'wizard': { name: '巫師', hp: 29, atk: 4, spd: 1.2, mov: 2, range: 3, eInit: 7, eMax: 7, startShield: 10 },
+        'cleric': { name: '神官', hp: 34, atk: 1, spd: 1.3, mov: 2, range: 2, eInit: 4, eMax: 4, startShield: 0 }
     };
 
     let selectingPlayer = 'P2'; let p2Class = null; let p1Class = null;
+    let currentChapter = 1;
+    let p1Bonus = null; let p2Bonus = null; let bonusSelectingPlayer = 'P1';
+    const BONUS_OPTIONS = [
+        { id: 'regen', name: '每回合恢復生命1', desc: '角色回合開始時，<br>額外恢復1生命' },
+        { id: 'shield', name: '開場獲得護盾9', desc: '戰鬥開始時，<br>獲得9護盾' },
+        { id: 'maxhp', name: '生命上限+4', desc: '最大生命提升4點' }
+    ];
 
     function switchScene(sceneId) {
         document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
         document.getElementById(sceneId).classList.add('active');
-        if (sceneId === 'scene-battle') { document.getElementById('log-container').style.display = 'flex'; initBattle(); } 
-        else { document.getElementById('log-container').style.display = 'none'; }
+        if (sceneId === 'scene-battle') { initBattle(); } 
         if (sceneId === 'scene-select') renderSelectScreen();
     }
 
@@ -184,25 +299,86 @@
             card.onclick = () => handleSelect(key); grid.appendChild(card);
         });
         const statusLabel = document.getElementById('select-status');
-        if (!p2Class) statusLabel.innerHTML = '目前由 <span style="color:#e24a4a">P2</span> 進行選角 (請點擊職業)';
-        else if (!p1Class) statusLabel.innerHTML = '目前由 <span style="color:#4a90e2">P1</span> 進行選角 (不可重複)';
-        else statusLabel.innerHTML = '雙方準備完畢...';
+        if (currentChapter > 1) {
+            let flavorLines = `衝出村子迎戰偵查軍<br>掩護通報者出發的是？`;
+            if (!p1Class && !p2Class) {
+                let color = selectingPlayer === 'P1' ? '#4a90e2' : '#e24a4a';
+                statusLabel.innerHTML = `${flavorLines} <span style="color:${color}">(${selectingPlayer})</span>`;
+            } else if (!p1Class || !p2Class) {
+                let remaining = !p1Class ? 'P1' : 'P2';
+                let color = remaining === 'P1' ? '#4a90e2' : '#e24a4a';
+                statusLabel.innerHTML = `${flavorLines} <span style="color:${color}">(${remaining})</span>`;
+            } else {
+                statusLabel.innerHTML = '雙方準備完畢...';
+            }
+        } else if (!p1Class && !p2Class) {
+            let color = selectingPlayer === 'P1' ? '#4a90e2' : '#e24a4a';
+            statusLabel.innerHTML = `目前由 <span style="color:${color}">${selectingPlayer}</span> 進行選角 (請點擊職業)`;
+        } else if (!p1Class || !p2Class) {
+            let remaining = !p1Class ? 'P1' : 'P2';
+            let color = remaining === 'P1' ? '#4a90e2' : '#e24a4a';
+            statusLabel.innerHTML = `目前由 <span style="color:${color}">${remaining}</span> 進行選角 (不可重複)`;
+        } else {
+            statusLabel.innerHTML = '雙方準備完畢...';
+        }
     }
 
     function handleSelect(key) {
         if (p2Class === key || p1Class === key) return; 
-        if (selectingPlayer === 'P2') { p2Class = key; selectingPlayer = 'P1'; renderSelectScreen(); } 
-        else if (selectingPlayer === 'P1') { p1Class = key; renderSelectScreen(); setTimeout(() => switchScene('scene-battle'), 800); }
+        if (selectingPlayer === 'P1') { p1Class = key; selectingPlayer = 'P2'; }
+        else { p2Class = key; selectingPlayer = 'P1'; }
+        renderSelectScreen();
+        if (p1Class && p2Class) {
+            setTimeout(() => {
+                if (currentChapter > 1) { startBonusSelect(); }
+                else { switchScene('scene-battle'); }
+            }, 800);
+        }
+    }
+
+    function startClassReselect() {
+        currentChapter++;
+        p1Class = null; p2Class = null; selectingPlayer = 'P1';
+        switchScene('scene-select');
+    }
+
+    function startBonusSelect() {
+        p1Bonus = null; p2Bonus = null; bonusSelectingPlayer = 'P1';
+        switchScene('scene-bonus');
+        renderBonusScreen();
+    }
+
+    function renderBonusScreen() {
+        const container = document.getElementById('bonus-options'); container.innerHTML = '';
+        BONUS_OPTIONS.forEach(opt => {
+            let card = document.createElement('div');
+            card.style.cssText = 'background:#1a1d24; border:1px solid #333945; border-radius:8px; padding:20px; width:160px; cursor:pointer; box-sizing:border-box;';
+            card.innerHTML = `<div style="font-size:14px; color:#ddd; margin-bottom:8px; font-weight:bold;">${opt.name}</div><div style="font-size:11px; color:#888; line-height:1.5;">${opt.desc}</div>`;
+            card.onclick = () => handleBonusSelect(opt.id);
+            container.appendChild(card);
+        });
+        const statusEl = document.getElementById('bonus-status');
+        let color = bonusSelectingPlayer === 'P1' ? '#4a90e2' : '#e24a4a';
+        statusEl.innerHTML = `目前由 <span style="color:${color}">${bonusSelectingPlayer}</span> 選擇這次戰鬥加成`;
+    }
+
+    function handleBonusSelect(bonusId) {
+        if (bonusSelectingPlayer === 'P1') { 
+            p1Bonus = bonusId; bonusSelectingPlayer = 'P2'; renderBonusScreen(); 
+        } else { 
+            p2Bonus = bonusId; 
+            switchScene('scene-battle');
+        }
     }
 
     const COLS = 9; const ROWS = 11;
     let units = []; let turnQueue = []; let activeUnitIndex = -1;
     let currentState = 'WAITING'; let validMoves = []; let validAttacks = []; let validSkills = [];
-    let activeSkill = null; let skeletonCount = 0;
+    let activeSkill = null; let skeletonCount = 0; let boarCount = 0;
     
     let currentWave = 1; let waveAttackCount = 0; let totalEnemyDeathCount = 0; 
     let gameEnded = false; let desperationTriggered = false;
-    let globalInspireActive = false; let globalIllusionActive = false;
+    let globalInspireActive = false;
 
     class Unit {
         constructor(id, name, team, classType, hp, atk, spd, mov, range, x, y, energyInit=0, energyMax=0, isBoss = false, aiPattern = 'A') {
@@ -212,38 +388,99 @@
             this.shield = 0; this.energy = energyInit; this.maxEnergy = energyMax;
             this.level = 1; this.xp = 0; this.xpNeeded = 3;
             this.resonance = 0; this.bonusAtk = 0; this.hpRegen = 0;
+            this.killRegen = 0; 
             this.isDead = false; this.isBoss = isBoss; this.aiPattern = aiPattern; 
             this.hasMoved = false; this.hasActed = false; this.attacksUsed = 0; this.hasUsedSkill = false; this.atkXpThisTurn = 0;
             this.skills = []; this.cooldowns = {}; this.usedOnceFlags = {}; this.forceBasicOnly = false;
-            this.poisonStacks = 0; this.bleedStacks = 0; this.bugDebuff = false;
-            this.warriorBodyTier = 0; this.sacrificeStacks = 0; this.fullPowerActive = false;
+            this.poisonStacks = 0; this.bleedStacks = 0; this.burnStacks = 0; this.bugDebuff = false;
+            this.poisonTurnsLeft = 0; this.bleedTurnsLeft = 0; this.burnTurnsLeft = 0;
+            this.yaoduStacks = 0; this.yaoduTurnsLeft = 0;
+            this.warriorBodyTier = 0; this.sacrificeStacks = 0; this.sacUseCount = 0;
+            this.stunned = false; this.shieldBashVulnerable = false;
             this.hasTriggeredResoDmgThisTurn = false; 
             this.usedChaosPassive = false; this.assassinMovedThisTurn = false; 
             this.priestFanaticAtk = 0; this.priestJudgeNextAtk2x = false;  
             this.divineStatAccum = 0; this.clericAttackCount = 0;         
-            this.burstMarks = []; this.shatterMarks = []; this.bossAttackCount = 0; 
-            
-            this.hasRangedKillRegenPending = false;
+            this.burstMarks = []; this.shatterMarks = []; this.purpleFlameMarks = []; this.bossAttackCount = 0;
+            this.deadUnitCounter = 0;
         }
+    }
+
+    function applyChapterBonus(unit, bonusId) {
+        if (!bonusId) return;
+        if (bonusId === 'regen') { unit.hpRegen += 1; }
+        else if (bonusId === 'shield') { unit.shield += 9; }
+        else if (bonusId === 'maxhp') { unit.maxHp += 4; unit.hp += 4; }
+    }
+
+    const WAVE_DATA = {
+        1: {
+            wave1: { name: '攔截怪', hp: 15, atk: 1, spd: 1.9, mov: 5, range: 1, count: 3, aiPattern: 'A', thresholdAtk: 8, thresholdDeath: 2 },
+            wave2: { name: '射手', hp: 14, atk: 6, spd: 1.8, mov: 4, range: 5, count: 4, aiPattern: 'A', thresholdAtk: 8, thresholdDeath: 4, introMsg: '⚠️ Wave 1-2 啟動！攔截射手登場！' },
+            wave3: {
+                guardName: '護衛', guardHp: 60, guardAtk: 8, guardSpd: 1.7, guardMov: 3, guardRange: 1, guardHasBaodi: false,
+                bossName: '攔截王', bossHp: 40, bossAtk: 7, bossSpd: 1.1, bossMov: 2, bossRange: 4,
+                introMsg: '⚠️ Wave 1-3 最終波！攔截王與護衛登場！'
+            }
+        },
+        2: {
+            wave1: { name: '偵查矛手', hp: 16, atk: 2, spd: 1.6, mov: 5, range: 4, count: 4, aiPattern: 'A', thresholdAtk: 10, thresholdDeath: 2 },
+            wave2: { name: '毒爪妖', hp: 17, atk: 3, spd: 1.4, mov: 5, range: 1, count: 5, aiPattern: 'A', thresholdAtk: 20, thresholdDeath: 5, introMsg: '⚠️ Wave 2-2 啟動！毒爪妖登場！', hasYaodu: true, spawnRows: 1 },
+            wave3: {
+                guardName: '衝擊獸', guardHp: 46, guardAtk: 2, guardSpd: 1.7, guardMov: 4, guardRange: 1, guardHasBaodi: true, guardBaodiDmg: 4,
+                bossName: '偵查隊長', bossHp: 32, bossAtk: 3, bossSpd: 1.1, bossMov: 1, bossRange: 5,
+                introMsg: '⚠️ Wave 2-3 最終波！衝擊獸與偵查隊長登場！'
+            }
+        }
+    };
+
+    function findSpawnAlternating(centerCol) {
+        for (let row = 0; row <= 2; row++) {
+            for (let offset = 0; offset <= 8; offset++) {
+                if (offset === 0) {
+                    if (centerCol >= 0 && centerCol <= 8 && !getUnitAt(centerCol, row)) return { x: centerCol, y: row };
+                } else {
+                    let left = centerCol - offset, right = centerCol + offset;
+                    if (left >= 0 && !getUnitAt(left, row)) return { x: left, y: row };
+                    if (right <= 8 && !getUnitAt(right, row)) return { x: right, y: row };
+                }
+            }
+        }
+        return { x: Math.max(0, Math.min(8, centerCol)), y: 0 };
+    }
+
+    function findSpawnDirectional(centerCol, direction) {
+        for (let row = 0; row <= 2; row++) {
+            for (let offset = 1; offset <= 8; offset++) {
+                let c = centerCol + direction * offset;
+                if (c >= 0 && c <= 8 && !getUnitAt(c, row)) return { x: c, y: row };
+            }
+        }
+        return { x: Math.max(0, Math.min(8, centerCol)), y: 0 };
     }
 
     function initBattle() {
         units = []; totalEnemyDeathCount = 0; waveAttackCount = 0; currentWave = 1; gameEnded = false;
-        globalInspireActive = false; globalIllusionActive = false; document.getElementById('log').innerHTML = '';
+        globalInspireActive = false; document.getElementById('log').innerHTML = '';
         
         let p1Data = CLASS_DB[p1Class];
         let p1 = new Unit('P1', p1Data.name, 'player', p1Class, p1Data.hp, p1Data.atk, p1Data.spd, p1Data.mov, p1Data.range, 2, 10, p1Data.eInit, p1Data.eMax);
+        p1.shield = p1Data.startShield || 0;
+        applyChapterBonus(p1, p1Bonus);
         assignAllSkills(p1); units.push(p1);
 
         let p2Data = CLASS_DB[p2Class];
         let p2 = new Unit('P2', p2Data.name, 'player', p2Class, p2Data.hp, p2Data.atk, p2Data.spd, p2Data.mov, p2Data.range, 6, 10, p2Data.eInit, p2Data.eMax);
+        p2.shield = p2Data.startShield || 0;
+        applyChapterBonus(p2, p2Bonus);
         assignAllSkills(p2); units.push(p2);
         
-        for(let i = 1; i <= 3; i++) {
+        let w1 = WAVE_DATA[currentChapter].wave1;
+        for(let i = 1; i <= w1.count; i++) {
             let p = getEmptySpawnPos(0, 8, 0, 0);
-            units.push(new Unit(`M1_${i}`, `攔截怪${i}`, 'enemy', 'monster', 15, 1, 1.9, 5, 1, p.x, p.y, 0, 0, false, 'A'));
+            units.push(new Unit(`M1_${i}`, `${w1.name}${i}`, 'enemy', 'monster', w1.hp, w1.atk, w1.spd, w1.mov, w1.range, p.x, p.y, 0, 0, false, w1.aiPattern));
         }
-        logMessage("系統：選角完畢！進入戰鬥，Wave 1-1 啟動。", "system");
+        logMessage(`系統：選角完畢！進入戰場，Wave ${currentChapter}-1 啟動。`, "system");
         buildBoard(); startRound();
     }
 
@@ -251,74 +488,223 @@
         if (unit.classType === 'warrior') {
             unit.skills = [ 
                 { id: 's_body', name: '戰鬥之軀', cost: 0, range: 0, type: 'self', reqReso: 0, once: true, desc: '逐漸回血，得1能量 (全局限1次)' },
-                { id: 's_sac', name: '捨身戰術', cost: 4, range: 0, type: 'self', reqReso: 0, desc: '接下來隊友3次受擊，一半轉真傷給戰士' },
-                { id: 's_bash', name: '盾擊', cost: 4, range: 1, type: 'enemy', reqReso: 0, desc: '10傷害，減速0.1' }, 
-                { id: 's_hvy1', name: '基礎重擊', cost: 2, range: 1, type: 'enemy', reqReso: 2, desc: '2倍普攻傷害 (需共鳴2)' }, 
-                { id: 's_hvy2', name: '超載重擊', cost: 4, range: 1, type: 'enemy', reqReso: 3, desc: '3倍普攻傷害，自身永久減速0.1 (需共鳴3)' }, 
+                { id: 's_sac', name: '捨身掩護', cost: 0, range: 5, type: 'ally', reqReso: 0, desc: '選定範圍5格內的隊友，接下來該隊友2次承受擊中傷害：完全由戰士承受' },
+                { id: 's_bash', name: '砸盾崩擊', cost: 4, range: 5, type: 'enemy', reqReso: 0, once: true, desc: '對目標造成30傷害，速度-0.5，目標下回合無法行動直接結束回合(單場限一次)(之後戰士承受任何傷害追加承受1傷害，包括持續傷)' }, 
+                { id: 's_hvy1', name: '基礎重擊', cost: 2, range: 1, type: 'enemy', reqReso: 2, desc: '2倍普攻傷害' }, 
                 { id: 's_charge', name: '衝鋒斬', cost: 2, range: 0, type: 'self', reqReso: 0, desc: '可再次移動與普攻' },
-                { id: 's_burst', name: '爆地斬', cost: 4, range: 1, type: 'empty_or_enemy', reqReso: 4, desc: '留下印記，下回合爆開4倍普攻傷，速-0.2 (需共鳴4)' }
+                { id: 's_hvy2', name: '超載重擊', cost: 4, range: 1, type: 'enemy', reqReso: 3, desc: '3倍普攻傷害，自身永久減速0.1' }, 
+                { id: 's_burst', name: '爆地斬', cost: 4, range: 1, type: 'empty_or_enemy', reqReso: 4, desc: '留下印記，下回合爆開4倍普攻傷，速-0.2' }
             ];
         } else if (unit.classType === 'assassin') {
             unit.skills = [ 
                 { id: 's_stab', name: '剮心', cost: 1, range: 1, type: 'enemy', reqReso: 0, desc: '對目標造成10傷害，目標每回合開始承受3流血' },
-                { id: 's_needle', name: '散針', cost: 2, range: 1, type: 'enemy', reqReso: 0, desc: '造成9傷害，目標每回合開始承受4流血' },
-                { id: 's_blade', name: '碎刃', cost: 3, range: 1, type: 'enemy', reqReso: 0, desc: '對目標造成8傷害，目標每回合開始承受6流血' },
-                { id: 's_ult', name: '絕斬', cost: 4, range: 1, type: 'enemy', reqReso: 3, desc: '對目標造成2倍普通攻擊傷害，目標每回合開始承受8流血 (需共鳴3)' }
+                { id: 's_needle', name: '散針', cost: 2, range: 1, type: 'enemy', reqReso: 0, desc: '對目標造成8傷害，目標每回合開始承受5流血' },
+                { id: 's_blade', name: '碎刃', cost: 3, range: 1, type: 'enemy', reqReso: 0, desc: '對目標造成6傷害，目標每回合開始承受7流血' },
+                { id: 's_ult', name: '絕斬', cost: 4, range: 1, type: 'enemy', reqReso: 3, desc: '對目標造成2倍普通攻擊傷害，目標每回合開始承受9流血' }
             ];
         } else if (unit.classType === 'priest') {
             unit.skills = [ 
-                { id: 's_guard', name: '守護術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 2, once: true, desc: '隊友或自己恢復15生命與15護盾 (每場限1次)(需共鳴2)' },
-                { id: 's_bless', name: '戰鬥祝福', cost: 2, range: 5, type: 'ally_or_self', reqReso: 3, once: true, desc: '隊友或自己獲得32護盾 (每場限1次)(需共鳴3)' },
-                { id: 's_heavy', name: '熱血重擊', cost: 3, range: 1, type: 'enemy', reqReso: 4, desc: '對目標造成普攻傷害+自身護盾數值3倍的傷害 (需共鳴4)' },
-                { id: 's_judge', name: '審判降臨', cost: 4, range: 3, type: 'empty_or_self', reqReso: 5, desc: '閃現至3格內空位並可進行造成2倍普攻傷害的普攻 (需共鳴5)' }
+                { id: 's_guard', name: '守護術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 1, once: true, desc: '隊友或自己恢復15生命與15護盾 (每場限1次)' },
+                { id: 's_bless', name: '戰鬥祝福', cost: 2, range: 5, type: 'ally_or_self', reqReso: 2, once: true, desc: '隊友或自己獲得32護盾 (每場限1次)' },
+                { id: 's_heavy', name: '奇異之力', cost: 3, range: 1, type: 'enemy', reqReso: 3, desc: '對目標造成2倍普攻傷害+自身護盾數值5倍的傷害' },
+                { id: 's_judge', name: '審判降臨', cost: 3, range: 3, type: 'empty_or_self', reqReso: 4, desc: '閃現至3格內空位並可進行造成2倍普攻傷害的普攻' }
             ];
         } else if (unit.classType === 'ranger') {
             unit.skills = [ 
-                { id: 's_heal', name: '快速包紮', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, desc: '目標隊友恢復4生命' }, 
+                { id: 's_heal', name: '快速包紮', cost: 0, range: 5, type: 'ally_or_self', reqReso: 0, desc: '目標隊友恢復4生命' }, 
                 { id: 's_harass', name: '騷擾箭', cost: 1, range: 5, type: 'enemy', reqReso: 0, desc: '對敵方目標造成1傷害' }, 
-                { id: 's_chase', name: '追擊箭', cost: 2, range: 5, type: 'enemy', reqReso: 0, desc: '對敵方目標造成3傷害' }, 
-                { id: 's_poison', name: '毒箭', cost: 3, range: 5, type: 'enemy', reqReso: 0, desc: '目標每次回合承受1毒傷(可疊加，不提供XP)' },
-                { id: 's_tactics', name: '戰術箭', cost: 4, range: 0, type: 'aoe', reqReso: 0, desc: '隨機選擇4個敵方目標1傷害(可能重複選中)' },
-                { id: 's_full', name: '使出全力', cost: 4, range: 0, type: 'self', reqReso: 3, desc: '普通攻擊傷害+1，接下來所有擊中傷害皆為真實傷害，能量上限-1 (需共鳴3)' }
+                { id: 's_chase', name: '追擊箭', cost: 2, range: 5, type: 'enemy', reqReso: 0, desc: '對敵方目標造成2傷害' }, 
+                { id: 's_poison', name: '毒箭', cost: 3, range: 5, type: 'enemy', reqReso: 0, desc: '對目標造成4傷害，目標每次回合承受3毒傷，毒傷可疊加' },
+                { id: 's_tactics', name: '戰術箭', cost: 3, range: 0, type: 'aoe', reqReso: 0, desc: '隨機選擇技能範圍內2個敵方目標造成1傷害(可能重複選中)' },
+                { id: 's_full', name: '使出全力', cost: 4, range: 0, type: 'self', reqReso: 3, once: true, desc: '普通攻擊傷害+1，能量上限-1，自身速度+0.1 (全局限1次)' }
             ];
         } else if (unit.classType === 'wizard') {
             unit.skills = [ 
-                { id: 's_fire', name: '火球術', cost: 1, range: 5, type: 'enemy', reqReso: 0, desc: '自身扣除1生命，對指定敵方造成8傷害' },
-                { id: 's_bug', name: '蟲術', cost: 2, range: 5, type: 'enemy', reqReso: 0, desc: '自身扣除1生命，敵方受擊後額外追加1真傷(不可疊加)' },
-                { id: 's_life', name: '生命術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, desc: '指定友方單體恢復10生命' },
-                { id: 's_illusion', name: '幻炎術', cost: 4, range: 0, type: 'aoe', reqReso: 2, desc: '自身扣除2生命，所有敵方每單位回合承受1燃燒傷(可疊加)(不吃共鳴加成)(需共鳴2)' },
-                { id: 's_summon', name: '召喚骷髏射手', cost: 4, range: 1, type: 'empty', reqReso: 3, desc: '自身扣除4生命，周遭1格召喚骷髏射手(10血/10攻/3距/1.1速)(不吃共鳴加成)(需共鳴3)' }
+                { id: 's_fire', name: '火球術', cost: 1, hpCost: 1, range: 5, type: 'enemy', reqReso: 0, desc: '自身扣除1生命，對指定敵方造成8傷害' },
+                { id: 's_bug', name: '蟲術', cost: 1, hpCost: 1, range: 5, type: 'enemy', reqReso: 0, desc: '自身扣除1生命，敵方承受任何傷害時皆追加1點傷害(不可疊加)(不與共鳴系統連動)' },
+                { id: 's_life', name: '生命術', cost: 2, range: 5, type: 'ally_or_self', reqReso: 0, desc: '對友軍單體恢復12生命，對自身施放額外獲得24護盾' },
+                { id: 's_illusion', name: '幻炎術', cost: 1, hpCost: 1, range: 0, type: 'aoe', reqReso: 2, desc: '自身扣除1生命，對場上所有現存敵方單位附加2層燃燒(與巫師魔焰共用燃燒層數池，可疊加，持續5回合)(無法受到共鳴加成)' },
+                { id: 's_summon', name: '骷髏射手', cost: 2, hpCost: 2, range: 1, type: 'empty', reqReso: 3, once: true, desc: '自身扣除2生命，在自身周遭1格召喚一隻骷髏射手(38血/10攻/4距/1.1速)(無法受到共鳴加成)(全局限1次)' },
+                { id: 's_boar', name: '魔導野豬', cost: 3, hpCost: 3, range: 1, type: 'empty', reqReso: 4, once: true, desc: '自身扣除3生命，在自身周遭1格召喚魔導野豬(118血/4攻/1距/1.1速)(無法受到共鳴加成)(全局限1次)' },
+                { id: 's_flame', name: '巫師魔焰', cost: 3, hpCost: 3, range: 5, type: 'any_cell', reqReso: 4, once: true, desc: '自身扣除3生命，指定位置與十字延伸範圍充滿魔焰。當下8傷害+2燃燒，下回合爆發28傷害+2燃燒 (全局限一次)(友軍無傷)(無法受到共鳴加成)' }
             ];
         } else if (unit.classType === 'cleric') {
             unit.skills = [ 
-                { id: 's_cure', name: '治療術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, desc: '目標隊友或自己恢復10生命' },
-                { id: 's_emerg', name: '緊急治療', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, once: true, desc: '友方或自己立即恢復25生命15護盾 (全局限1次)' },
-                { id: 's_mass_cure', name: '群體治療', cost: 4, range: 0, type: 'aoe', reqReso: 0, desc: '我方全體恢復22生命' },
-                { id: 's_inspire', name: '振奮', cost: 4, range: 0, type: 'aoe', reqReso: 3, once: true, desc: '全場友方每單位回合恢復1生命 (全局限1次)(需共鳴3)' },
-                { id: 's_light', name: '光之衝擊', cost: 4, range: 0, type: 'aoe', reqReso: 3, desc: '範圍5內敵全體20傷害 (需共鳴3)' }
+                { id: 's_cure', name: '治療術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, desc: '目標隊友恢復10生命' },
+                { id: 's_mass_cure', name: '群體治療', cost: 3, range: 0, type: 'aoe', reqReso: 0, desc: '我方全體恢復22生命' },
+                { id: 's_emerg', name: '緊急治療', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, once: true, desc: '指定友方立即恢復25生命與15護盾 (每場限1次)' },
+                { id: 's_inspire', name: '振奮號令', cost: 3, range: 0, type: 'aoe', reqReso: 3, once: true, desc: '全場友方每經過一個單位回合恢復1生命 (每場限1次)(無法受到共鳴加成)' },
+                { id: 's_light', name: '光之衝擊', cost: 2, range: 5, type: 'aoe', reqReso: 1, desc: '對範圍5格內的敵方全體造成1傷害' }
             ];
         }
+    }
+
+    function showLiveInfoSkill(active, sk) {
+        const el = document.getElementById('live-info');
+        if (!el) return;
+        let num = getSkillDisplayNumber(active, sk);
+        const DMG = '#ef5350', SHIELD = '#4a90e2', HEAL = '#66bb6a';
+        let dmg = num ? `<span style="color:${DMG};">${num}</span>` : num;
+        let heal = num ? `<span style="color:${HEAL};">${num}</span>` : num;
+        let shield = num ? `<span style="color:${SHIELD};">${num}</span>` : num;
+        let reqStr = sk.reqReso ? `（需共鳴等級 ${sk.reqReso}）` : '';
+        let costStr = `耗${sk.cost}能` + (sk.hpCost ? `${sk.hpCost}命` : '');
+        let effect = '';
+        switch (sk.id) {
+            case 's_body': effect = '下回合起逐漸回血，並獲得1點能量（全局限1次）'; break;
+            case 's_sac': effect = '選定範圍5格內的隊友，接下來該隊友2次承受擊中傷害：完全由戰士承受（第2次起使用此技能，戰士額外承受遞增傷害：+5、+10、+15...）'; break;
+            case 's_bash': effect = `對目標造成${dmg}傷害，速度-0.5，目標下回合無法行動直接結束回合（單場限一次）（之後戰士承受任何傷害追加承受1傷害，包括持續傷）`; break;
+            case 's_hvy1': effect = `對目標造成${dmg}傷害（2倍普攻）`; break;
+            case 's_hvy2': effect = `對目標造成${dmg}傷害（3倍普攻），自身永久減速0.1`; break;
+            case 's_charge': effect = '可再次移動並進行一次普通攻擊'; break;
+            case 's_burst': effect = `留下印記，下回合爆開造成${dmg}傷害，自身永久減速0.2`; break;
+            case 's_stab': effect = `對目標造成${dmg}傷害，之後每回合開始承受<span style="color:${DMG};">3</span>流血（持續5回合，重新疊加會刷新）`; break;
+            case 's_needle': effect = `對目標造成${dmg}傷害，之後每回合開始承受<span style="color:${DMG};">5</span>流血（持續5回合，重新疊加會刷新）`; break;
+            case 's_blade': effect = `對目標造成${dmg}傷害，之後每回合開始承受<span style="color:${DMG};">7</span>流血（持續5回合，重新疊加會刷新）`; break;
+            case 's_ult': effect = `對目標造成${dmg}傷害，之後每回合開始承受<span style="color:${DMG};">9</span>流血（持續5回合，重新疊加會刷新）`; break;
+            case 's_guard': effect = `指定友方恢復${heal}生命與${shield}護盾（每場限1次）`; break;
+            case 's_bless': effect = `指定友方獲得${shield}護盾（每場限1次）`; break;
+            case 's_heavy': effect = `對目標造成${dmg}傷害（普攻2倍+自身護盾5倍）`; break;
+            case 's_judge': effect = `閃現至3格內空位，下一擊必定造成${dmg}傷害（普攻2倍）`; break;
+            case 's_heal': effect = `目標隊友恢復${heal}生命`; break;
+            case 's_harass': effect = `對敵方目標造成${dmg}傷害`; break;
+            case 's_chase': effect = `對敵方目標造成${dmg}傷害`; break;
+            case 's_poison': effect = `對目標造成${dmg}傷害，之後每回合開始承受<span style="color:${DMG};">3</span>毒傷（持續5回合，重新疊加會刷新）`; break;
+            case 's_tactics': effect = `隨機選擇技能範圍內2個敵方目標，每箭造成${dmg}傷害（可能重複選中）`; break;
+            case 's_full': effect = '普攻傷害+1，能量上限-1，自身速度+0.1'; break;
+            case 's_fire': effect = `對指定敵方造成${dmg}傷害`; break;
+            case 's_bug': effect = `敵方承受任何傷害時皆追加<span style="color:${DMG};">1</span>點傷害（不可疊加）（不與共鳴系統連動）`; break;
+            case 's_life': effect = `對友軍單體恢復${heal}生命（對自身施放額外獲得<span style="color:${SHIELD};">24</span>護盾）`; break;
+            case 's_illusion': effect = `對場上所有現存敵方單位附加<span style="color:${DMG};">2</span>層燃燒（與巫師魔焰共用燃燒層數池，可疊加，持續5回合，重新疊加會刷新）（無法受到共鳴加成）`; break;
+            case 's_summon': effect = '在自身周遭1格召喚一隻骷髏射手（38血/10攻/4距/1.1速）（無法受到共鳴加成）'; break;
+            case 's_flame': effect = `指定位置與十字延伸範圍充滿魔焰，當下與下回合合計造成${dmg}傷害（8+2燃燒／28+2燃燒，與幻炎術共用燃燒層數池，持續5回合）（全局限一次）（友軍無傷）（無法受到共鳴加成）`; break;
+            case 's_boar': effect = '在自身周遭1格召喚魔導野豬（118血/4攻/1距/1.1速）（無法受到共鳴加成）'; break;
+            case 's_cure': effect = `目標隊友恢復${heal}生命`; break;
+            case 's_mass_cure': effect = `我方全體恢復${heal}生命`; break;
+            case 's_emerg': effect = `指定友方立即恢復${heal}生命與${shield}護盾（每場限1次）`; break;
+            case 's_inspire': effect = `全場友方每經過一個單位回合恢復<span style="color:${HEAL};">1</span>生命（每場限1次）（無法受到共鳴加成）`; break;
+            case 's_light': effect = `對範圍5格內的敵方全體造成${dmg}傷害`; break;
+            default: effect = sk.desc;
+        }
+        el.style.textAlign = 'left';
+        el.innerHTML = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">【${sk.name}】${costStr}${reqStr}<br>${effect}。</div>`;
+    }
+
+    function showLiveInfoPassive(active) {
+        const el = document.getElementById('live-info');
+        if (!el) return;
+        el.style.textAlign = 'left';
+        el.innerHTML = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">被動技能<br>${getPassiveDesc(active.classType).replace(/\n/g, '<br>')}</div>`;
+    }
+
+    function showLiveInfoAlly(u) {
+        const el = document.getElementById('live-info');
+        if (!el) return;
+        let totalAtk = u.atk + (u.bonusAtk || 0) + (u.priestFanaticAtk || 0);
+        let totalRegen = u.hpRegen + (u.killRegen || 0);
+        el.style.textAlign = 'left';
+        let html = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">【${u.name}】<br>`;
+        html += `HP：${Math.floor(u.hp)}/${u.maxHp} ｜ 護盾：${u.shield} ｜ 能量：${u.energy}/${u.maxEnergy}<br>`;
+        html += `EXP：${u.xp}/${u.xpNeeded} ｜ 共鳴：${u.resonance} ｜ 回血：${totalRegen}<br>`;
+        html += `攻擊：${totalAtk} ｜ 射程：${u.range}<br>移動力：${u.mov} ｜ 速度：${u.spd.toFixed(1)}`;
+        html += `</div>`;
+        el.innerHTML = html;
+    }
+
+    function showLiveInfoEnemy(u) {
+        const el = document.getElementById('live-info');
+        if (!el) return;
+        let totalAtk = u.atk + (u.bonusAtk || 0) + (u.priestFanaticAtk || 0);
+
+        let debuffs = [];
+        let totalDot = (u.poisonStacks || 0) + (u.bleedStacks || 0) + (u.burnStacks || 0) + (u.yaoduStacks || 0);
+        if (u.poisonStacks > 0) debuffs.push(`毒${u.poisonStacks}`);
+        if (u.bleedStacks > 0) debuffs.push(`血${u.bleedStacks}`);
+        if (u.burnStacks > 0) debuffs.push(`灼燒${u.burnStacks}`);
+        if (u.yaoduStacks > 0) debuffs.push(`妖毒${u.yaoduStacks}`);
+        if (u.bugDebuff) debuffs.push(`蟲術`);
+
+        el.style.textAlign = 'left';
+        let displayName = u.name;
+        if (displayName.startsWith('射手')) displayName = '攔截' + displayName;
+        else if (displayName.startsWith('護衛')) displayName = '攔截' + displayName;
+        let html = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">【${displayName}】<br>`;
+        html += `生命 ${Math.floor(u.hp)}/${u.maxHp}${u.shield > 0 ? ` ｜ 護盾 ${u.shield}` : ''}<br>`;
+        html += `攻擊力 ${totalAtk} ｜ 射程 ${u.range} ｜ 速度 ${u.spd.toFixed(1)}<br>`;
+        html += `移動力 ${u.mov}`;
+        if (debuffs.length > 0 || totalDot > 0) {
+            html += `<br>異常：${debuffs.join('/')}`;
+            if (totalDot > 0) html += `，每回合${totalDot}點`;
+        }
+        if (u.isBoss && u.name === '攔截王') {
+            html += `<br>碎地術：下回合引爆，當下5傷/引爆10傷+生命10%`;
+        }
+        if (u.hasBaodi) {
+            html += `<br>爆地術：近戰附帶標記，下回合引爆${u.baodiDmg || 20}傷`;
+        }
+        if (u.hasYaodu) {
+            html += `<br>妖毒：擊中玩家時附加妖毒，每回合承受1點妖毒傷害（獨立DoT，持續5回合，重新疊加會刷新）`;
+        }
+        html += `</div>`;
+        el.innerHTML = html;
     }
 
     function getPassiveDesc(classType) {
         switch(classType) {
-            case 'warrior': return "🛡️【防禦知識】\n隊伍成員承受 2 以上傷害時，減少 1 點承受傷害。";
-            case 'assassin': return "🗡️【製造混亂】(全局限1次)\n被擊中且生命低於 40% 時觸發：速度+0.2、移動+1、攻擊+1、獲得 20 護盾 (優先抵銷傷害)。\n\n🗡️【刺客節奏】\n移動位置後獲得暫時普攻攻擊力 +1，攻擊後重置。";
-            case 'priest': return "✨【信仰狂熱】\n每次普通攻擊傷害 +1，單場戰鬥可疊加 (上限+10)。\n\n✨【傳教】\n普通攻擊時：隊伍全體最大生命 +1、恢復生命 1、獲得護盾 1。";
-            case 'ranger': return "🏹【老練】\n輪到遊俠回合時，可進行 [移動 + 2次普攻 + 施放技能] 的連段行動。遊俠每回合透過攻擊獲得的 XP 總上限為 1 (受擊 0.5 XP 不受此限)。";
-            case 'wizard': return "🔮【吸收】\n場上任何單位陣亡時，立即恢復 3 生命。";
-            case 'cleric': return "📖【神之力】\n團隊承傷、護盾、治癒、恢復累計每達 15，神官攻擊力 +1。\n\n📖【神之愛】\n每兩次普通攻擊，恢復生命最低的隊友 10 生命。";
+            case 'warrior': return "🛡️防禦知識\n隊伍成員承受 2 以上傷害時，減少 1 點承受傷害。";
+            case 'assassin': return "🗡️製造混亂 (限1次)\n生命<40%受擊：速+.2/移+1/攻+1/盾+20(優先抵傷)\n🗡️刺客節奏\n移動後普攻+3，攻後重置。";
+            case 'priest': return "✨信仰狂熱\n普攻傷害+1，可疊加(上限+10)\n✨傳教\n普攻時全隊：生命上限+1/補血1/護盾+2";
+            case 'ranger': return "🏹老練\n回合可連段：移動+2次普攻+施放技能。攻擊獲得XP每回合上限1(受擊0.5不限)。";
+            case 'wizard': return "🔮吸收\n單位陣亡：+3生命；每2陣亡：+3能量。\n🔮巫師戲法\n普攻額外對隨機敵+1傷害(僅1敵時擊中)，不可連動。";
+            case 'cleric': return "📖神之力\n團隊承傷/護盾/治癒/恢復累計達150：普攻+1\n📖神之愛\n每2次普攻補最低隊友10生命；每3次+2能量";
             default: return "";
         }
     }
 
+    // 算出技能按鈕上要顯示的數字（純攻擊/治療方屬性計算，不含目標相關的護盾/debuff）
+    // 回傳字串：一般技能是單一數字，補血+護盾類是 "X/Y"，持續效果類用簡短標記，無輸出數字的技能回傳空字串
+    function getSkillDisplayNumber(active, sk) {
+        let totalAtk = active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0);
+        let reso = active.resonance || 0;
+        switch (sk.id) {
+            case 's_bash': return String(30 + reso);
+            case 's_hvy1': return String((totalAtk * 2) + reso);
+            case 's_hvy2': return String((totalAtk * 3) + reso);
+            case 's_burst': return String((totalAtk * 4) + reso);
+            case 's_stab': return String(10 + reso);
+            case 's_needle': return String(8 + reso);
+            case 's_blade': return String(6 + reso);
+            case 's_ult': return String((totalAtk * 2) + reso);
+            case 's_guard': { let v = 15 + reso; return `${v}/${v}`; }
+            case 's_bless': return String(32 + reso);
+            case 's_heavy': return String((totalAtk * 2) + (active.shield * 5) + reso);
+            case 's_judge': return String(totalAtk * 2);
+            case 's_heal': return String(4 + reso);
+            case 's_harass': return String(1 + reso);
+            case 's_chase': return String(2 + reso);
+            case 's_poison': return String(4 + reso);
+            case 's_tactics': return String(1 + reso);
+            case 's_fire': return String(8 + reso);
+            case 's_life': return '12';
+            case 's_illusion': return '灼2';
+            case 's_flame': return '8/28';
+            case 's_cure': return String(10 + reso);
+            case 's_mass_cure': return String(22 + reso);
+            case 's_emerg': return `${25 + reso}/${15 + reso}`;
+            case 's_inspire': return '血1';
+            case 's_light': return String(1 + reso);
+            default: return ''; // s_body, s_sac, s_charge, s_full, s_bug, s_summon, s_boar：無單一輸出數字
+        }
+    }
+
+    // 產生精簡的技能懸浮說明文字：【技能名】耗X能[Y命]，效果描述。(需共鳴等級 Z)
     function addTeamStat(amount) {
         if (amount <= 0) return;
         units.filter(u => u.team === 'player' && u.classType === 'cleric' && !u.isDead).forEach(cleric => {
             cleric.divineStatAccum = (cleric.divineStatAccum || 0) + amount;
-            while (cleric.divineStatAccum >= 15) {
-                cleric.divineStatAccum -= 15; cleric.bonusAtk = (cleric.bonusAtk || 0) + 1;
-                logMessage(`📖 神官被動【神之力】觸發！神官攻擊力 +1 (總加成 +${cleric.bonusAtk})！`, 'player');
+            while (cleric.divineStatAccum >= 150) {
+                cleric.divineStatAccum -= 150; cleric.bonusAtk = (cleric.bonusAtk || 0) + 1;
+                logMessage(`📖 神官被動【神之力】觸發！累計達150，神官攻擊力 +1 (總加成 +${cleric.bonusAtk})！`, 'player');
             }
         });
     }
@@ -337,17 +723,108 @@
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
                 const cell = document.createElement('div'); cell.className = 'cell'; cell.id = `cell-${x}-${y}`;
-                cell.onclick = () => onCellClick(x, y); board.appendChild(cell);
+                cell.onclick = () => onCellClick(x, y);
+                cell.onmouseenter = (e) => {
+                    if (currentState === 'SKILL_TARGETING' && activeSkill && activeSkill.id === 's_flame') {
+                        previewFlameBurstArea(x, y);
+                    } else {
+                        const u = getUnitAt(x, y);
+                        if (u && u.team !== 'player') showLiveInfoEnemy(u);
+                        else if (u && u.team === 'player' && u.classType !== 'monster' && u.classType !== 'boar' && u !== turnQueue[activeUnitIndex]) showLiveInfoAlly(u);
+                    }
+                };
+                cell.onmouseleave = () => {
+                    if (currentState === 'SKILL_TARGETING' && activeSkill && activeSkill.id === 's_flame') {
+                        refreshFlameCastRange();
+                    }
+                };
+                board.appendChild(cell);
             }
         }
         renderUnits();
     }
 
+    function previewFlameBurstArea(x, y) {
+        const active = turnQueue[activeUnitIndex];
+        if (!active) return;
+        let dist = Math.abs(active.x - x) + Math.abs(active.y - y);
+        if (dist > activeSkill.range) return;
+
+        clearHighlights();
+        
+        for(let cy = 0; cy < ROWS; cy++) {
+            for(let cx = 0; cx < COLS; cx++) {
+                let d = Math.abs(active.x - cx) + Math.abs(active.y - cy);
+                if (d <= activeSkill.range) {
+                    let c = document.getElementById(`cell-${cx}-${cy}`);
+                    if (c) c.classList.add('range-highlight');
+                }
+            }
+        }
+
+        for(let cy = 0; cy < ROWS; cy++) {
+            for(let cx = 0; cx < COLS; cx++) {
+                let inBox = (Math.abs(cx - x) <= 1 && Math.abs(cy - y) <= 1);
+                let inCross = (cx === x || cy === y);
+                if (inBox || inCross) {
+                    let cell = document.getElementById(`cell-${cx}-${cy}`);
+                    if (cell) cell.classList.add('skill-target');
+                }
+            }
+        }
+    }
+
+    function refreshFlameCastRange() {
+        const active = turnQueue[activeUnitIndex];
+        if (!active) return;
+        clearHighlights();
+        for(let cy = 0; cy < ROWS; cy++) {
+            for(let cx = 0; cx < COLS; cx++) {
+                let dist = Math.abs(active.x - cx) + Math.abs(active.y - cy);
+                if (dist <= activeSkill.range) {
+                    let cell = document.getElementById(`cell-${cx}-${cy}`);
+                    if (cell) {
+                        cell.classList.add('range-highlight');
+                        cell.classList.add('skill-target');
+                    }
+                }
+            }
+        }
+    }
+
+    function openHelpGuide() {
+        document.getElementById('help-overlay').style.display = 'flex';
+    }
+    function closeHelpGuide() {
+        document.getElementById('help-overlay').style.display = 'none';
+    }
+
+    function openEscMenu() {
+        document.getElementById('esc-menu-overlay').style.display = 'flex';
+    }
+    function closeEscMenu() {
+        document.getElementById('esc-menu-overlay').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const helpOverlay = document.getElementById('help-overlay');
+        const escMenu = document.getElementById('esc-menu-overlay');
+        if (helpOverlay.style.display === 'flex') {
+            closeHelpGuide();
+        } else if (escMenu.style.display === 'flex') {
+            closeEscMenu();
+        } else {
+            openEscMenu();
+        }
+    });
+
     function renderUnits() {
-        document.querySelectorAll('.cell').forEach(c => { c.innerHTML = ''; c.classList.remove('burst-mark', 'shatter-mark'); });
+        document.querySelectorAll('.cell').forEach(c => { c.innerHTML = ''; c.classList.remove('burst-mark', 'shatter-mark', 'purple-mark'); });
         units.forEach(u => {
             if (u.burstMarks && u.burstMarks.length > 0) u.burstMarks.forEach(m => { let c = document.getElementById(`cell-${m.x}-${m.y}`); if (c) c.classList.add('burst-mark'); });
             if (u.shatterMarks && u.shatterMarks.length > 0) u.shatterMarks.forEach(m => { let c = document.getElementById(`cell-${m.x}-${m.y}`); if (c) c.classList.add('shatter-mark'); });
+            if (u.purpleFlameMarks && u.purpleFlameMarks.length > 0) u.purpleFlameMarks.forEach(m => { let c = document.getElementById(`cell-${m.x}-${m.y}`); if (c) c.classList.add('purple-mark'); });
         });
 
         units.forEach(u => {
@@ -355,51 +832,95 @@
             const cell = document.getElementById(`cell-${u.x}-${u.y}`);
             if (cell) {
                 const sprite = document.createElement('div'); sprite.className = `unit ${u.team}`;
-                if (u.isBoss) sprite.classList.add('boss'); if (turnQueue[activeUnitIndex] === u) sprite.classList.add('active');
-                let html = `<div class="unit-name">${u.name}</div><span class="unit-hp">${Math.floor(u.hp)}</span>`;
-                if (u.shield > 0) html += `<br><span class="unit-shield">[S:${u.shield}]</span>`;
+                if (u.isBoss) sprite.classList.add('boss'); 
+                if (turnQueue[activeUnitIndex] === u) { 
+                    sprite.classList.add('active'); 
+                    if (currentState === 'SKILL_TARGETING' || currentState === 'ATTACKING') sprite.classList.add('targeting-glow');
+                }
+                let html = `<div class="unit-name">${u.name}</div><div class="unit-hp">${Math.floor(u.hp)}</div>`;
+                if (u.shield > 0) html += `<div class="unit-shield">[S:${u.shield}]</div>`;
                 sprite.innerHTML = html; cell.appendChild(sprite);
             }
         });
     }
 
-    function updateUI() {
-        if (currentState === 'INSPECTING') return;
+    // 縮寫對照：敵人用「類型首字+編號」，戰鬥祭司縮成「戰祭」，其餘玩家職業本身就是2個字直接用
+    function getOrderAbbrev(u) {
+        if (u.name === '攔截王') return '攔王';
+        if (u.name.startsWith('攔截怪')) return '攔' + u.name.slice(3);
+        if (u.name.startsWith('射手')) return '射' + u.name.slice(2);
+        if (u.name.startsWith('護衛')) return '護' + u.name.slice(2);
+        if (u.name === '偵查隊長') return '偵長';
+        if (u.name.startsWith('偵查矛手')) return '矛' + u.name.slice(4);
+        if (u.name.startsWith('毒爪妖')) return '爪' + u.name.slice(3);
+        if (u.name.startsWith('衝擊獸')) return '獸' + u.name.slice(3);
+        if (u.classType === 'priest') return '戰祭';
+        return u.name;
+    }
 
-        document.getElementById('wave-display').innerText = `Wave 1-${currentWave} (攻擊:${waveAttackCount}/8 | 總擊殺:${totalEnemyDeathCount})`;
-        document.getElementById('queue-list').innerHTML = turnQueue.map((u, idx) => {
-            if (u.isDead) return '';
-            const isActive = idx === activeUnitIndex ? '▶ ' : '&nbsp;&nbsp;';
-            const color = u.team === 'player' ? 'var(--player-color)' : (u.isBoss ? 'var(--boss-color)' : 'var(--enemy-color)');
-            let ext = u.team === 'player' ? ` <span class="c-energy">E:${u.energy}</span>` : '';
-            return `<div style="color:${color}">${isActive}[${u.spd.toFixed(1)}] ${u.name} (HP:${Math.floor(u.hp)})${ext}</div>`;
+    function renderOrderList() {
+        const list_el = document.getElementById('order-list');
+        if (!list_el) return;
+        const isSummon = (u) => u.team === 'player' && (u.classType === 'monster' || u.classType === 'boar');
+        let list = [];
+        for (let i = activeUnitIndex; i < turnQueue.length; i++) {
+            if (!turnQueue[i].isDead && !isSummon(turnQueue[i])) list.push(turnQueue[i]);
+        }
+        // 持續補上「下一輪預測順序」(用當下速度重新排序)，直到湊滿10個為止，
+        // 不管場上單位是3個還是30個，永遠固定顯示10個，不會忽多忽少。
+        let safetyGuard = 0;
+        while (list.length < 10 && safetyGuard < 20) {
+            let nextRound = units.filter(u => !u.isDead && !isSummon(u)).sort((a, b) => b.spd - a.spd);
+            if (nextRound.length === 0) break; // 場上已無存活單位可補，避免無限迴圈
+            list = list.concat(nextRound);
+            safetyGuard++;
+        }
+        list = list.slice(0, 10);
+        list_el.innerHTML = list.map((u, idx) => {
+            let cls = `order-row` + (idx === 0 ? ' active' : '');
+            return `<div class="${cls}">${getOrderAbbrev(u)}</div>`;
         }).join('');
+    }
+
+    function updateUI() {
+        document.getElementById('wave-display').innerText = `Wave ${currentChapter}-${currentWave}`;
+        renderOrderList();
 
         const infoDiv = document.getElementById('unit-info'); const active = turnQueue[activeUnitIndex];
         const skillDiv = document.getElementById('skill-btns'); skillDiv.innerHTML = '';
 
         if (active && !active.isDead) {
             let totalAtk = active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0);
-            let statsHtml = `<strong style="color:#4a90e2">${active.name}</strong> <span style="font-size:10px">(Lv.${active.level})</span><br>HP：${Math.floor(active.hp)} / ${active.maxHp} ${active.shield > 0 ? `| <span class="c-shield">護盾: ${active.shield}</span>` : ''}<br>`;
+            let statsHtml;
             
             if (active.team === 'player') {
-                let attackType = active.range > 1 ? '<span style="color:#e5c07b">[遠程:尾刀+1能+回血]</span>' : '<span style="color:#48c9b0">[近戰:尾刀+1能量]</span>';
-                let assassinBuff = (active.classType === 'assassin' && active.assassinMovedThisTurn) ? ' <span style="color:#ffb74d;">[刺客節奏:普攻+1]</span>' : '';
+                const CLASS_NAME_COLORS = { warrior: '#e2574a', assassin: '#9b6fd1', priest: '#d4b74a', ranger: '#5ab55e', wizard: '#4a90e2', cleric: '#e28fc4' };
+                let nameColor = CLASS_NAME_COLORS[active.classType] || '#4a90e2';
+                statsHtml = `<strong style="color:${nameColor}">${active.name}</strong> <span style="font-size:10px">(Lv.${active.level})</span><br>`;
+
                 let priestBuff = (active.classType === 'priest' && active.priestFanaticAtk > 0) ? ` <span style="color:#e040fb;">[信仰狂熱:+${active.priestFanaticAtk}]</span>` : '';
-                statsHtml += `EXP：${active.xp} / ${active.xpNeeded} | <span class="c-energy">能量：${active.energy} / ${active.maxEnergy}</span><br><span class="c-reso">共鳴：${active.resonance}</span> (攻擊+${active.bonusAtk}, 回血+${active.hpRegen}) ${attackType}${assassinBuff}${priestBuff}<br>`;
-                statsHtml += `攻擊：${totalAtk} | 射程：${active.range} | 速度：${active.spd.toFixed(1)}`;
+                let totalRegen = active.hpRegen + (active.killRegen || 0);
+                let assassinRhythmActive = active.classType === 'assassin' && active.assassinMovedThisTurn;
+                let displayAtk = totalAtk + (assassinRhythmActive ? 2 : 0);
+                let atkColor = assassinRhythmActive ? '#ffb74d' : (currentState === 'ATTACKING' ? '#ef5350' : 'inherit');
+
+                statsHtml += `HP：${Math.floor(active.hp)}/${active.maxHp} | 護盾：${active.shield} | 能量：${active.energy}/${active.maxEnergy}<br>`;
+                statsHtml += `EXP：${active.xp}/${active.xpNeeded} | 共鳴：${active.resonance} | 回血：${totalRegen}${priestBuff}<br>`;
+                statsHtml += `<span style="color:${atkColor}">攻擊：${displayAtk}</span> | 射程：${active.range}<br>移動力：${active.mov} | 速度：${active.spd.toFixed(1)}`;
             } else {
-                let bossExt = active.isBoss ? `<br><span style="color:#ef5350">攻擊次數: ${active.bossAttackCount} (碎地術預備)</span>` : '';
-                statsHtml += `攻擊：${totalAtk} | 射程：${active.range} | 速度：${active.spd.toFixed(1)}${bossExt}`;
+                statsHtml = `<strong>${active.name}</strong> <span style="font-size:10px">(Lv.${active.level})</span><br>`;
+                let bossExt = (active.isBoss && active.name === '攔截王') ? `<br><span style="color:#ef5350">攻擊次數: ${active.bossAttackCount} (碎地術預備)</span>` : '';
+                statsHtml += `HP：${Math.floor(active.hp)}/${active.maxHp} | 護盾：${active.shield}<br>`;
+                statsHtml += `攻擊：${totalAtk} | 射程：${active.range}<br>移動力：${active.mov} | 速度：${active.spd.toFixed(1)}${bossExt}`;
             }
             
             infoDiv.innerHTML = statsHtml;
-            const isPlayer = active.team === 'player'; let canMove = isPlayer && !active.hasMoved; let canAttack = false; let canSkill = false;
+            const isPlayer = active.team === 'player' && active.classType !== 'monster' && active.classType !== 'boar'; let canMove = isPlayer && !active.hasMoved; let canAttack = false; let canSkill = false;
 
             if (isPlayer) {
-                let pBtn = document.createElement('button'); pBtn.innerText = '【被動技能】'; 
-                pBtn.style.opacity = '0.4'; 
-                pBtn.onclick = () => { startInspect(); showUnitDetail(active); };
+                let pBtn = document.createElement('button'); pBtn.innerText = '被動技能'; 
+                pBtn.style.opacity = '0.7'; 
+                pBtn.onmouseenter = () => showLiveInfoPassive(active);
                 skillDiv.appendChild(pBtn);
 
                 if (active.classType === 'ranger') { canAttack = active.attacksUsed < 2; canSkill = !active.hasUsedSkill; } else { canAttack = !active.hasActed; canSkill = !active.hasActed; }
@@ -407,88 +928,136 @@
 
                 active.skills.forEach(sk => {
                     let btn = document.createElement('button'); let cd = active.cooldowns[sk.id] || 0;
-                    btn.innerText = `${sk.name} (耗:${sk.cost}${cd > 0 ? `, CD:${cd}` : ''})`;
-                    let lock = !canSkill || active.energy < sk.cost || cd > 0 || active.usedOnceFlags[sk.id] || active.resonance < (sk.reqReso || 0);
-                    btn.disabled = lock; btn.onclick = () => startSkill(sk); btn.title = sk.desc + (sk.reqReso ? ` (需共鳴等級 ${sk.reqReso})` : ''); 
+                    btn.innerText = sk.name;
+                    let lock = !canSkill || active.energy < sk.cost || cd > 0 || active.usedOnceFlags[sk.id] || active.resonance < (sk.reqReso || 0) || (sk.hpCost && active.hp - sk.hpCost <= 0);
+                    btn.disabled = lock; btn.onclick = () => startSkill(sk);
+                    
+                    btn.onmouseenter = () => showLiveInfoSkill(active, sk);
                     skillDiv.appendChild(btn);
                 });
             }
             document.getElementById('btn-move').disabled = !canMove; document.getElementById('btn-attack').disabled = !canAttack; document.getElementById('btn-end').disabled = !isPlayer;
-            document.getElementById('btn-inspect').disabled = !isPlayer;
         }
     }
 
-    function startInspect() {
-        currentState = 'INSPECTING'; clearHighlights();
-        let infoDiv = document.getElementById('unit-info');
-        infoDiv.innerHTML = '<span style="color:#4a90e2; font-size:14px;">🔍 查看模式中...</span><br><br>請點擊場上任何單位來查看詳細數值與被動技能。<br><span style="color:#888; font-size:11px;">(此模式下保證安全，可隨意滑動與縮放畫面)</span>';
-        document.getElementById('action-btns').style.display = 'none';
-        document.getElementById('skill-btns').style.display = 'none';
-        document.getElementById('inspect-ui').style.display = 'block';
-    }
+    let logQueue = [];
+    let logDraining = false;
 
-    function endInspect() {
-        currentState = 'WAITING';
-        document.getElementById('action-btns').style.display = 'block';
-        document.getElementById('skill-btns').style.display = 'block';
-        document.getElementById('inspect-ui').style.display = 'none';
-        updateUI(); 
-    }
-
-    function showUnitDetail(target) {
-        let totalAtk = target.atk + (target.bonusAtk || 0) + (target.priestFanaticAtk || 0);
-        let titleColor = target.team === 'player' ? '#4a90e2' : '#ef5350';
-        let html = `<strong style="color:${titleColor}; font-size:15px;">${target.name}</strong> <span style="font-size:10px">(Lv.${target.level})</span><br>
-        HP：${Math.floor(target.hp)} / ${target.maxHp} ${target.shield > 0 ? `| <span class="c-shield">護盾: ${target.shield}</span>` : ''}<br>
-        攻擊力：${totalAtk} | 射程：${target.range}<br>
-        速度：${target.spd.toFixed(1)} | 移動力：${target.mov}<br>`;
-        
-        if (target.team === 'player') {
-            html += `<span class="c-energy">能量：${target.energy} / ${target.maxEnergy}</span> | <span class="c-reso">共鳴：${target.resonance}</span><br>`;
-            html += `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed #333945; color:#c8d1de; font-size:11px; line-height:1.5;"><strong style="color:#a3aab5;">【被動技能】</strong><br>${getPassiveDesc(target.classType).replace(/\n/g, '<br>')}</div>`;
-        } else {
-            let bossExt = target.isBoss ? `<br><span style="color:#ef5350">狀態：攻擊次數 ${target.bossAttackCount} (碎地術預備)</span>` : '';
-            html += bossExt;
+    // 找出訊息裡「情境敘述」跟「結果子句」的自然斷點（優先找逗號/冒號，找不到就找常見的動詞），
+    // 把結果子句包成不換行的區塊，這樣真的需要換行時，會整段结果子句一起跳到下一行，
+    // 而不是斷在「造成」「恢復」這種動詞中間或名字中間。
+    function smartWrapMessage(msg) {
+        const MAX_SUFFIX_LEN = 16; // 結果子句安全長度上限，超過就不特別處理，交給預設換行
+        const puncts = ['，', '：', ','];
+        let splitAt = -1;
+        for (let i = msg.length - 1; i >= 0; i--) {
+            if (puncts.includes(msg[i])) {
+                let suffixLen = msg.length - (i + 1);
+                if (suffixLen > 0 && suffixLen <= MAX_SUFFIX_LEN) { splitAt = i + 1; break; }
+            }
         }
-        document.getElementById('unit-info').innerHTML = html;
+        if (splitAt === -1) {
+            const verbs = ['造成', '恢復', '觸發', '獲得', '引爆', '陣亡', '擊殺', '施放', '發動', '承受', '設下', '召喚', '升級', '濺射', '追加', '均分', '附加'];
+            for (let v of verbs) {
+                let idx = msg.lastIndexOf(v);
+                if (idx > 0 && (msg.length - idx) <= MAX_SUFFIX_LEN + 6) { splitAt = idx; break; }
+            }
+        }
+        if (splitAt === -1 || splitAt >= msg.length) return msg;
+        let prefix = msg.slice(0, splitAt);
+        let suffix = msg.slice(splitAt);
+        return prefix + '<span style="white-space:nowrap;">' + suffix + '</span>';
     }
 
-    function logMessage(msg, type = 'system') { 
-        const logDiv = document.getElementById('log'); if (!logDiv) return;
+    function buildLogItem(msg, type) {
         let item = document.createElement('div'); item.className = 'log-item';
         if (type === 'player' || msg.includes('🛡️') || msg.includes('🌟') || msg.includes('🗡️') || msg.includes('🤝') || msg.includes('🎯') || msg.includes('💥') || msg.includes('🔮') || msg.includes('✨')) { item.classList.add('player-log'); } 
         else if (type === 'enemy' || msg.includes('⚔️') || msg.includes('☠️') || msg.includes('🩸') || msg.includes('攔截') || msg.includes('⚠️')) { item.classList.add('enemy-log'); } 
         else { item.classList.add('system-log'); }
-        item.innerText = msg; logDiv.appendChild(item);
-        while (logDiv.children.length > 10) { logDiv.removeChild(logDiv.firstChild); }
-        logDiv.scrollTop = logDiv.scrollHeight;
+        item.innerHTML = smartWrapMessage(msg);
+        return item;
     }
 
-    function startRound() { turnQueue = units.filter(u => !u.isDead).sort((a, b) => b.spd - a.spd); activeUnitIndex = 0; processTurn(); }
-    function reSortQueue() { let currentActive = turnQueue[activeUnitIndex]; turnQueue = units.filter(u => !u.isDead).sort((a, b) => b.spd - a.spd); activeUnitIndex = turnQueue.indexOf(currentActive); updateUI(); }
+    // 戰鬥日誌高度固定不動，新訊息會盡量塞進剩餘空間；放不下時先移除最舊一則挪出空間，
+    // 稍微延遲一下再重試，避免長訊息一次擠進來要瞬間清掉好幾則舊訊息的突兀感。
+    function drainLogQueue() {
+        const logDiv = document.getElementById('log');
+        if (!logDiv || logQueue.length === 0) { logDraining = false; return; }
+        logDraining = true;
+
+        const next = logQueue[0];
+        const item = buildLogItem(next.msg, next.type);
+        logDiv.appendChild(item);
+
+        if (logDiv.scrollHeight > logDiv.clientHeight) {
+            logDiv.removeChild(item);
+            if (logDiv.children.length > 0) {
+                logDiv.removeChild(logDiv.firstChild);
+                setTimeout(drainLogQueue, 150);
+            } else {
+                // 空間已經清空還是放不下(極端長訊息)，強制塞入避免卡住佇列
+                logDiv.appendChild(item);
+                logQueue.shift();
+                setTimeout(drainLogQueue, 0);
+            }
+        } else {
+            logQueue.shift();
+            setTimeout(drainLogQueue, 0);
+        }
+    }
+
+    function logMessage(msg, type = 'system') { 
+        logQueue.push({ msg, type });
+        if (!logDraining) drainLogQueue();
+    }
+
+    function startRound() { 
+        turnQueue = units.filter(u => !u.isDead || (u.shatterMarks && u.shatterMarks.length > 0) || (u.burstMarks && u.burstMarks.length > 0) || (u.purpleFlameMarks && u.purpleFlameMarks.length > 0)).sort((a, b) => b.spd - a.spd); 
+        activeUnitIndex = 0; processTurn(); 
+    }
+    function reSortQueue() { 
+        let currentActive = turnQueue[activeUnitIndex]; 
+        let currentSpd = currentActive ? currentActive.spd : -Infinity;
+        turnQueue = units.filter(u => !u.isDead || (u.shatterMarks && u.shatterMarks.length > 0) || (u.burstMarks && u.burstMarks.length > 0) || (u.purpleFlameMarks && u.purpleFlameMarks.length > 0)).sort((a, b) => b.spd - a.spd); 
+        let idx = turnQueue.indexOf(currentActive);
+        if (idx === -1) {
+            // currentActive 剛好在這次重建佇列前死亡、已被濾除。
+            // 用「速度排序後，第一個比它慢的單位」往前一格，這樣 endTurn() 的 +1 才會正確落在真正的下一位，
+            // 不會因為 indexOf 找不到而變成 -1，被 endTurn 誤加成 0（跳回佇列最前面）。
+            idx = turnQueue.findIndex(u => u.spd < currentSpd);
+            if (idx === -1) idx = turnQueue.length;
+            idx = idx - 1;
+        }
+        activeUnitIndex = idx; 
+        updateUI(); 
+    }
 
     function processTurn() {
         if (gameEnded) return;
         if (activeUnitIndex >= turnQueue.length) { startRound(); return; }
-        const active = turnQueue[activeUnitIndex]; if (active.isDead) { endTurn(); return; }
+        const active = turnQueue[activeUnitIndex];
 
-        active.hasTriggeredResoDmgThisTurn = false; active.assassinMovedThisTurn = false; 
-
-        if (active.hasRangedKillRegenPending) {
-            active.hasRangedKillRegenPending = false;
-            active.hp = Math.min(active.maxHp, active.hp + 1);
-            addTeamStat(1);
-            logMessage(`🎯 ${active.name} 觸發遠程尾刀獎勵：回到回合生命恢復 +1！`, 'player');
+        if (active.purpleFlameMarks && active.purpleFlameMarks.length > 0) {
+            active.purpleFlameMarks.forEach(m => {
+                let targetOnCell = getUnitAt(m.x, m.y);
+                if (targetOnCell && targetOnCell.team === 'enemy') {
+                    logMessage(`🔮 【巫師魔焰】第二段爆發！對 ${targetOnCell.name} 造成 28 點傷害並附加 2 層燃燒！`, 'player');
+                    dealDamage(active, targetOnCell, false, 28, false, true);
+                    if (!targetOnCell.isDead) { targetOnCell.burnStacks = (targetOnCell.burnStacks || 0) + 2; targetOnCell.burnTurnsLeft = 5; }
+                }
+            });
+            active.purpleFlameMarks = []; renderUnits();
         }
 
-        if (active.isBoss && active.shatterMarks && active.shatterMarks.length > 0) {
+        if (active.shatterMarks && active.shatterMarks.length > 0) {
             active.shatterMarks.forEach(m => {
                 let targetOnCell = getUnitAt(m.x, m.y);
+                let skillLabel = m.skillName || '碎地術';
                 if (targetOnCell && targetOnCell.team === 'player') {
-                    let shatterDmg = 10 + Math.ceil(targetOnCell.maxHp * 0.10);
-                    logMessage(`⚠️ 攔截王【碎地術】引爆！對 ${targetOnCell.name} 造成 ${shatterDmg} 點重壓傷害！`, 'enemy');
+                    let shatterDmg = m.dmg != null ? m.dmg : (10 + Math.ceil(targetOnCell.maxHp * 0.10));
+                    logMessage(`⚠️ ${active.name}【${skillLabel}】引爆！對 ${targetOnCell.name} 造成 ${shatterDmg} 點重壓傷害！`, 'enemy');
                     dealDamage(active, targetOnCell, false, shatterDmg);
-                } else logMessage(`💨 攔截王【碎地術】引爆，玩家已成功避開！`, 'system');
+                } else logMessage(`💨 ${active.name}【${skillLabel}】引爆，無玩家在預警範圍內！`, 'system');
             });
             active.shatterMarks = []; renderUnits();
         }
@@ -501,25 +1070,71 @@
             active.burstMarks = []; renderUnits();
         }
 
-        let regenTotal = active.hpRegen;
-        if (active.warriorBodyTier > 0 && active.warriorBodyTier < 10) active.warriorBodyTier++;
+        if (active.isDead) { endTurn(); return; }
+
+        active.hasTriggeredResoDmgThisTurn = false; active.assassinMovedThisTurn = false; 
+
+        let regenTotal = active.hpRegen + (active.killRegen || 0);
         if (active.warriorBodyTier > 0) regenTotal += active.warriorBodyTier;
-        if (regenTotal > 0) { active.hp = Math.min(active.maxHp, active.hp + regenTotal); addTeamStat(regenTotal); logMessage(`💚 ${active.name} 回合開始，觸發生命恢復 +${regenTotal}！`, 'player'); }
+        if (active.warriorBodyTier > 0 && active.warriorBodyTier < 10) active.warriorBodyTier++;
+        
+        if (regenTotal > 0) { 
+            active.hp = Math.min(active.maxHp, active.hp + regenTotal); 
+            addTeamStat(regenTotal); 
+            logMessage(`💚 ${active.name} 回合開始，觸發生命恢復 +${regenTotal}！`, 'player'); 
+        }
 
         if (globalInspireActive) { units.filter(u => u.team === 'player' && !u.isDead).forEach(p => { p.hp = Math.min(p.maxHp, p.hp + 1); addTeamStat(1); }); }
         
-        if (globalIllusionActive && active.team === 'enemy') { active.hp -= 1; logMessage(`🔥 ${active.name} 承受幻炎術燃燒傷害`, 'enemy'); checkDeath(active); if(active.isDead) { endTurn(); return; } }
-        if (active.poisonStacks > 0) { active.hp -= active.poisonStacks; logMessage(`☠️ ${active.name} 承受 ${active.poisonStacks} 點毒傷。`, 'enemy'); checkDeath(active); if(active.isDead) { endTurn(); return; } }
-        if (active.bleedStacks > 0) { active.hp -= active.bleedStacks; logMessage(`🩸 ${active.name} 承受 ${active.bleedStacks} 點流血傷害。`, 'enemy'); checkDeath(active); if(active.isDead) { endTurn(); return; } }
+        if (active.burnStacks > 0) { 
+            let extraBonus = (active.bugDebuff ? 1 : 0) + (active.shieldBashVulnerable ? 1 : 0);
+            active.hp -= (active.burnStacks + extraBonus); 
+            logMessage(`🔥 ${active.name} 承受 ${active.burnStacks + extraBonus} 點燃燒傷害${extraBonus ? `（含追加+${extraBonus}）` : ''}。`, active.team === 'player' ? 'player' : 'enemy'); 
+            active.burnTurnsLeft = (active.burnTurnsLeft || 0) - 1;
+            if (active.burnTurnsLeft <= 0) { active.burnStacks = 0; active.burnTurnsLeft = 0; }
+            checkDeath(active, true); if(active.isDead) { endTurn(); return; } 
+        }
+        if (active.poisonStacks > 0) { 
+            let extraBonus = (active.bugDebuff ? 1 : 0) + (active.shieldBashVulnerable ? 1 : 0);
+            active.hp -= (active.poisonStacks + extraBonus); 
+            logMessage(`☠️ ${active.name} 承受 ${active.poisonStacks + extraBonus} 點毒傷${extraBonus ? `（含追加+${extraBonus}）` : ''}。`, 'enemy'); 
+            active.poisonTurnsLeft = (active.poisonTurnsLeft || 0) - 1;
+            if (active.poisonTurnsLeft <= 0) { active.poisonStacks = 0; active.poisonTurnsLeft = 0; }
+            checkDeath(active, true); if(active.isDead) { endTurn(); return; } 
+        }
+        if (active.bleedStacks > 0) { 
+            let extraBonus = (active.bugDebuff ? 1 : 0) + (active.shieldBashVulnerable ? 1 : 0);
+            active.hp -= (active.bleedStacks + extraBonus); 
+            logMessage(`🩸 ${active.name} 承受 ${active.bleedStacks + extraBonus} 點流血傷害${extraBonus ? `（含追加+${extraBonus}）` : ''}。`, 'enemy'); 
+            active.bleedTurnsLeft = (active.bleedTurnsLeft || 0) - 1;
+            if (active.bleedTurnsLeft <= 0) { active.bleedStacks = 0; active.bleedTurnsLeft = 0; }
+            checkDeath(active, true); if(active.isDead) { endTurn(); return; } 
+        }
+        if (active.yaoduStacks > 0) { 
+            let extraBonus = (active.bugDebuff ? 1 : 0) + (active.shieldBashVulnerable ? 1 : 0);
+            active.hp -= (active.yaoduStacks + extraBonus); 
+            logMessage(`🟣 ${active.name} 承受 ${active.yaoduStacks + extraBonus} 點妖毒傷害${extraBonus ? `（含追加+${extraBonus}）` : ''}。`, active.team === 'player' ? 'player' : 'enemy'); 
+            active.yaoduTurnsLeft = (active.yaoduTurnsLeft || 0) - 1;
+            if (active.yaoduTurnsLeft <= 0) { active.yaoduStacks = 0; active.yaoduTurnsLeft = 0; }
+            checkDeath(active, true); if(active.isDead) { endTurn(); return; } 
+        }
         
         if (active.skills) active.skills.forEach(sk => { if (active.cooldowns[sk.id] > 0) active.cooldowns[sk.id]--; });
 
+        if (active.stunned) {
+            active.stunned = false;
+            logMessage(`💫 ${active.name} 遭受暈眩，無法行動，直接結束回合！`, active.team === 'player' ? 'player' : 'enemy');
+            endTurn(); return;
+        }
+
         active.hasMoved = false; active.hasActed = false; active.attacksUsed = 0; active.hasUsedSkill = false; active.atkXpThisTurn = 0; active.forceBasicOnly = false;
         clearHighlights(); logMessage(`--- 輪到 ${active.name} ---`, active.team); renderUnits(); updateUI();
-        if (active.team === 'enemy') { currentState = 'AI_THINKING'; setTimeout(() => executeEnemyAI(active), 600); } else { currentState = 'WAITING'; }
+        if (active.team === 'enemy') { currentState = 'AI_THINKING'; setTimeout(() => executeEnemyAI(active), 600); } 
+        else if (active.team === 'player' && (active.classType === 'monster' || active.classType === 'boar')) { currentState = 'AI_THINKING'; setTimeout(() => executeSummonAI(active), 600); }
+        else { currentState = 'WAITING'; }
     }
     
-    function checkDeath(unit) {
+    function checkDeath(unit, isDotKill = false) {
         if (!unit || unit.isDead) return;
         if (unit.hp <= 0) { 
             unit.hp = 0; unit.isDead = true; 
@@ -527,75 +1142,118 @@
             
             units.filter(u => u.team === 'player' && u.classType === 'wizard' && !u.isDead).forEach(wiz => {
                 wiz.hp = Math.min(wiz.maxHp, wiz.hp + 3); addTeamStat(3);
-                logMessage(`🔮 巫師被動【吸收】發動：因 ${unit.name} 陣亡恢復 3 生命！`, 'player');
+                wiz.deadUnitCounter = (wiz.deadUnitCounter || 0) + 1;
+                let energyGainMsg = "";
+                if (wiz.deadUnitCounter >= 2) {
+                    wiz.deadUnitCounter -= 2;
+                    wiz.energy = Math.min(wiz.maxEnergy, wiz.energy + 3);
+                    energyGainMsg = "並獲得 3 點能量！";
+                }
+                logMessage(`🔮 巫師【吸收】發動：因 ${unit.name} 陣亡恢復 3 生命${energyGainMsg}`, 'player');
             });
 
-            if (unit.team === 'enemy') totalEnemyDeathCount++; 
+            if (unit.team === 'player' && (unit.id === 'P1' || unit.id === 'P2')) {
+                let survivor = units.find(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2') && !u.isDead && u !== unit);
+                if (survivor) {
+                    addResonance(survivor, 1);
+                    logMessage(`💔 ${unit.name} 陣亡，${survivor.name} 悲壯覺醒，獲得 1 層戰鬥共鳴！`, 'player');
+                }
+            }
+
+            if (unit.team === 'enemy') {
+                totalEnemyDeathCount++;
+                if (isDotKill) {
+                    let mainPlayers = units.filter(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2') && !u.isDead);
+                    if (mainPlayers.length > 0) {
+                        let shareXp = 1.0 / mainPlayers.length;
+                        mainPlayers.forEach(p => gainXp(p, shareXp));
+                        logMessage(`🔥 ${unit.name} 被持續傷害擊殺，經驗值均分給玩家隊員 (各 +${shareXp.toFixed(1)} XP)！`, 'player');
+                    }
+                }
+            } 
             checkWinLoss(); checkWaveThreshold(); 
         }
     }
     
-    function endTurn() { if (gameEnded) return; activeUnitIndex++; clearHighlights(); checkWaveThreshold(); processTurn(); }
+    function endTurn() { if (gameEnded) return; activeUnitIndex++; checkWaveThreshold(); processTurn(); }
 
-    function dealDamage(attacker, target, isBasic = true, skillBaseDmg = 0, isBonus = false, noResoBoost = false) {
+    function dealDamage(attacker, target, isBasic = true, skillBaseDmg = 0, isBonus = false, noResoBoost = false, fullResoLink = false) {
         if (!target || target.isDead) return; 
         let totalAtk = attacker.atk + (attacker.bonusAtk || 0) + (attacker.priestFanaticAtk || 0);
         let baseDmg = isBasic ? totalAtk : skillBaseDmg; 
-        let actualDmgToHp = 0; let trueDmgBonus = 0;
+        let actualDmgToHp = 0;
 
         if (isBasic && attacker.classType === 'assassin' && attacker.assassinMovedThisTurn) {
-            baseDmg += 1; attacker.assassinMovedThisTurn = false; logMessage(`🗡️ 刺客節奏發動：移動後普攻攻擊力 +1！`, 'player');
+            baseDmg += 3; attacker.assassinMovedThisTurn = false; logMessage(`🗡️ 刺客節奏發動：移動後普攻攻擊力 +3！`, 'player');
         }
 
         if (isBasic && attacker.classType === 'priest') {
             if (attacker.priestFanaticAtk < 10) attacker.priestFanaticAtk += 1;
             baseDmg += 1; 
-            units.filter(u => u.team === 'player' && !u.isDead).forEach(p => { p.maxHp += 1; p.hp = Math.min(p.maxHp, p.hp + 1); p.shield += 1; addTeamStat(2); });
-            logMessage(`✨ 戰鬥祭司觸發【信仰狂熱】與【傳教】：全體最大生命+1、恢復1、護盾+1！普攻傷害+1！`, 'player');
+            units.filter(u => u.team === 'player' && !u.isDead).forEach(p => { 
+                p.maxHp += 1; 
+                p.hp = Math.min(p.maxHp, p.hp + 1); 
+                p.shield += 2; 
+                addTeamStat(3); 
+            });
+            logMessage(`✨ 戰鬥祭司觸發【信仰狂熱】與【傳教】：全體最大生命+1、補血1、護盾+2！普攻傷害+1！`, 'player');
         }
 
         if (isBasic && attacker.priestJudgeNextAtk2x) { baseDmg *= 2; attacker.priestJudgeNextAtk2x = false; logMessage(`✨ 審判降臨爆發：普攻造成 2 倍傷害！`, 'player'); }
 
         if (isBasic && attacker.classType === 'cleric') {
             attacker.clericAttackCount = (attacker.clericAttackCount || 0) + 1;
+            
             if (attacker.clericAttackCount % 2 === 0) {
                 let aliveAllies = units.filter(u => u.team === 'player' && !u.isDead);
-                if (aliveAllies.length > 0) { aliveAllies.sort((a, b) => a.hp - b.hp); let lowest = aliveAllies[0]; lowest.hp = Math.min(lowest.maxHp, lowest.hp + 10); addTeamStat(10); logMessage(`📖 神官被動【神之愛】觸發：為 ${lowest.name} 恢復 10 生命！`, 'player'); }
+                if (aliveAllies.length > 0) { 
+                    aliveAllies.sort((a, b) => a.hp - b.hp); 
+                    let lowest = aliveAllies[0]; 
+                    lowest.hp = Math.min(lowest.maxHp, lowest.hp + 10); 
+                    addTeamStat(10); 
+                    logMessage(`📖 神官【神之愛】觸發：為 ${lowest.name} 恢復 10 生命！`, 'player'); 
+                }
+            }
+            if (attacker.clericAttackCount % 3 === 0) {
+                attacker.energy = Math.min(attacker.maxEnergy, attacker.energy + 2);
+                logMessage(`📖 神官【神之愛】第 3 次普攻觸發：額外獲得 2 點能量！`, 'player');
             }
         }
 
-        if (attacker.team === 'player' && !attacker.hasTriggeredResoDmgThisTurn) {
+        if (fullResoLink) {
+            if (!isBasic && skillBaseDmg > 0 && !noResoBoost) baseDmg += attacker.resonance;
+        } else if (attacker.team === 'player' && !attacker.hasTriggeredResoDmgThisTurn) {
             attacker.hasTriggeredResoDmgThisTurn = true;
             if (!isBasic && skillBaseDmg > 0 && !noResoBoost) baseDmg += attacker.resonance;
-            if (attacker.resonance > 0) { let resoTrueDmg = Math.ceil(target.maxHp * 0.01 * attacker.resonance); trueDmgBonus += resoTrueDmg; logMessage(`✨ 共鳴擊中效果發動！追加 ${resoTrueDmg} 點真傷`, 'player'); }
         }
 
-        if (attacker.fullPowerActive) trueDmgBonus += baseDmg;
-        if (target.bugDebuff) trueDmgBonus += 1;
+        let bugTriggered = false;
+        if (target.bugDebuff) { baseDmg += 1; bugTriggered = true; }
+        if (target.shieldBashVulnerable) baseDmg += 1;
 
         let hasWarrior = units.some(u => u.team === 'player' && u.classType === 'warrior' && !u.isDead);
         if (hasWarrior && target.team === 'player' && baseDmg >= 2) baseDmg -= 1;
-        
-        let isTrueDmg = (isBasic && attacker.classType === 'ranger') || attacker.fullPowerActive;
 
-        if (isTrueDmg) { actualDmgToHp = baseDmg; } 
-        else {
-            if (target.shield > 0) {
-                if (target.shield >= baseDmg) { target.shield -= baseDmg; addTeamStat(baseDmg); } 
-                else { actualDmgToHp = baseDmg - target.shield; addTeamStat(target.shield); target.shield = 0; }
-            } else actualDmgToHp = baseDmg;
-        }
+        if (target.shield > 0) {
+            if (target.shield >= baseDmg) { target.shield -= baseDmg; addTeamStat(baseDmg); } 
+            else { actualDmgToHp = baseDmg - target.shield; addTeamStat(target.shield); target.shield = 0; }
+        } else actualDmgToHp = baseDmg;
 
         let s_warrior = units.find(u => u.team === 'player' && u.classType === 'warrior' && !u.isDead && u.sacrificeStacks > 0);
         if (s_warrior && target.team === 'player' && target !== s_warrior && actualDmgToHp > 0) {
-            let transfer = Math.floor(actualDmgToHp / 2);
-            if (transfer > 0) {
-                if (s_warrior.hp - transfer < 1) transfer = s_warrior.hp - 1; 
-                if (transfer > 0) { actualDmgToHp -= transfer; s_warrior.hp -= transfer; s_warrior.sacrificeStacks--; addTeamStat(transfer); logMessage(`🛡️ 戰士捨身轉移 ${transfer} 點傷害！`, 'player'); }
+            let transfer = actualDmgToHp;
+            actualDmgToHp = 0;
+            if (s_warrior.shield > 0) {
+                if (s_warrior.shield >= transfer) { s_warrior.shield -= transfer; addTeamStat(transfer); transfer = 0; }
+                else { transfer -= s_warrior.shield; addTeamStat(s_warrior.shield); s_warrior.shield = 0; }
             }
+            if (transfer > 0) {
+                if (s_warrior.hp - transfer < 1) transfer = s_warrior.hp - 1;
+                if (transfer > 0) { s_warrior.hp -= transfer; addTeamStat(transfer); }
+            }
+            s_warrior.sacrificeStacks--;
+            logMessage(`🛡️ 戰士捨身掩護：完全承受這次傷害！`, 'player');
         }
-
-        actualDmgToHp += trueDmgBonus; 
 
         if (target.team === 'player' && target.classType === 'assassin' && !target.usedChaosPassive && ((target.hp - actualDmgToHp) / target.maxHp) < 0.4) {
             target.usedChaosPassive = true; target.spd += 0.2; target.mov += 1; target.atk += 1; target.shield += 20; addTeamStat(20);
@@ -604,23 +1262,50 @@
 
         if (actualDmgToHp > 0) { 
             target.hp -= actualDmgToHp; if (target.team === 'player') addTeamStat(actualDmgToHp);
-            logMessage(`⚔️ ${attacker.name} 對 ${target.name} 造成 ${actualDmgToHp} ${isTrueDmg || trueDmgBonus > 0 ? '真傷/混合' : '傷害'}`, attacker.team); 
+            logMessage(`⚔️ ${attacker.name} 對 ${target.name} 造成 ${actualDmgToHp} 傷害${bugTriggered ? '（含蟲術+1）' : ''}`, attacker.team); 
+        }
+
+        if (attacker.classType === 'wizard' && isBasic && !isBonus) {
+            let aliveEnemies = units.filter(u => u.team === 'enemy' && !u.isDead);
+            if (aliveEnemies.length > 0) {
+                let otherEnemies = aliveEnemies.filter(u => u !== target);
+                let trickTarget = (otherEnemies.length > 0) 
+                    ? otherEnemies[Math.floor(Math.random() * otherEnemies.length)] 
+                    : target;
+
+                if (trickTarget && !trickTarget.isDead) {
+                    if (trickTarget.shield > 0) {
+                        trickTarget.shield -= 1;
+                    } else {
+                        trickTarget.hp -= 1;
+                    }
+                    logMessage(`🔮 巫師被動【巫師戲法】觸發！額外對 ${trickTarget.name} 造成 1 點傷害！`, 'player');
+                    checkDeath(trickTarget);
+                }
+            }
+        }
+
+        if (attacker.classType === 'boar' && isBasic && !isBonus) {
+            let splashEnemies = units.filter(u => u.team === 'enemy' && !u.isDead && u !== target && (
+                (Math.abs(u.x - attacker.x) <= 1 && Math.abs(u.y - attacker.y) <= 1) ||
+                (Math.abs(u.x - target.x) <= 1 && Math.abs(u.y - target.y) <= 1)
+            ));
+            splashEnemies.forEach(se => {
+                logMessage(`🐗 魔導野豬順劈濺射！對周遭敵方 ${se.name} 追加 2 點傷害！`, 'player');
+                dealDamage(attacker, se, false, 2, true, true);
+            });
         }
 
         if (attacker.team === 'player' && isBasic && !isBonus) {
             attacker.energy = Math.min(attacker.maxEnergy, attacker.energy + 1);
             
-            if (attacker.classType === 'ranger') {
-                if (attacker.atkXpThisTurn < 1) {
-                    gainXp(attacker, 1.0);
-                    attacker.atkXpThisTurn += 1;
-                }
-            } else {
+            if (attacker.classType !== 'monster' && attacker.classType !== 'boar' && attacker.atkXpThisTurn < 1) {
                 gainXp(attacker, 1.0);
+                attacker.atkXpThisTurn += 1;
             }
         }
         
-        if (target.team === 'player') { gainXp(target, 0.5); checkDesperation(); }
+        if (target.team === 'player' && target.classType !== 'monster' && target.classType !== 'boar') { gainXp(target, 0.5); checkDesperation(); }
         
         if (target.hp <= 0) { 
             checkDeath(target);
@@ -629,46 +1314,129 @@
     }
 
     function handleKillReward(killer, victim) {
-        killer.energy = Math.min(killer.maxEnergy, killer.energy + 1);
-        if (killer.range > 1) {
-            killer.hasRangedKillRegenPending = true;
-            logMessage(`🎯 ${killer.name} 擊殺 ${victim.name}！獲得遠程尾刀獎勵：+1 能量，且回到回合生命恢復 +1！`, 'player');
-        } else {
-            logMessage(`🛡️ ${killer.name} 擊殺 ${victim.name}！獲得近戰尾刀獎勵：+1 能量！`, 'player');
+        const isSummon = (killer.classType === 'monster' || killer.classType === 'boar');
+        if (!isSummon) {
+            killer.energy = Math.min(killer.maxEnergy, killer.energy + 1);
+            if (killer.range > 1) {
+                killer.killRegen = Math.min((killer.killRegen || 0) + 1, 4);
+                logMessage(`🎯 ${killer.name} 擊殺 ${victim.name}！獲得遠程擊殺獎勵：+1 能量，且每回合生命恢復 +1 (擊殺加成: +${killer.killRegen}/4)！`, 'player');
+            } else {
+                killer.killRegen = Math.min((killer.killRegen || 0) + 2, 8);
+                logMessage(`🛡️ ${killer.name} 擊殺 ${victim.name}！獲得近戰擊殺獎勵：+1 能量，且每回合生命恢復 +2 (擊殺加成: +${killer.killRegen}/8)！`, 'player');
+            }
+        }
+
+        if (isSummon) {
+            let mainPlayers = units.filter(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2') && !u.isDead);
+            if (mainPlayers.length > 0) {
+                let shareXp = 1.0 / mainPlayers.length;
+                mainPlayers.forEach(p => gainXp(p, shareXp));
+                logMessage(`🐗 ${killer.name} 擊殺敵方單位，經驗值均分給玩家隊員 (各 +${shareXp.toFixed(1)} XP)！`, 'player');
+            }
         }
     }
 
     function gainXp(unit, amount) {
-        if (unit.team !== 'player' || unit.level >= 20) return; unit.xp += amount;
+        if (unit.team !== 'player' || unit.classType === 'monster' || unit.classType === 'boar' || unit.level >= 20) return; unit.xp += amount;
         while (unit.xp >= unit.xpNeeded && unit.level < 20) { 
-            unit.xp -= unit.xpNeeded; unit.level++; 
-            unit.xpNeeded = unit.level === 2 ? 3 : (unit.level === 3 ? 4 : (unit.level === 4 ? 6 : unit.level + 3)); 
-            logMessage(`🌟 ${unit.name} 升級至 Lv.${unit.level}！`, 'player'); addResonance(unit, 1); 
-            let partner = units.find(u => u.team === 'player' && u !== unit && !u.isDead);
+            unit.xp -= unit.xpNeeded; 
+            unit.level++; 
+            unit.xpNeeded = 2 + Math.floor((unit.level * (unit.level + 1)) / 2); 
+            logMessage(`🌟 ${unit.name} 升級至 Lv.${unit.level}！(下級需 ${unit.xpNeeded} XP)`, 'player'); addResonance(unit, 1); 
+            let partner = units.find(u => u.team === 'player' && u !== unit && !u.isDead && u.classType !== 'monster' && u.classType !== 'boar');
             if (partner) { logMessage(`🤝 團隊羈絆：${partner.name} 獲得 +1 XP 回饋！`, 'player'); gainXp(partner, 1.0); }
         }
     }
 
     function addResonance(unit, amount) { unit.resonance += amount; unit.shield += 10 * amount; unit.energy = Math.min(unit.maxEnergy, unit.energy + 1 * amount); unit.hpRegen += 1 * amount; unit.bonusAtk += 1 * amount; addTeamStat(10 * amount); }
-    function checkDesperation() { if (desperationTriggered) return; if (units.some(u => u.team === 'player' && !u.isDead && (u.hp / u.maxHp) < 0.3)) { desperationTriggered = true; logMessage("🚨 絕境觸發！全體玩家獲得1層戰鬥共鳴！", "player"); units.filter(u => u.team === 'player' && !u.isDead).forEach(p => addResonance(p, 1)); } }
+    function checkDesperation() { if (desperationTriggered) return; if (units.some(u => u.team === 'player' && !u.isDead && u.classType !== 'monster' && u.classType !== 'boar' && (u.hp / u.maxHp) < 0.3)) { desperationTriggered = true; logMessage("🚨 絕境觸發！全體玩家獲得1層戰鬥共鳴！", "player"); units.filter(u => u.team === 'player' && !u.isDead && u.classType !== 'monster' && u.classType !== 'boar').forEach(p => addResonance(p, 1)); } }
 
     function checkWaveThreshold() {
-        if (currentWave === 1 && (waveAttackCount >= 8 || totalEnemyDeathCount >= 2)) spawnWave2();
-        else if (currentWave === 2 && (waveAttackCount >= 8 || totalEnemyDeathCount >= 4)) spawnWave3();
+        if (currentWave === 1 && (waveAttackCount >= WAVE_DATA[currentChapter].wave1.thresholdAtk || totalEnemyDeathCount >= WAVE_DATA[currentChapter].wave1.thresholdDeath)) spawnWave2();
+        else if (currentWave === 2 && (waveAttackCount >= WAVE_DATA[currentChapter].wave2.thresholdAtk || totalEnemyDeathCount >= WAVE_DATA[currentChapter].wave2.thresholdDeath)) spawnWave3();
         else if (currentWave === 3) checkWinLoss();
     }
     
-    function spawnWave2() { currentWave = 2; waveAttackCount = 0; logMessage("⚠️ Wave 1-2 啟動！攔截射手登場！", "enemy"); for(let i=1; i<=4; i++) { let p = getEmptySpawnPos(0, 8, 0, 0); units.push(new Unit(`M2_${i}`, `射手${i}`, 'enemy', 'monster', 14, 6, 1.8, 4, 5, p.x, p.y, 0, 0, false, 'A')); } reSortQueue(); }
-    function spawnWave3() { currentWave = 3; waveAttackCount = 0; logMessage("⚠️ Wave 1-3 最終波！攔截王與護衛登場！", "enemy"); let bossP = getEmptySpawnPos(3, 5, 0, 0); units.push(new Unit('Boss', '攔截王', 'enemy', 'boss', 40, 7, 1.1, 2, 4, bossP.x, bossP.y, 0, 0, true, 'B')); for(let i=1; i<=4; i++) { let p = getEmptySpawnPos(0, 8, 0, 1); units.push(new Unit(`M3_${i}`, `護衛${i}`, 'enemy', 'monster', 60, 8, 1.7, 3, 1, p.x, p.y, 0, 0, false, 'A')); } reSortQueue(); }
+    function spawnWave2() { 
+        currentWave = 2; waveAttackCount = 0; 
+        let w2 = WAVE_DATA[currentChapter].wave2;
+        logMessage(w2.introMsg, "enemy"); 
+        let maxY = w2.spawnRows || 0;
+        for(let i=1; i<=w2.count; i++) { 
+            let p = getEmptySpawnPos(0, 8, 0, maxY); 
+            let m = new Unit(`M2_${i}`, `${w2.name}${i}`, 'enemy', 'monster', w2.hp, w2.atk, w2.spd, w2.mov, w2.range, p.x, p.y, 0, 0, false, w2.aiPattern);
+            m.hasYaodu = !!w2.hasYaodu;
+            units.push(m); 
+        } 
+        reSortQueue(); 
+    }
+
+    function spawnWave3() { 
+        currentWave = 3; waveAttackCount = 0; 
+        let w3 = WAVE_DATA[currentChapter].wave3;
+        logMessage(w3.introMsg, "enemy"); 
+        let bossPos = findSpawnAlternating(4);
+        units.push(new Unit('Boss', w3.bossName, 'enemy', 'boss', w3.bossHp, w3.bossAtk, w3.bossSpd, w3.bossMov, w3.bossRange, bossPos.x, bossPos.y, 0, 0, true, 'B')); 
+        for(let i=1; i<=2; i++) { 
+            let p = findSpawnDirectional(bossPos.x, -1); 
+            let guard = new Unit(`M3_L${i}`, `${w3.guardName}${i}`, 'enemy', 'monster', w3.guardHp, w3.guardAtk, w3.guardSpd, w3.guardMov, w3.guardRange, p.x, p.y, 0, 0, false, 'A');
+            guard.hasBaodi = w3.guardHasBaodi; guard.baodiDmg = w3.guardBaodiDmg || 20;
+            units.push(guard);
+        }
+        for(let i=1; i<=2; i++) { 
+            let p = findSpawnDirectional(bossPos.x, 1); 
+            let guard = new Unit(`M3_R${i}`, `${w3.guardName}${i+2}`, 'enemy', 'monster', w3.guardHp, w3.guardAtk, w3.guardSpd, w3.guardMov, w3.guardRange, p.x, p.y, 0, 0, false, 'A');
+            guard.hasBaodi = w3.guardHasBaodi; guard.baodiDmg = w3.guardBaodiDmg || 20;
+            units.push(guard);
+        }
+        reSortQueue(); 
+    }
+
+    function executeBossAttack(aiUnit, targetPlayer) {
+        waveAttackCount++; 
+        aiUnit.bossAttackCount = (aiUnit.bossAttackCount || 0) + 1; 
+        if ((aiUnit.bossAttackCount - 1) % 3 === 0) { 
+            if (!aiUnit.shatterMarks) aiUnit.shatterMarks = []; 
+            aiUnit.shatterMarks.push({ x: targetPlayer.x, y: targetPlayer.y, skillName: '碎地術' }); 
+            logMessage(`⚠️ 攔截王對 ${targetPlayer.name} 施放【碎地術】！預警圈定 (${targetPlayer.x}, ${targetPlayer.y})，當下造成 5 點傷害！`, 'enemy'); 
+            dealDamage(aiUnit, targetPlayer, false, 5);
+        } else {
+            dealDamage(aiUnit, targetPlayer); 
+        }
+        
+        if (aiUnit.bossAttackCount % 3 === 2) {
+            logMessage(`⚠️ 氣氛逐漸凝結，攔截王即將使用【碎地術】！`, 'enemy');
+        }
+    }
+
+    function executeBaodiAttack(aiUnit, targetPlayer) {
+        waveAttackCount++;
+        if (!aiUnit.shatterMarks) aiUnit.shatterMarks = [];
+        let dmg = aiUnit.baodiDmg || 20;
+        aiUnit.shatterMarks.push({ x: targetPlayer.x, y: targetPlayer.y, dmg: dmg, skillName: '爆地術' });
+        logMessage(`⚠️ ${aiUnit.name} 對 ${targetPlayer.name} 施放【爆地術】！地板標記完成！`, 'enemy');
+        dealDamage(aiUnit, targetPlayer);
+    }
 
     function executeEnemyAI(aiUnit) {
         let players = units.filter(u => u.team === 'player' && !u.isDead); if (players.length === 0) return endTurn();
         let inRangeTargets = players.filter(p => { let dist = Math.abs(aiUnit.x - p.x) + Math.abs(aiUnit.y - p.y); return dist > 0 && dist <= aiUnit.range; });
         if (inRangeTargets.length > 0) {
             let targetPlayer;
-            if (aiUnit.aiPattern === 'A') { inRangeTargets.sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(aiUnit.x - b.x) + Math.abs(aiUnit.y - b.y); return distA !== distB ? distA - distB : a.hp - b.hp; }); targetPlayer = inRangeTargets[0]; } 
-            else { if (aiUnit.range === 1) { inRangeTargets.sort((a, b) => a.hp - b.hp); } else { inRangeTargets.sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(aiUnit.x - b.x) + Math.abs(aiUnit.y - b.y); return distA !== distB ? distA - distB : a.hp - b.hp; }); } targetPlayer = inRangeTargets[0]; }
-            setTimeout(() => { waveAttackCount++; if (aiUnit.isBoss) { aiUnit.bossAttackCount = (aiUnit.bossAttackCount || 0) + 1; if ((aiUnit.bossAttackCount - 1) % 3 === 0) { if (!aiUnit.shatterMarks) aiUnit.shatterMarks = []; aiUnit.shatterMarks.push({ x: targetPlayer.x, y: targetPlayer.y }); logMessage(`⚠️ 攔截王對 ${targetPlayer.name} 施放【碎地術】！地面預警圈定 (${targetPlayer.x}, ${targetPlayer.y})！`, 'enemy'); } else dealDamage(aiUnit, targetPlayer); } else dealDamage(aiUnit, targetPlayer); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600); return;
+            if (aiUnit.aiPattern === 'A') { inRangeTargets.sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(aiUnit.x - b.x) + Math.abs(aiUnit.y - b.y); if (distA !== distB) return distA - distB; if (a.hp !== b.hp) return a.hp - b.hp; return Math.random() - 0.5; }); targetPlayer = inRangeTargets[0]; } 
+            else { if (aiUnit.range === 1) { inRangeTargets.sort((a, b) => a.hp !== b.hp ? a.hp - b.hp : Math.random() - 0.5); } else { inRangeTargets.sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(aiUnit.x - b.x) + Math.abs(aiUnit.y - b.y); if (distA !== distB) return distA - distB; if (a.hp !== b.hp) return a.hp - b.hp; return Math.random() - 0.5; }); } targetPlayer = inRangeTargets[0]; }
+            setTimeout(() => { 
+                if (aiUnit.isBoss) { 
+                    executeBossAttack(aiUnit, targetPlayer);
+                } else if (aiUnit.hasBaodi) {
+                    executeBaodiAttack(aiUnit, targetPlayer);
+                } else {
+                    waveAttackCount++;
+                    dealDamage(aiUnit, targetPlayer); 
+                    if (aiUnit.hasYaodu && targetPlayer && !targetPlayer.isDead) { targetPlayer.yaoduStacks = (targetPlayer.yaoduStacks||0)+1; targetPlayer.yaoduTurnsLeft = 5; }
+                } 
+                renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); 
+            }, 600); return;
         }
         let targetPlayer;
         if (aiUnit.aiPattern === 'A') { let sorted = [...players].sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(aiUnit.x - b.x) + Math.abs(aiUnit.y - b.y); return distA - distB; }); targetPlayer = sorted[0]; } 
@@ -677,13 +1445,72 @@
         if (movesThatCanAttack.length > 0) {
             movesThatCanAttack.sort((a, b) => { let distA = Math.abs(a.x - targetPlayer.x) + Math.abs(a.y - targetPlayer.y); let distB = Math.abs(b.x - targetPlayer.x) + Math.abs(b.y - targetPlayer.y); return distA - distB; });
             let chosenMove = movesThatCanAttack[0]; aiUnit.x = chosenMove.x; aiUnit.y = chosenMove.y;
-            setTimeout(() => { waveAttackCount++; if (aiUnit.isBoss) { aiUnit.bossAttackCount = (aiUnit.bossAttackCount || 0) + 1; if ((aiUnit.bossAttackCount - 1) % 3 === 0) { if (!aiUnit.shatterMarks) aiUnit.shatterMarks = []; aiUnit.shatterMarks.push({ x: targetPlayer.x, y: targetPlayer.y }); logMessage(`⚠️ 攔截王對 ${targetPlayer.name} 施放【碎地術】！`, 'enemy'); } else dealDamage(aiUnit, targetPlayer); } else dealDamage(aiUnit, targetPlayer); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600);
+            setTimeout(() => { 
+                if (aiUnit.isBoss) { 
+                    executeBossAttack(aiUnit, targetPlayer);
+                } else if (aiUnit.hasBaodi) {
+                    executeBaodiAttack(aiUnit, targetPlayer);
+                } else {
+                    waveAttackCount++;
+                    dealDamage(aiUnit, targetPlayer); 
+                    if (aiUnit.hasYaodu && targetPlayer && !targetPlayer.isDead) { targetPlayer.yaoduStacks = (targetPlayer.yaoduStacks||0)+1; targetPlayer.yaoduTurnsLeft = 5; }
+                } 
+                renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); 
+            }, 600);
         } else {
             possibleMoves.sort((a, b) => { let distA = Math.abs(a.x - targetPlayer.x) + Math.abs(a.y - targetPlayer.y); let distB = Math.abs(b.x - targetPlayer.x) + Math.abs(b.y - targetPlayer.y); return distA - distB; });
             let bestMove = possibleMoves[0]; if (bestMove && (bestMove.x !== aiUnit.x || bestMove.y !== aiUnit.y)) { aiUnit.x = bestMove.x; aiUnit.y = bestMove.y; }
             let newlyInRange = players.find(p => { let dist = Math.abs(aiUnit.x - p.x) + Math.abs(aiUnit.y - p.y); return dist > 0 && dist <= aiUnit.range; });
-            if (newlyInRange) { setTimeout(() => { waveAttackCount++; if (aiUnit.isBoss) { aiUnit.bossAttackCount = (aiUnit.bossAttackCount || 0) + 1; if ((aiUnit.bossAttackCount - 1) % 3 === 0) { if (!aiUnit.shatterMarks) aiUnit.shatterMarks = []; aiUnit.shatterMarks.push({ x: newlyInRange.x, y: newlyInRange.y }); logMessage(`⚠️ 攔截王對 ${newlyInRange.name} 施放【碎地術】！`, 'enemy'); } else dealDamage(aiUnit, newlyInRange); } else dealDamage(aiUnit, newlyInRange); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600); } 
+            if (newlyInRange) { 
+                setTimeout(() => { 
+                    if (aiUnit.isBoss) { 
+                        executeBossAttack(aiUnit, newlyInRange);
+                    } else if (aiUnit.hasBaodi) {
+                        executeBaodiAttack(aiUnit, newlyInRange);
+                    } else {
+                        waveAttackCount++;
+                        dealDamage(aiUnit, newlyInRange); 
+                        if (aiUnit.hasYaodu && newlyInRange && !newlyInRange.isDead) { newlyInRange.yaoduStacks = (newlyInRange.yaoduStacks||0)+1; newlyInRange.yaoduTurnsLeft = 5; }
+                    } 
+                    renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); 
+                }, 600); 
+            } 
             else { renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }
+        }
+    }
+
+    function executeSummonAI(aiUnit) {
+        let targets = units.filter(u => u.team === 'enemy' && !u.isDead);
+        if (targets.length === 0) { renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); return; }
+
+        let inRangeTargets = targets.filter(t => { let dist = Math.abs(aiUnit.x - t.x) + Math.abs(aiUnit.y - t.y); return dist > 0 && dist <= aiUnit.range; });
+        if (inRangeTargets.length > 0) {
+            inRangeTargets.sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(b.x - b.x) + Math.abs(b.y - b.y); return distA !== distB ? distA - distB : a.hp - b.hp; });
+            let chosenTarget = inRangeTargets[0];
+            setTimeout(() => { dealDamage(aiUnit, chosenTarget); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600);
+            return;
+        }
+
+        let sortedByDist = [...targets].sort((a, b) => { let distA = Math.abs(aiUnit.x - a.x) + Math.abs(aiUnit.y - a.y); let distB = Math.abs(b.x - b.x) + Math.abs(b.y - b.y); return distA - distB; });
+        let nearestTarget = sortedByDist[0];
+
+        let possibleMoves = getValidMoves(aiUnit);
+        let movesThatCanAttack = possibleMoves.filter(m => { let dist = Math.abs(m.x - nearestTarget.x) + Math.abs(m.y - nearestTarget.y); return dist <= aiUnit.range && dist > 0; });
+
+        if (movesThatCanAttack.length > 0) {
+            movesThatCanAttack.sort((a, b) => { let distA = Math.abs(a.x - nearestTarget.x) + Math.abs(a.y - nearestTarget.y); let distB = Math.abs(b.x - nearestTarget.x) + Math.abs(b.y - nearestTarget.y); return distA - distB; });
+            let chosenMove = movesThatCanAttack[0]; aiUnit.x = chosenMove.x; aiUnit.y = chosenMove.y;
+            setTimeout(() => { dealDamage(aiUnit, nearestTarget); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600);
+        } else {
+            possibleMoves.sort((a, b) => { let distA = Math.abs(a.x - nearestTarget.x) + Math.abs(a.y - nearestTarget.y); let distB = Math.abs(b.x - nearestTarget.x) + Math.abs(b.y - nearestTarget.y); return distA - distB; });
+            let bestMove = possibleMoves[0];
+            if (bestMove && (bestMove.x !== aiUnit.x || bestMove.y !== aiUnit.y)) { aiUnit.x = bestMove.x; aiUnit.y = bestMove.y; }
+            let newlyInRange = targets.find(t => { let dist = Math.abs(aiUnit.x - t.x) + Math.abs(aiUnit.y - t.y); return dist > 0 && dist <= aiUnit.range; });
+            if (newlyInRange) {
+                setTimeout(() => { dealDamage(aiUnit, newlyInRange); renderUnits(); updateUI(); setTimeout(() => endTurn(), 500); }, 600);
+            } else {
+                renderUnits(); updateUI(); setTimeout(() => endTurn(), 500);
+            }
         }
     }
 
@@ -705,10 +1532,11 @@
                 } 
             } 
         } 
+        renderUnits();
     }
     
     function startSkill(skill) {
-        const active = turnQueue[activeUnitIndex]; if (active.energy < skill.cost || active.cooldowns[skill.id] > 0 || active.usedOnceFlags[skill.id]) return;
+        const active = turnQueue[activeUnitIndex]; if (active.energy < skill.cost || active.cooldowns[skill.id] > 0 || active.usedOnceFlags[skill.id] || (skill.hpCost && active.hp - skill.hpCost <= 0)) return;
         activeSkill = skill; if (skill.range === 0) { executeSkill(active, active.x, active.y); return; }
         
         currentState = 'SKILL_TARGETING'; clearHighlights(); validSkills = [];
@@ -726,15 +1554,19 @@
                     else if (skill.type === 'empty' && dist > 0 && !target) isValid = true;
                     else if (skill.type === 'empty_or_enemy' && dist > 0 && (!target || target.team !== active.team)) isValid = true;
                     else if (skill.type === 'empty_or_self' && (!target || target === active)) isValid = true;
+                    else if (skill.type === 'any_cell') isValid = true;
+                    else if (skill.type === 'aoe') isValid = true;
 
                     if (isValid) { validSkills.push({x, y}); if (cell) cell.classList.add('skill-target'); }
                 }
             }
         }
+        renderUnits();
     }
 
     function executeSkill(active, x, y) {
-        active.energy -= activeSkill.cost; active.cooldowns[activeSkill.id] = 4; 
+        active.energy -= activeSkill.cost; 
+        active.cooldowns[activeSkill.id] = 3;
         if (activeSkill.once) active.usedOnceFlags[activeSkill.id] = true;
         if (active.classType === 'ranger') active.hasUsedSkill = true; else active.hasActed = true;
         
@@ -742,50 +1574,106 @@
         logMessage(`🔥 ${active.name} 發動了【${activeSkill.name}】！`, 'player');
 
         if (activeSkill.id === 's_body') { active.warriorBodyTier = 1; active.energy = Math.min(active.maxEnergy, active.energy+1); }
-        else if (activeSkill.id === 's_sac') { active.sacrificeStacks = 3; }
-        else if (activeSkill.id === 's_bash') { dealDamage(active, target, false, 10); if (target && !target.isDead) { target.spd -= 0.1; reSortQueue(); } } 
+        else if (activeSkill.id === 's_sac') { 
+            active.sacrificeStacks = 2; 
+            active.sacUseCount = (active.sacUseCount || 0) + 1;
+            if (active.sacUseCount >= 2) {
+                let penalty = Math.min((active.sacUseCount - 1) * 5, active.hp - 1);
+                if (penalty > 0) {
+                    active.hp -= penalty;
+                    logMessage(`⚠️ 捨身掩護遭到識破！戰士額外承受 ${penalty} 點傷害！`, 'enemy');
+                }
+            }
+        }
+        else if (activeSkill.id === 's_bash') { dealDamage(active, target, false, 30); if (target && !target.isDead) { target.spd -= 0.5; target.stunned = true; reSortQueue(); } active.shieldBashVulnerable = true; } 
         else if (activeSkill.id === 's_hvy1') { dealDamage(active, target, false, (active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0)) * 2); } 
         else if (activeSkill.id === 's_hvy2') { dealDamage(active, target, false, (active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0)) * 3); active.spd -= 0.1; reSortQueue(); } 
         else if (activeSkill.id === 's_charge') { active.hasMoved = false; active.hasActed = false; active.forceBasicOnly = true; }
         else if (activeSkill.id === 's_burst') { let totalAtk = active.atk + (active.bonusAtk || 0); if (!active.burstMarks) active.burstMarks = []; active.burstMarks.push({ x: x, y: y, dmg: totalAtk * 4 }); active.spd -= 0.2; reSortQueue(); logMessage(`💥 ${active.name} 在位置 (${x}, ${y}) 設下了【爆地斬】印記！`, 'player'); }
         
-        else if (activeSkill.id === 's_stab') { dealDamage(active, target, false, 10); if(target && !target.isDead) target.bleedStacks += 3; }
-        else if (activeSkill.id === 's_needle') { dealDamage(active, target, false, 9); if(target && !target.isDead) target.bleedStacks += 4; }
-        else if (activeSkill.id === 's_blade') { dealDamage(active, target, false, 8); if(target && !target.isDead) target.bleedStacks += 6; } 
-        else if (activeSkill.id === 's_ult') { dealDamage(active, target, false, (active.atk + (active.bonusAtk || 0)) * 2); if(target && !target.isDead) target.bleedStacks += 8; }
+        else if (activeSkill.id === 's_stab') { dealDamage(active, target, false, 10); if(target && !target.isDead) { target.bleedStacks += 3; target.bleedTurnsLeft = 5; } }
+        else if (activeSkill.id === 's_needle') { dealDamage(active, target, false, 8); if(target && !target.isDead) { target.bleedStacks += 5; target.bleedTurnsLeft = 5; } }
+        else if (activeSkill.id === 's_blade') { dealDamage(active, target, false, 6); if(target && !target.isDead) { target.bleedStacks += 7; target.bleedTurnsLeft = 5; } } 
+        else if (activeSkill.id === 's_ult') { dealDamage(active, target, false, (active.atk + (active.bonusAtk || 0)) * 2); if(target && !target.isDead) { target.bleedStacks += 9; target.bleedTurnsLeft = 5; } }
 
         else if (activeSkill.id === 's_guard') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 15); healTarget.shield += 15; addTeamStat(30); }
         else if (activeSkill.id === 's_bless') { let buffTarget = target || active; buffTarget.shield += 32; addTeamStat(32); }
-        else if (activeSkill.id === 's_heavy') { let priestAtk = active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0); let heavyDmg = priestAtk + (active.shield * 3); dealDamage(active, target, false, heavyDmg); }
+        else if (activeSkill.id === 's_heavy') { let priestAtk = active.atk + (active.bonusAtk || 0) + (active.priestFanaticAtk || 0); let heavyDmg = (priestAtk * 2) + (active.shield * 5); dealDamage(active, target, false, heavyDmg); }
         else if (activeSkill.id === 's_judge') { active.x = x; active.y = y; active.hasActed = false; active.priestJudgeNextAtk2x = true; active.forceBasicOnly = true; }
 
         else if (activeSkill.id === 's_heal') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 4 + reso); addTeamStat(4 + reso); }
         else if (activeSkill.id === 's_harass') { dealDamage(active, target, false, 1); }
-        else if (activeSkill.id === 's_chase') { dealDamage(active, target, false, 3); }
-        else if (activeSkill.id === 's_poison') { if(target && !target.isDead) target.poisonStacks += 1; dealDamage(active, target, false, 0); }
-        
+        else if (activeSkill.id === 's_chase') { dealDamage(active, target, false, 2); }
+        else if (activeSkill.id === 's_poison') { if(target && !target.isDead) { target.poisonStacks += 3; target.poisonTurnsLeft = 5; } dealDamage(active, target, false, 4); }
         else if (activeSkill.id === 's_tactics') { 
-            for(let i=0; i<4; i++) { 
-                let enemies = units.filter(u => u.team === 'enemy' && !u.isDead); 
+            for(let i=0; i<2; i++) { 
+                let enemies = units.filter(u => u.team === 'enemy' && !u.isDead && (Math.abs(active.x - u.x) + Math.abs(active.y - u.y)) <= 5); 
                 if(enemies.length > 0) { 
                     let rand = enemies[Math.floor(Math.random()*enemies.length)]; 
-                    dealDamage(active, rand, false, 1); 
+                    dealDamage(active, rand, false, 1, false, false, true); 
                 } 
             } 
         }
-        else if (activeSkill.id === 's_full') { active.atk += 1; active.maxEnergy = Math.max(0, active.maxEnergy - 1); active.energy = Math.min(active.maxEnergy, active.energy); active.fullPowerActive = true; }
+        else if (activeSkill.id === 's_full') { active.atk += 1; active.maxEnergy = Math.max(0, active.maxEnergy - 1); active.energy = Math.min(active.maxEnergy, active.energy); active.spd += 0.1; reSortQueue(); }
 
         else if (activeSkill.id === 's_fire') { active.hp -= 1; dealDamage(active, target, false, 8); }
-        else if (activeSkill.id === 's_bug') { active.hp -= 1; if(target && !target.isDead) target.bugDebuff = true; dealDamage(active, target, false, 0); }
-        else if (activeSkill.id === 's_life') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 10 + reso); addTeamStat(10 + reso); }
-        else if (activeSkill.id === 's_illusion') { active.hp -= 2; globalIllusionActive = true; }
-        else if (activeSkill.id === 's_summon') { active.hp -= 4; skeletonCount++; let skel = new Unit(`Skel_${skeletonCount}`, '骷髏射手', 'player', 'monster', 10, 10, 1.1, 0, 3, x, y); units.push(skel); reSortQueue(); }
+        else if (activeSkill.id === 's_bug') { active.hp -= 1; if(target && !target.isDead) target.bugDebuff = true; dealDamage(active, target, false, 0, false, true); }
+        else if (activeSkill.id === 's_life') { 
+            let healTarget = target || active; 
+            healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 12 + reso); 
+            if (healTarget === active) {
+                active.shield += 24;
+                addTeamStat(24);
+            }
+            addTeamStat(12 + reso); 
+        }
+        else if (activeSkill.id === 's_illusion') { 
+            active.hp -= 1; 
+            units.filter(u => u.team === 'enemy' && !u.isDead).forEach(e => { e.burnStacks = (e.burnStacks || 0) + 2; e.burnTurnsLeft = 5; });
+            logMessage(`🔥 幻炎術發動！場上所有敵方燃燒層數 +2！`, 'player'); 
+        }
+        else if (activeSkill.id === 's_summon') { 
+            active.hp -= 2; skeletonCount++; 
+            let skel = new Unit(`Skel_${skeletonCount}`, '骷髏射手', 'player', 'monster', 38, 10, 1.1, 0, 4, x, y); 
+            units.push(skel); reSortQueue(); 
+        }
+        else if (activeSkill.id === 's_flame') {
+            active.hp -= 3;
+            if (!active.purpleFlameMarks) active.purpleFlameMarks = [];
+            
+            let flameCells = [];
+            for(let cx = 0; cx < COLS; cx++) {
+                for(let cy = 0; cy < ROWS; cy++) {
+                    let inBox = (Math.abs(cx - x) <= 1 && Math.abs(cy - y) <= 1);
+                    let inCross = (cx === x || cy === y);
+                    if (inBox || inCross) {
+                        flameCells.push({x: cx, y: cy});
+                    }
+                }
+            }
+            active.purpleFlameMarks = flameCells;
+            logMessage(`🔮 巫師施展【巫師魔焰】！巨大紫色魔焰籠罩戰場！`, 'player');
+
+            flameCells.forEach(fc => {
+                let uOnCell = getUnitAt(fc.x, fc.y);
+                if (uOnCell && uOnCell.team === 'enemy') {
+                    dealDamage(active, uOnCell, false, 8, false, true);
+                    if (!uOnCell.isDead) { uOnCell.burnStacks = (uOnCell.burnStacks || 0) + 2; uOnCell.burnTurnsLeft = 5; }
+                }
+            });
+        }
+        else if (activeSkill.id === 's_boar') {
+            active.hp -= 3; boarCount++;
+            let boar = new Unit(`Boar_${boarCount}`, '魔導野豬', 'player', 'boar', 118, 4, 1.1, 2, 1, x, y);
+            units.push(boar); reSortQueue();
+            logMessage(`🐗 巫師召喚了【魔導野豬】加入戰場！`, 'player');
+        }
         
         else if (activeSkill.id === 's_cure') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 10 + reso); addTeamStat(10 + reso); }
         else if (activeSkill.id === 's_emerg') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 25 + reso); healTarget.shield += (15 + reso); addTeamStat(40 + 2*reso); }
         else if (activeSkill.id === 's_mass_cure') { units.filter(u => u.team === active.team && !u.isDead).forEach(t => { t.hp = Math.min(t.maxHp, t.hp + 22 + reso); addTeamStat(22 + reso); }); }
         else if (activeSkill.id === 's_inspire') { globalInspireActive = true; }
-        else if (activeSkill.id === 's_light') { units.filter(u => u.team !== active.team && !u.isDead).forEach(t => { let dist = Math.abs(active.x - t.x) + Math.abs(active.y - t.y); if(dist <= 5) dealDamage(active, t, false, 20); }); }
+        else if (activeSkill.id === 's_light') { units.filter(u => u.team !== active.team && !u.isDead).forEach(t => { let dist = Math.abs(active.x - t.x) + Math.abs(active.y - t.y); if(dist <= 5) dealDamage(active, t, false, 1, false, false, true); }); }
 
         currentState = 'WAITING'; clearHighlights(); renderUnits(); updateUI();
     }
@@ -793,16 +1681,10 @@
     function onCellClick(x, y) {
         const active = turnQueue[activeUnitIndex]; if (!active || active.team !== 'player') return;
         
-        if (currentState === 'INSPECTING') {
-            const target = getUnitAt(x, y);
-            if (target) showUnitDetail(target);
-            return; 
-        }
-
         if (currentState === 'MOVING' && validMoves.some(m => m.x === x && m.y === y)) { 
             if (active.x !== x || active.y !== y) {
                 active.x = x; active.y = y; active.hasMoved = true; 
-                if (active.classType === 'assassin') { active.assassinMovedThisTurn = true; logMessage(`🗡️ 刺客節奏觸發：移動後獲得暫時普攻攻擊力 +1！`, 'player'); }
+                if (active.classType === 'assassin') { active.assassinMovedThisTurn = true; logMessage(`🗡️ 刺客節奏發動：移動後獲得暫時普攻攻擊力 +3！`, 'player'); }
             }
             currentState = 'WAITING'; clearHighlights(); renderUnits(); updateUI(); 
         } 
@@ -810,7 +1692,7 @@
         else if (currentState === 'SKILL_TARGETING' && validSkills.some(s => s.x === x && s.y === y)) { executeSkill(active, x, y); }
     }
 
-    function getUnitAt(x, y) { return units.find(u => !u.isDead && u.x === x && u.y === y); }
+    function getUnitAt(x, y) { return units.filter(u => !u.isDead).find(u => u.x === x && u.y === y); }
     function getValidMoves(unit) {
         let moves = []; let queue = [{x: unit.x, y: unit.y, dist: 0}]; let visited = new Set([`${unit.x},${unit.y}`]);
         while(queue.length > 0) { let curr = queue.shift(); if (curr.dist >= unit.mov) continue; for (let d of [[0,1], [1,0], [0,-1], [-1,0]]) { let nx = curr.x + d[0]; let ny = curr.y + d[1]; if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !visited.has(`${nx},${ny}`)) { const t = getUnitAt(nx, ny); if (t && t.team !== unit.team) continue; visited.add(`${nx},${ny}`); queue.push({x: nx, y: ny, dist: curr.dist + 1}); if (!t) moves.push({x: nx, y: ny}); } } }
@@ -819,7 +1701,20 @@
     
     function calculateMoveRange(unit) { clearHighlights(); validMoves = getValidMoves(unit); validMoves.push({x: unit.x, y: unit.y}); validMoves.forEach(pos => document.getElementById(`cell-${pos.x}-${pos.y}`).classList.add('move-target')); }
     function clearHighlights() { document.querySelectorAll('.cell').forEach(c => c.classList.remove('move-target', 'attack-target', 'skill-target', 'range-highlight')); }
-    function checkWinLoss() { const alivePlayers = units.filter(u => u.team === 'player' && !u.isDead).length; const aliveEnemies = units.filter(u => u.team === 'enemy' && !u.isDead).length; if (alivePlayers === 0) { logMessage("【遊戲結束】玩家戰敗！", 'enemy'); gameEnded = true; } else if (aliveEnemies === 0 && currentWave === 3) { logMessage("【戰勝】成功通關！", 'player'); gameEnded = true; } }
+    
+    function checkWinLoss() { 
+        const alivePlayers = units.filter(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2') && !u.isDead).length; 
+        const aliveEnemies = units.filter(u => u.team === 'enemy' && !u.isDead).length; 
+        if (alivePlayers === 0) { logMessage("【遊戲結束】玩家角色全數陣亡，戰敗！", 'enemy'); gameEnded = true; } 
+        else if (aliveEnemies === 0 && currentWave === 3) { 
+            logMessage("【戰勝】成功通關！", 'player'); gameEnded = true; 
+            if (currentChapter === 1) {
+                setTimeout(() => switchScene('scene-transition'), 1500);
+            } else {
+                setTimeout(() => { logMessage("【全部完成】更多章節製作中，敬請期待！", 'player'); }, 1500);
+            }
+        } 
+    }
 </script>
 </body>
 </html>
