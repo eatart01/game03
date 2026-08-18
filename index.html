@@ -540,16 +540,16 @@
                 { id: 's_life', name: '生命術', cost: 2, range: 5, type: 'ally_or_self', reqReso: 0, desc: '對友軍單體恢復12生命，對自身施放額外獲得24護盾' },
                 { id: 's_illusion', name: '幻炎術', cost: 1, hpCost: 1, range: 0, type: 'aoe', reqReso: 2, desc: '自身扣除1生命，對場上所有現存敵方單位附加2層燃燒(與巫師魔焰共用燃燒層數池，可疊加，持續5回合)(無法受到共鳴加成)' },
                 { id: 's_summon', name: '骷髏射手', cost: 2, hpCost: 1, range: 1, type: 'empty', reqReso: 2, once: true, desc: '自身扣除1生命，在自身周遭1格召喚一隻骷髏射手(38血/10攻/4距/1.1速)(無法受到共鳴加成)(全局限1次)' },
-                { id: 's_boar', name: '魔導野豬', cost: 3, hpCost: 2, range: 1, type: 'empty', reqReso: 3, once: true, desc: '自身扣除2生命，在自身周遭1格召喚魔導野豬(118血/4攻/1距/1.1速)(無法受到共鳴加成)(全局限1次)' },
-                { id: 's_flame', name: '巫師魔焰', cost: 3, hpCost: 2, range: 5, type: 'any_cell', reqReso: 3, once: true, desc: '自身扣除2生命，指定位置與十字延伸範圍充滿魔焰。當下8傷害+2燃燒，下回合爆發28傷害+2燃燒 (全局限一次)(友軍無傷)(無法受到共鳴加成)' }
+                { id: 's_boar', name: '魔導野豬', cost: 3, hpCost: 2, range: 1, type: 'empty', reqReso: 4, once: true, desc: '自身扣除2生命，在自身周遭1格召喚魔導野豬(118血/4攻/1距/1.1速)(無法受到共鳴加成)(全局限1次)' },
+                { id: 's_flame', name: '巫師魔焰', cost: 3, hpCost: 4, range: 5, type: 'any_cell', reqReso: 3, once: true, desc: '自身扣除4生命。指定位置與十字延伸範圍充滿魔焰。當下7傷害+2燃燒，下回合爆發19傷害+2燃燒 (全局限一次)(友軍無傷)(無法受到共鳴加成)' }
             ];
         } else if (unit.classType === 'cleric') {
             unit.skills = [ 
                 { id: 's_cure', name: '治療術', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, desc: '目標隊友恢復10生命' },
                 { id: 's_mass_cure', name: '群體治療', cost: 3, range: 0, type: 'aoe', reqReso: 0, desc: '我方全體恢復22生命' },
-                { id: 's_emerg', name: '緊急庇護', cost: 1, range: 5, type: 'ally_or_self', reqReso: 0, once: true, desc: '指定友方立即恢復15生命，並獲得25護盾 (每場限1次)' },
+                { id: 's_emerg', name: '緊急庇護', cost: 1, range: 5, type: 'ally_or_self', reqReso: 2, once: true, desc: '指定友方立即恢復15生命，並獲得25護盾 (每場限1次)' },
                 { id: 's_purify', name: '淨化逆流', cost: 1, range: 5, type: 'enemy', reqReso: 3, desc: '當下友軍身上，敵方造成的負面狀態與持續傷害，集中給範圍內的敵方單體(無法受到共鳴加成)' },
-                { id: 's_light', name: '光之衝擊', cost: 2, range: 5, type: 'aoe', reqReso: 1, desc: '對範圍5格內的敵方全體造成3傷害' },
+                { id: 's_light', name: '光之衝擊', cost: 5, range: 5, type: 'aoe', reqReso: 1, desc: '對範圍5格內的敵方全體造成5傷害' },
                 { id: 's_inspire', name: '振奮號令', cost: 2, range: 0, type: 'aoe', reqReso: 2, once: true, desc: '全場友方每經過一個單位回合恢復1生命 (每場限1次)(無法受到共鳴加成)' }
             ];
         }
@@ -595,7 +595,7 @@
             case 's_life': effect = `對友軍單體恢復${heal}生命（對自身施放額外獲得<span style="color:${SHIELD};">24</span>護盾）`; break;
             case 's_illusion': effect = `對場上所有現存敵方單位附加<span style="color:${DMG};">2</span>層燃燒（與巫師魔焰共用燃燒層數池，可疊加，持續5回合，重新疊加會刷新）（無法受到共鳴加成）`; break;
             case 's_summon': effect = '在自身周遭1格召喚一隻骷髏射手（38血/10攻/4距/1.1速）（無法受到共鳴加成）'; break;
-            case 's_flame': effect = `指定位置與十字延伸範圍充滿魔焰，當下與下回合合計造成${dmg}傷害（8+2燃燒／28+2燃燒，與幻炎術共用燃燒層數池，持續5回合）（全局限一次）（友軍無傷）（無法受到共鳴加成）`; break;
+            case 's_flame': effect = `指定位置與十字延伸範圍充滿魔焰，當下與下回合合計造成${dmg}傷害（7+2燃燒／19+2燃燒，與幻炎術共用燃燒層數池，持續5回合）（全局限一次）（友軍無傷）（無法受到共鳴加成）`; break;
             case 's_boar': effect = '在自身周遭1格召喚魔導野豬（118血/4攻/1距/1.1速）（無法受到共鳴加成）'; break;
             case 's_cure': effect = `目標隊友恢復${heal}生命`; break;
             case 's_mass_cure': effect = `我方全體恢復${heal}生命`; break;
@@ -614,6 +614,20 @@
         if (!el) return;
         el.style.textAlign = 'left';
         el.innerHTML = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">被動技能<br>${getPassiveDesc(active).replace(/\n/g, '<br>')}</div>`;
+    }
+
+    function showLiveInfoSummon(u) {
+        const el = document.getElementById('live-info');
+        if (!el) return;
+        el.style.textAlign = 'left';
+        let html = `<div style="font-size:11px; line-height:1.6; color:var(--text-light);">【${u.name}】<br>`;
+        html += `HP：${Math.floor(u.hp)}/${u.maxHp}<br>`;
+        html += `攻擊 ${u.atk} ｜ 射程 ${u.range} ｜ 速度 ${u.spd.toFixed(1)} ｜ 移動 ${u.mov}`;
+        if (u.classType === 'boar') {
+            html += `<br>順劈濺射：攻擊時，貼著自己或貼著目標的其他敵方單位，各追加2點傷害`;
+        }
+        html += `</div>`;
+        el.innerHTML = html;
     }
 
     function showLiveInfoAlly(u) {
@@ -688,7 +702,7 @@
             case 'cleric': {
                 let accum = unit.divineStatAccum || 0;
                 let bonusAtk = unit.bonusAtk || 0;
-                return `📖神之力(累積:${accum})(普攻+${bonusAtk})\n團隊承傷/護盾/治癒/恢復累計達100：普攻+1\n📖神之愛\n每2次普攻補最低隊友5生命15護盾；每3次隊伍皆+3能量`;
+                return `📖神之力(累積:${accum})(普攻+${bonusAtk})\n團隊承傷/護盾/治癒/恢復累計達100：普攻+1\n📖神之愛\n每2次普攻補最低隊友5生命15護盾；每3次隊伍皆+1能量`;
             }
             default: return "";
         }
@@ -720,12 +734,12 @@
             case 's_fire': return String(8 + reso);
             case 's_life': return '12';
             case 's_illusion': return '灼2';
-            case 's_flame': return '8/28';
+            case 's_flame': return '7/19';
             case 's_cure': return String(10 + reso);
             case 's_mass_cure': return String(22 + reso);
             case 's_emerg': return `${15 + reso}/${25 + reso}`;
             case 's_inspire': return '血1';
-            case 's_light': return String(3 + reso);
+            case 's_light': return String(5 + reso);
             default: return ''; // s_body, s_sac, s_charge, s_full, s_bug, s_summon, s_boar：無單一輸出數字
         }
     }
@@ -763,6 +777,7 @@
                     } else {
                         const u = getUnitAt(x, y);
                         if (u && u.team !== 'player') showLiveInfoEnemy(u);
+                        else if (u && u.team === 'player' && (u.classType === 'monster' || u.classType === 'boar')) showLiveInfoSummon(u);
                         else if (u && u.team === 'player' && u.classType !== 'monster' && u.classType !== 'boar' && u !== turnQueue[activeUnitIndex]) showLiveInfoAlly(u);
                     }
                 };
@@ -1087,8 +1102,8 @@
             active.purpleFlameMarks.forEach(m => {
                 let targetOnCell = getUnitAt(m.x, m.y);
                 if (targetOnCell && targetOnCell.team === 'enemy') {
-                    logMessage(`🔮 【巫師魔焰】第二段爆發！對 ${targetOnCell.name} 造成 28 點傷害並附加 2 層燃燒！`, 'player');
-                    dealDamage(active, targetOnCell, false, 28, false, true);
+                    logMessage(`🔮 【巫師魔焰】第二段爆發！對 ${targetOnCell.name} 造成 19 點傷害並附加 2 層燃燒！`, 'player');
+                    dealDamage(active, targetOnCell, false, 19, false, true);
                     if (!targetOnCell.isDead) { targetOnCell.burnStacks = (targetOnCell.burnStacks || 0) + 2; targetOnCell.burnTurnsLeft = 5; }
                 }
             });
@@ -1279,8 +1294,8 @@
             }
             if (attacker.clericAttackCount % 3 === 0) {
                 let mainPlayers = units.filter(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2') && !u.isDead);
-                mainPlayers.forEach(p => { p.energy = Math.min(p.maxEnergy, p.energy + 3); });
-                logMessage(`📖 神官【神之愛】第 3 次普攻觸發：隊伍成員皆獲得 3 點能量！`, 'player');
+                mainPlayers.forEach(p => { p.energy = Math.min(p.maxEnergy, p.energy + 1); });
+                logMessage(`📖 神官【神之愛】第 3 次普攻觸發：隊伍成員皆獲得 1 點能量！`, 'player');
             }
         }
 
@@ -1761,7 +1776,7 @@
             units.push(skel); reSortQueue(); 
         }
         else if (activeSkill.id === 's_flame') {
-            active.hp -= 2;
+            active.hp -= 4;
             if (!active.purpleFlameMarks) active.purpleFlameMarks = [];
             
             let flameCells = [];
@@ -1780,7 +1795,7 @@
             flameCells.forEach(fc => {
                 let uOnCell = getUnitAt(fc.x, fc.y);
                 if (uOnCell && uOnCell.team === 'enemy') {
-                    dealDamage(active, uOnCell, false, 8, false, true);
+                    dealDamage(active, uOnCell, false, 7, false, true);
                     if (!uOnCell.isDead) { uOnCell.burnStacks = (uOnCell.burnStacks || 0) + 2; uOnCell.burnTurnsLeft = 5; }
                 }
             });
@@ -1796,7 +1811,7 @@
         else if (activeSkill.id === 's_emerg') { let healTarget = target || active; healTarget.hp = Math.min(healTarget.maxHp, healTarget.hp + 15 + reso); healTarget.shield += (25 + reso); addTeamStat(40 + 2*reso); }
         else if (activeSkill.id === 's_mass_cure') { units.filter(u => u.team === active.team && !u.isDead).forEach(t => { t.hp = Math.min(t.maxHp, t.hp + 22 + reso); addTeamStat(22 + reso); }); }
         else if (activeSkill.id === 's_inspire') { globalInspireActive = true; }
-        else if (activeSkill.id === 's_light') { units.filter(u => u.team !== active.team && !u.isDead).forEach(t => { let dist = Math.abs(active.x - t.x) + Math.abs(active.y - t.y); if(dist <= 5) dealDamage(active, t, false, 3, false, false, true); }); }
+        else if (activeSkill.id === 's_light') { units.filter(u => u.team !== active.team && !u.isDead).forEach(t => { let dist = Math.abs(active.x - t.x) + Math.abs(active.y - t.y); if(dist <= 5) dealDamage(active, t, false, 5, false, false, true); }); }
         else if (activeSkill.id === 's_purify') {
             if (target && !target.isDead) {
                 let players = units.filter(u => u.team === 'player' && (u.id === 'P1' || u.id === 'P2'));
