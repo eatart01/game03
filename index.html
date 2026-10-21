@@ -1,9 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+<!--
+【固定版面維護要求｜使用者明確指定，後續修改必須遵守】
+1. 電腦版與手機版的 UI 視窗須預先保留足夠空間，尺寸固定。
+   不得因文字長短、題目切換、戰報、Log 更新或遊戲階段變化，造成縮小、放大、位移或重新排版。
+   寧可一開始面板較大、短內容留白，也不要隨內容收縮。
+2. 電腦版驗收基準：1920×1080、全螢幕、瀏覽器縮放100%。
+   必須在同一畫面看見全部遊戲內容與操作介面，不需要捲動或縮小瀏覽器比例。
+   不得僅隱藏捲動條、裁切或遮住內容來宣稱達標；必須實際檢查面板與內容完整可見。
+3. 手機版另設固定版面，避免內容更新造成面板高度或角色位置跳動。
+4. Log：電腦版位於右側直欄（題目卡下方），固定13行；手機顯示4行、可在Log內上下滑動最多看8行，新紀錄自動回到最上方。無翻頁按鈕，只保留最新紀錄。
+5. 題目與戰報不提供上一頁／下一頁。長文應先規劃足夠的固定空間及語意斷行。
+6. 每次涉及文字、面板尺寸、字級或布局修改，都要回查以上要求。
+   若尚未完成實際畫面驗收，須明確說明，不得把語法或邏輯檢查當成版面驗收。
+7. 版本：預設為無頭銜版；1 秒內連按 3 次 P2 是「頭銜版」開關：無頭銜→有頭銜、有頭銜→無頭銜，每次切換都整個重新開始（網址後綴 #titled 代表有頭銜版）。
+這是持續有效的設計約束，無須使用者重複提醒；除非使用者明確更改要求。
+-->
+
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>遠征</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>遠征 - 亂世荒野求生</title>
 <style>
   :root {
     --bg: #2b241b;
@@ -13,10 +30,11 @@
     --btn: #8b6f47;
     --btn-hover: #a3865c;
     --hp: #b5604a;
+    --heal: #7fa37a;
     --hunger: #c9a050;
     --line: #5a4a36;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   canvas { image-rendering: pixelated; display: block; }
   body {
     margin: 0;
@@ -24,71 +42,71 @@
     background: var(--bg);
     color: var(--ink);
     font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
-    padding: calc(24px + 20vh) 16px 24px;
-    display: flex; justify-content: center;
+    padding: 64px 16px 24px;
+    display: flex;
+    justify-content: center;
   }
 
   .scene {
-    width: 100%; max-width: 920px;
+    width: 100%;
+    max-width: 1140px;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 18px;
   }
-  @media (min-width: 760px) {
-    .scene { grid-template-columns: 1.5fr 1fr; align-items: start; }
+  @media (min-width: 900px) {
+    .scene { grid-template-columns: 1.75fr 1fr; align-items: start; }
   }
 
-  /* ---------- 左：營火與隊伍 ---------- */
-  .camp { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
-  .fire { padding-top: 4px; }
-
-  .fire-wrap { position: relative; display: flex; justify-content: center; }
-  .gain {
-    position: absolute; left: calc(50% + 84px); top: 38%;
-    display: flex; align-items: center; gap: 6px;
-    font-size: 20px; font-weight: 700; color: var(--hunger);
-    opacity: 0; transform: translateY(6px);
-    transition: opacity .4s, transform .4s;
+  /* 開局右上角提示（開始遊玩後自動隱藏） */
+  .corner-hint {
+    position: fixed;
+    right: 16px;
+    top: 14px;
+    z-index: 25;
+    background: var(--panel);
+    border: 1px solid var(--hunger);
+    color: var(--ink);
+    padding: 6px 12px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    box-shadow: 0 4px 12px rgba(0,0,0,.45);
+    transition: opacity .3s;
+  }
+  .corner-hint.hide {
+    opacity: 0;
     pointer-events: none;
+    display: none;
   }
-  .gain.show { opacity: 1; transform: none; }
 
-  /* 窗簾（遠征中） */
+  /* ---------- 左：營火與 6 人隊伍 ---------- */
+  .camp { display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 0; }
+  .fire { padding-top: 2px; }
+  .fire-wrap { position: relative; display: flex; justify-content: center; min-height: 74px; }
+
+  /* 窗簾（外出中） */
   .curtain {
     position: absolute; inset: 0; z-index: 6;
     background: repeating-linear-gradient(90deg, #4a2f20 0 14px, #3a2418 14px 16px);
     border: 2px solid #2a1a10;
     transform: translateY(-101%);
-    transition: transform 1.74s ease-in-out;
+    transition: transform 1.05s ease-in-out;
     display: flex; align-items: center; justify-content: center;
   }
   .curtain::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+    content: ''; position: absolute; left: 0; right: 0; bottom: -6px; height: 6px;
     background: repeating-linear-gradient(90deg, var(--hunger) 0 6px, transparent 6px 12px);
   }
   .curtain.drop { transform: translateY(0); }
-  /* 只裁切上方，下襬流蘇可以露出格子外 */
-  .curtain-clip { position: absolute; inset: 0; clip-path: inset(0 -12px -16px -12px); z-index: 6; pointer-events: none; }
+  .curtain-clip { position: absolute; inset: 0; clip-path: inset(0 -8px -12px -8px); z-index: 6; pointer-events: none; }
   .curtain span {
-    color: var(--ink); font-size: 14px; font-weight: 700; letter-spacing: 3px;
-    opacity: 0; transition: opacity .3s;
+    color: var(--ink); font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+    opacity: 0; transition: opacity .25s; text-align: center; padding: 0 4px;
   }
   .curtain.shown span { opacity: 1; }
 
-  .storage {
-    position: relative;
-    flex: 0 0 96px;
-    background: var(--panel);
-    border: 1px dashed var(--hunger);
-    padding: 20px 6px 8px;
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
-  }
-  .storage .count { font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums; }
   .flyer { position: fixed; pointer-events: none; z-index: 25; }
-  .pile-wrap { position: absolute; left: 14px; top: 398px; width: 418px; height: 282px; z-index: 5; pointer-events: none; }
-  .pile { position: relative; width: 100%; height: 100%; pointer-events: auto; }
-  .pile canvas { position: absolute; }
-  .pool { position: absolute; left: 50%; top: 0; width: 0; height: 0; pointer-events: none; }
+  .pool { position: absolute; left: 50%; top: 0; width: 0; height: 0; pointer-events: none; z-index: 14; }
   .pool canvas { position: absolute; }
   @keyframes popIn {
     from { opacity: 0; transform: scale(.3); }
@@ -96,166 +114,170 @@
   }
 
   .dayLabel {
-    position: fixed; left: 24px; top: 20px; z-index: 15;
-    font-size: 26px; font-weight: 700; color: var(--hunger);
+    position: fixed; left: 20px; top: 14px; z-index: 15;
+    font-size: 24px; font-weight: 700; color: var(--hunger);
     letter-spacing: 2px; pointer-events: none;
+  }
+  .daySub {
+    font-size: 13px; color: var(--muted); margin-left: 10px; font-weight: 400; letter-spacing: 0.5px;
   }
   .countdown {
     position: absolute; left: 50%; top: 50%;
     transform: translate(-50%, -50%);
-    font-size: 53px; font-weight: 700; color: #f2e6cc;
+    font-size: 48px; font-weight: 700; color: #f2e6cc;
     text-shadow: 0 3px 0 #1e1811, 3px 0 0 #1e1811, -3px 0 0 #1e1811, 0 -3px 0 #1e1811;
     opacity: 0; pointer-events: none; z-index: 12;
     transition: opacity .2s;
   }
   .countdown.show { opacity: 1; }
 
+  /* 電腦版：左到右一字排開（1x6） */
   .party {
-    margin-top: calc(5vh - 20px);
-    display: flex; gap: 8px;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
     width: 100%;
-    overflow-x: auto;
     position: relative;
-    padding: 50px 4px 14px;
+    padding: 46px 2px 10px;
   }
   .slot {
     position: relative;
-    flex: 0 0 92px;
-    zoom: 1.1;
     background: var(--panel);
     border: 2px solid var(--line);
     padding: 20px 6px 8px;
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    transition: opacity .3s;
+    user-select: none;
+    cursor: pointer;
+    min-width: 0;
   }
   .slot.me { border-color: var(--ink); }
-  .slot.hover { border-color: var(--ink); box-shadow: 0 0 0 3px var(--ink); cursor: pointer; }
+  .slot.selected { outline: 3px solid var(--hunger); outline-offset: 2px; box-shadow: 0 0 0 2px var(--bg); }
+  .slot.hover { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+  .slot.dead { opacity: .35; filter: grayscale(.88); pointer-events: none; }
   .tag {
     position: absolute; top: 4px; left: 6px;
-    font-size: 12px; font-weight: 700; color: var(--muted);
+    font-size: 11px; font-weight: 700; color: var(--muted);
+  }
+  .weapon-badge {
+    position: absolute; top: 3px; right: 5px;
+    display: flex; align-items: center; gap: 2px;
   }
   #eatIcons canvas { cursor: pointer; opacity: .3; transition: opacity .15s, transform .15s; }
   #eatIcons canvas.on { opacity: 1; }
   #eatIcons canvas:hover { transform: translateY(-3px); }
-  .cname { font-size: 12px; font-weight: 700; color: var(--ink); min-height: 16px; line-height: 16px; letter-spacing: 1px; }
-  .figure { height: 66px; display: flex; align-items: flex-end; }
-  .stats-line { display: flex; flex-direction: column; gap: 4px; width: 100%; font-size: 12px; }
-  .stat { display: flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; }
+  .cname {
+    font-size: 12px; font-weight: 700; color: var(--ink);
+    min-height: 16px; line-height: 16px; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+  }
+  .figure { height: 60px; display: flex; align-items: flex-end; justify-content: center; }
+  .figure canvas { width: 45px; height: auto; }
+  .stats-line { display: flex; flex-direction: column; gap: 3px; width: 100%; font-size: 11.5px; }
+  .stat { display: flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
   .stat .val { margin-left: auto; }
   .stat .lab { color: var(--muted); white-space: nowrap; }
-  .eat {
-    width: 100%; padding: 5px 0; border: none; cursor: pointer;
-    background: var(--btn); color: var(--bg); font-family: inherit; font-size: 13px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .eat:hover:not(:disabled) { background: var(--btn-hover); }
-  .eat:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
-  .eat:disabled canvas { opacity: .45; }
+  .stat .val.warn { color: var(--hp); font-weight: 700; }
+  .stat .val.gear-txt { color: #e8c26a; font-weight: 700; }
+  .stat .val.shield-txt { color: #8ec0e4; font-weight: 700; }
 
   /* 投票色塊（頭上方） */
   .pick {
-    position: absolute; top: -46px; left: 50%; z-index: 7;
-    width: 30px; height: 40px;
+    position: absolute; top: -42px; left: 50%; z-index: 7;
+    width: 36px; height: 36px;
     transform: translateX(-50%);
     border: 2px solid var(--ink);
     display: none;
-    font-size: 20px; font-weight: 700; line-height: 36px;
-    color: var(--ink); text-align: center; overflow: hidden;
+    font-size: 12px; font-weight: 700; line-height: 32px;
+    color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000;
+    text-align: center; overflow: hidden;
   }
   .pick.show { display: block; }
 
   /* 計票數字（角色頭頂） */
   .tally {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    font-size: 15px; font-weight: 700; color: var(--hunger); white-space: nowrap;
-    opacity: 0; transition: opacity .3s; z-index: 3;
-  }
-
-  /* 平手抽牌 */
-  .dcard {
-    position: fixed; z-index: 30; width: 30px; height: 40px;
-    border: 2px solid var(--ink); background: var(--line);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700; color: var(--ink);
-    pointer-events: none;
+    position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; font-weight: 700; color: var(--hunger); white-space: nowrap;
+    background: rgba(30,24,17,.88); padding: 0 5px; border-radius: 2px;
+    opacity: 0; transition: opacity .25s; z-index: 4;
   }
   .tally.show { opacity: 1; }
 
-  /* 最高票發亮 */
-  .slot.win { border-color: var(--hunger); box-shadow: 0 0 0 3px var(--hunger); }
+  /* 平手抽牌 */
+  .dcard {
+    position: fixed; z-index: 30; width: 28px; height: 36px;
+    border: 2px solid var(--ink); background: var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 2px #000;
+    pointer-events: none;
+  }
 
-  /* 平手閃爍 */
-  .slot.tie { animation: tieFlash .4s ease-in-out 3; }
+  .slot.win { border-color: var(--hunger); box-shadow: 0 0 0 3px var(--hunger); }
+  .slot.tie { animation: tieFlash .38s ease-in-out 3; }
   @keyframes tieFlash {
     50% { border-color: var(--hunger); box-shadow: 0 0 0 3px var(--hunger); }
   }
 
   .expedBtn {
-    width: 100%; max-width: 360px; padding: 12px 0; border: none; cursor: pointer;
-    background: var(--btn); color: var(--bg); font-size: 16px; font-family: inherit;
+    width: 100%; max-width: 420px; padding: 12px 10px; border: none; cursor: pointer;
+    background: var(--btn); color: var(--bg); font-size: 16px; font-family: inherit; font-weight: 700;
+    letter-spacing: 0.5px;
   }
   .expedBtn:hover:not(:disabled) { background: var(--btn-hover); }
   .expedBtn:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
 
-  /* ---------- 右：卡牌與紀錄 ---------- */
-  .side { margin-top: 5vh; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  /* ---------- 右：卡牌（統一顯示題目與戰報）與紀錄 ---------- */
+  .side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .deck-slot {
     background: var(--panel);
     border: 1px dashed var(--line);
-    min-height: 150px;
+    min-height: 165px;
     display: flex; align-items: center; justify-content: center;
     padding: 12px;
     overflow: hidden;
   }
-  .deck-slot .empty { color: var(--muted); font-size: 13px; }
+  .deck-slot .empty { color: var(--muted); font-size: 13.5px; line-height: 1.7; }
   .card {
     width: 100%;
     background: var(--bg);
     border: 2px solid var(--ink);
-    padding: 14px;
-    font-size: 15px;
+    padding: 14px 16px;
+    font-size: 14.5px;
     line-height: 1.7;
-    animation: slideIn .6s ease-out;
+    animation: slideIn .38s ease-out;
     white-space: pre-line;
   }
+  .story-text { word-break: normal; line-break: strict; overflow-wrap: normal; text-wrap: pretty; }
+  .text-unit { display: inline-block; max-width: 100%; white-space: normal; vertical-align: top; }
+  .card.report {
+    border-color: var(--hunger);
+  }
   @keyframes slideIn {
-    from { transform: translateX(60px); opacity: 0; }
+    from { transform: translateX(36px); opacity: 0; }
     to   { transform: none; opacity: 1; }
   }
   .log {
     background: var(--panel);
     border: 1px solid var(--line);
     padding: 10px 12px;
-    font-size: 14px;
-    min-height: 160px;
+    font-size: 13px;
+    min-height: 220px;
+    max-height: 310px;
+    overflow-y: auto;
     color: var(--muted);
     line-height: 1.6;
   }
-  .log p { margin: 0; }
+  .log p { margin: 0 0 5px 0; }
+  .log p:first-child { color: var(--ink); }
 
-  /* 金幣圖示候選（暫時展示，左下） */
-  .gallery {
-    position: fixed; left: 12px; bottom: 12px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    padding: 8px;
-    display: grid; grid-template-columns: repeat(5, auto); gap: 6px;
-    z-index: 30;
-  }
-  .gallery-cell {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 4px 4px 2px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-  }
-  .gallery-cell span { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
-
-  /* 確認視窗（不遮擋背景） */
+  /* 進食與投票確認視窗（固定於畫面下方，不遮擋角色格） */
   .modal {
     position: fixed; inset: 0;
     background: none;
     pointer-events: none;
-    display: none; align-items: center; justify-content: center;
+    display: none; align-items: flex-end; justify-content: center;
+    padding-bottom: 3.5vh;
     z-index: 20;
   }
   .modal.show { display: flex; }
@@ -263,154 +285,431 @@
     pointer-events: auto;
     background: var(--panel);
     border: 2px solid var(--ink);
-    padding: 18px 20px;
-    display: flex; flex-direction: column; gap: 14px;
-    min-width: 220px;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    min-width: 280px;
+    max-width: 92vw;
     text-align: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,.75);
   }
   .modal-actions { display: flex; gap: 10px; }
   .modal-actions button {
-    flex: 1; padding: 8px 0; border: none; cursor: pointer;
-    background: var(--btn); color: var(--bg); font-family: inherit; font-size: 15px;
+    flex: 1; padding: 9px 10px; border: none; cursor: pointer;
+    background: var(--btn); color: var(--bg); font-family: inherit; font-size: 15px; font-weight: 700;
   }
+  .modal-actions button:hover { background: var(--btn-hover); }
   .modal-actions button.ghost { background: var(--line); color: var(--ink); }
+  .modal-actions button.alt-choice { background: #4f6b8a; color: #f2e6cc; }
+  .modal-actions button.alt-choice:hover { background: #6382a6; }
 
-  /* 懸浮說明 */
-  [data-tip] { position: relative; }
-  [data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg);
-    color: var(--ink);
-    border: 1px solid var(--line);
-    padding: 3px 8px;
-    font-size: 12px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 10;
+  /* 結局彈窗 */
+  .demo {
+    position: fixed; inset: 0;
+    background: rgba(20,15,10,.88);
+    display: none; align-items: center; justify-content: center;
+    z-index: 50;
+  }
+  .demo.show { display: flex; }
+
+  /* =====================================================================
+     手機全螢幕模式（1秒內連按3次「你」切換）
+     題目在最上方，6名角色改為「上三下三（3x2）」，火堆與 Log 移至最下方
+     ===================================================================== */
+  body.mobile-mode {
+    padding: max(10px, env(safe-area-inset-top, 0px)) 8px 10px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  body.mobile-mode .dayLabel {
+    position: static;
+    font-size: 17px;
+    text-align: left;
+    width: 100%;
+    max-width: 412px;
+    margin-bottom: 4px;
+    padding: 2px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  body.mobile-mode .daySub {
+    display: block;
+    font-size: 11px;
+    margin-left: 0;
+    margin-top: 1px;
+  }
+  body.mobile-mode .scene {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 412px;
+    width: 100%;
+  }
+  body.mobile-mode .camp,
+  body.mobile-mode .side {
+    display: contents;
+  }
+  /* 1. 題目／戰報卡在最上方 */
+  body.mobile-mode .deck-slot {
+    order: 1;
+    min-height: 96px;
+    padding: 6px 8px;
+  }
+  body.mobile-mode .card {
+    padding: 9px 11px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  /* 2. 6名角色改為「上三下三（3x2）」緊接在題目下方 */
+  body.mobile-mode .party {
+    order: 2;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px 6px;
+    padding: 32px 0 4px;
+  }
+  body.mobile-mode .slot {
+    padding: 15px 5px 5px;
+    gap: 3px;
+    border-width: 1.5px;
+  }
+  body.mobile-mode .tag { font-size: 10px; top: 2px; left: 4px; }
+  body.mobile-mode .weapon-badge { top: 2px; right: 3px; transform: scale(0.9); transform-origin: top right; }
+  body.mobile-mode .figure { height: 42px; }
+  body.mobile-mode .figure canvas { width: 34px; height: auto; }
+  body.mobile-mode .cname { font-size: 11px; min-height: 14px; line-height: 14px; }
+  body.mobile-mode .stats-line { font-size: 10.5px; gap: 2px; }
+  body.mobile-mode .pick {
+    top: -28px;
+    width: 30px;
+    height: 26px;
+    font-size: 10.5px;
+    line-height: 22px;
+    border-width: 1.5px;
+  }
+  body.mobile-mode .tally {
+    font-size: 11px;
+    top: 3px;
+    padding: 0 4px;
+  }
+  /* 3. 主按鈕在角色下方，方便單手拇指點擊 */
+  body.mobile-mode .expedBtn {
+    order: 3;
+    max-width: 100%;
+    padding: 10px 0;
+    font-size: 15px;
+  }
+  /* 4. 火堆與飛行道具池移至下方 */
+  body.mobile-mode .fire-wrap {
+    order: 4;
+    min-height: 46px;
+    margin: 2px 0;
+  }
+  body.mobile-mode #fireCanvas {
+    width: 80px;
+    height: auto;
+  }
+  body.mobile-mode .countdown { font-size: 36px; }
+  /* 5. 遊戲紀錄 Log 移至最底部 */
+  body.mobile-mode .log {
+    order: 5;
+    min-height: 105px;
+    max-height: 140px;
+    font-size: 11.5px;
+    padding: 6px 8px;
+  }
+  body.mobile-mode .modal {
+    padding-bottom: 2vh;
+  }
+  body.mobile-mode .modal-box {
+    width: 95vw;
+    padding: 12px 14px;
   }
 
-  /* ---------- 末日商人 ---------- */
-  .shop { position: fixed; inset: 0; background: none; pointer-events: none; display: none; align-items: center; justify-content: center; z-index: 40; }
-  .shop.show { display: flex; }
-  .shop-box { pointer-events: auto; width: 1120px; max-width: 98vw; max-height: 96vh; background: var(--panel); border: 2px solid var(--ink); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
-  .shop-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
-  .shop-head b { font-size: 20px; letter-spacing: 2px; }
-  .shop-say { color: var(--muted); font-size: 15px; min-height: 22px; line-height: 1.5; }
-  .shop-grid { display: flex; gap: 8px; padding: 8px; background: var(--bg); border: 1px solid var(--line); width: max-content; }
-  .cell { position: relative; width: 66px; height: 66px; background: #231c14; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .cell:hover { border-color: var(--ink); }
-  .cell.sel { border-color: #e8c26a; box-shadow: inset 0 0 0 2px #e8c26a; }
-  .cell.empty { cursor: default; opacity: .35; }
-  .cell .price { position: absolute; right: 2px; bottom: 0; font-size: 12px; color: #e8c26a; }
-  .shop-bar { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); }
-  .shop-bar button { padding: 7px 22px; border: none; cursor: pointer; background: var(--btn); color: var(--bg); font-family: inherit; font-size: 15px; }
-  .shop-bar button:hover { background: var(--btn-hover); }
-  .eq-row { display: flex; gap: 12px; }
-  .eq-panel { flex: 1; background: var(--bg); border: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
-  .eq-title { display: flex; justify-content: space-between; font-size: 14px; }
-  .eq-grid { display: grid; grid-template-columns: repeat(4, 44px); gap: 4px; justify-content: center; }
-  .eq-bag { display: grid; grid-template-columns: repeat(6, 34px); gap: 3px; justify-content: center; }
-  .eq-slot, .bag-slot { position: relative; background: #231c14; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6f5f48; }
-  .eq-slot { width: 44px; height: 44px; }
-  .bag-slot { width: 34px; height: 34px; }
-  .eq-slot.has, .bag-slot.has { border-color: var(--muted); }
-  .cell[data-tip]:hover::after, .eq-slot[data-tip]:hover::after, .bag-slot[data-tip]:hover::after { white-space: pre; z-index: 60; }
-  .cell[data-tip]:hover::after { bottom: auto; top: calc(100% + 6px); left: 0; transform: none; }
-  .auc { display: none; flex-direction: column; gap: 8px; padding: 10px; background: var(--bg); border: 1px solid #e8c26a; }
-  .auc.show { display: flex; }
-  .auc-top { font-size: 14px; color: #e8c26a; }
-  .auc-cards { display: flex; gap: 14px; }
-  .auc-card { width: 130px; padding: 8px 6px; text-align: center; background: var(--panel); border: 1px solid var(--line); font-size: 13px; }
-  .auc-face { margin-top: 6px; height: 54px; display: flex; align-items: center; justify-content: center; font-size: 22px; background: #231c14; border: 1px solid var(--line); color: var(--muted); }
-  .auc-face.up { color: var(--ink); background: #3d3226; border-color: var(--ink); }
-  .auc-face.ready { color: #7fa37a; font-size: 14px; }
-  .auc-btns { display: flex; gap: 8px; }
-  .auc-btns button { padding: 7px 16px; border: none; cursor: pointer; background: var(--btn); color: var(--bg); font-family: inherit; font-size: 14px; }
-  .auc-btns button:disabled { opacity: .35; cursor: default; }
-  .auc-btns button.ghost { background: var(--line); color: var(--ink); }
-  .bag-slot.sell { border-color: #b5604a; box-shadow: inset 0 0 0 2px #b5604a; }
-  .bag-slot.canSell { cursor: pointer; }
-  .eq-sub { font-size: 11px; color: var(--muted); text-align: center; }
-  .demo { position: fixed; inset: 0; background: rgba(20,15,10,.7); display: none; align-items: center; justify-content: center; z-index: 50; }
-  .demo.show { display: flex; }
+  html { min-height: 100%; scrollbar-width: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  body { overflow-x: hidden; overflow-y: auto; scrollbar-width: none; }
+  body { min-height: 100dvh; height: auto; }
+  .scene { max-height: none; }
+  .side { min-height: 0; }
+  .deck-slot { flex-direction: column; align-items: stretch; min-height: 0; flex-shrink: 0; }
+  .card { animation: none; }
+  .log { min-height: 0; max-height: none; overflow: hidden; flex-shrink: 0; }
+  .log-content { height: calc(8 * 1.6em); overflow: hidden; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .pager[hidden] { display: none; }
+  .pager button { background: var(--line); color: var(--ink); border: 1px solid var(--muted); padding: 5px 9px; font: inherit; cursor: pointer; }
+  .pager button:disabled { opacity: .35; cursor: default; }
+  body.mobile-mode .log { min-height: 0; max-height: none; }
+  body.mobile-mode .log-content { height: calc(6 * 1.6em); }
+  body.mobile-mode .pager { margin-top: 4px; }
+  body.mobile-mode .pager button { min-height: 32px; padding: 5px 10px; }
+  body.mobile-mode .deck-slot { min-height: 0; }
+  body.mobile-mode .card { padding: 6px 8px; }
+  #endDesc { max-height: 65dvh !important; overflow-y: auto !important; scrollbar-width: none; }
+  #endDesc::-webkit-scrollbar { display: none; }
+  @media (max-height: 760px) {
+    body.mobile-mode .scene { gap: 4px; }
+    body.mobile-mode .party { gap: 28px 6px; padding-top: 28px; }
+    body.mobile-mode .figure { height: 30px; }
+    body.mobile-mode .figure canvas { width: 26px; }
+    body.mobile-mode .slot { gap: 2px; padding-bottom: 4px; }
+    body.mobile-mode .fire-wrap { min-height: 30px; margin: 0; }
+    body.mobile-mode #fireCanvas { width: 54px; }
+    body.mobile-mode .dayLabel { margin-bottom: 2px; }
+  }
+
+  .log { display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 8px; align-items: start; }
+  .log .pager { display: flex; flex-direction: column; justify-content: flex-start; gap: 5px; margin: 0; }
+  .log .pager button { width: 34px; height: 32px; padding: 5px; display: grid; place-items: center; }
+  .log .pager button[hidden] { display: none; }
+  .pager svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #logPageLabel { font-size: 10px; white-space: nowrap; }
+  body.mobile-mode .log { grid-template-columns: minmax(0, 1fr) 42px; gap: 6px; }
+  body.mobile-mode .log .pager { margin: 0; gap: 4px; }
+  body.mobile-mode .log .pager button { width: 40px; height: 34px; min-height: 34px; padding: 6px; }
+
+  /* 固定閱讀面板：內容長短不改變位置與尺寸。 */
+  .deck-slot { height: 380px; min-height: 380px; max-height: 380px; justify-content: flex-start; overflow: hidden; }
+  .deck-slot > .card, .deck-slot > .empty { width: 100%; height: 100%; min-height: 0; flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .deck-slot > .card::-webkit-scrollbar, .deck-slot > .empty::-webkit-scrollbar { display: none; }
+  .log { height: 190px; min-height: 190px; max-height: 190px; }
+  body.mobile-mode .deck-slot { height: 300px; min-height: 300px; max-height: 300px; }
+  body.mobile-mode .log { height: 130px; min-height: 130px; max-height: 130px; }
+  .modal:not(.demo) .modal-box { width: 360px; min-width: 0 !important; max-width: calc(100vw - 24px); height: 240px; justify-content: space-between; }
+  body.mobile-mode .modal .modal-box { width: 380px; max-width: calc(100vw - 16px); height: 240px; }
+  #modalText, #eatInfo { min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  #modalText::-webkit-scrollbar, #eatInfo::-webkit-scrollbar { display: none; }
+
+  /* ===== 019：Log 無翻頁、電腦版整體置中與固定對話區 ===== */
+  .log, body.mobile-mode .log { display: block; }
+  .log .pager { display: none !important; }
+  .log-content { height: calc(8 * 1.6em); line-height: 1.6; }
+  .log { height: auto; min-height: 0; max-height: none; }
+  body.mobile-mode .log { height: auto; min-height: 0; max-height: none; }
+  body.mobile-mode .log-content { height: calc(6 * 1.6em); }
+  .modal-dock { display: contents; }
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) { height: 100vh; min-height: 0; padding: 56px 24px 16px; align-items: safe center; overflow: hidden; }
+    body:not(.mobile-mode) .scene { max-width: 1240px; gap: 28px; align-items: center; }
+    body:not(.mobile-mode) .camp { gap: 14px; }
+    body:not(.mobile-mode) .fire-wrap { min-height: 84px; width: 100%; }
+    body:not(.mobile-mode) .party { padding: 48px 2px 6px; }
+    body:not(.mobile-mode) .modal-dock { display: block; position: relative; width: 100%; height: 220px; }
+    body:not(.mobile-mode) .modal-dock .modal { position: absolute; inset: 0; padding: 0; align-items: center; justify-content: center; }
+    body:not(.mobile-mode) .modal-dock .modal .modal-box { width: 400px; height: 210px; box-shadow: 0 6px 18px rgba(0,0,0,.55); }
+    body:not(.mobile-mode) .deck-slot { height: 400px; min-height: 400px; max-height: 400px; }
+  }
+
+  /* ===== 020 手機第1階段（基準：三星 A55 全螢幕 384×832） ===== */
+  body.mobile-mode .dayLabel { font-size: 16px; line-height: 22px; padding: 0 0 3px; margin-bottom: 4px; }
+  body.mobile-mode .daySub { display: inline; margin-left: 8px; margin-top: 0; }
+  body.mobile-mode .scene { flex-direction: row; flex-wrap: wrap; row-gap: 6px; column-gap: 8px; }
+  body.mobile-mode .scene > *, body.mobile-mode .deck-slot, body.mobile-mode .party,
+  body.mobile-mode .log, body.mobile-mode #voteNotice, body.mobile-mode .modal-dock { width: 100%; flex: 0 0 100%; }
+  /* 角色區：投票色塊移進卡內，取消排間大空隙 */
+  body.mobile-mode .party { gap: 6px; padding: 0; }
+  body.mobile-mode .slot { padding: 21px 5px 5px; }
+  body.mobile-mode .pick { top: 2px; width: 34px; height: 16px; font-size: 10px; line-height: 13px; border-width: 1px; z-index: 7; }
+  body.mobile-mode .tally { top: 20px; z-index: 8; }
+  /* 數值改兩行雙欄 */
+  body.mobile-mode .stats-line { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; row-gap: 1px; font-size: 10.5px; }
+  body.mobile-mode .stat { gap: 2px; min-width: 0; }
+  body.mobile-mode .stat .val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 火堆＋主按鈕合併成一列 */
+  body.mobile-mode .fire-wrap { order: 3; flex: 0 0 64px; width: 64px; min-height: 46px; height: 46px; margin: 0; align-items: center; }
+  body.mobile-mode #fireCanvas { width: 54px; }
+  body.mobile-mode .expedBtn { order: 3; flex: 1 1 0; width: auto; height: 46px; padding: 0 8px; }
+  body.mobile-mode #voteNotice { order: 3; }
+  body.mobile-mode .log { order: 5; }
+  @media (max-height: 760px) {
+    body.mobile-mode .party { gap: 6px; padding-top: 0; }
+    body.mobile-mode .fire-wrap { min-height: 40px; height: 40px; }
+    body.mobile-mode #fireCanvas { width: 46px; }
+  }
+
+  /* ===== 021 手機第2階段：對話視窗佔用按鈕列下方固定區域、題目卡與 Log 新尺寸 ===== */
+  body.mobile-mode .deck-slot { height: 250px; min-height: 250px; max-height: 250px; }
+  body.mobile-mode .log { padding: 6px 8px; }
+  body.mobile-mode .log-content { height: calc(6 * 1.6em); font-size: 11.5px; }
+  body.mobile-mode .modal-dock { order: 4; display: block; position: relative; height: 0; margin-bottom: -6px; }
+  body.mobile-mode .modal-dock .modal { position: absolute; top: 0; left: 0; right: 0; bottom: auto; height: 184px; padding: 0; align-items: stretch; justify-content: stretch; }
+  body.mobile-mode .modal-dock .modal .modal-box { width: 100%; max-width: none; height: 184px; padding: 10px 12px; gap: 8px; font-size: 13.5px; box-shadow: 0 -4px 16px rgba(0,0,0,.6); }
+  body.mobile-mode .modal-dock .modal-actions button { min-height: 40px; font-size: 14px; }
+  body.mobile-mode #eatIcons canvas { width: 32px; height: 32px; }
+  body.mobile-mode #eatInfo { font-size: 12px; }
+
+  /* ===== 022 手機第3階段：小螢幕補強（高度不足 760） ===== */
+  @media (max-height: 760px) {
+    body.mobile-mode .deck-slot { height: 210px; min-height: 210px; max-height: 210px; }
+    body.mobile-mode .log-content { height: calc(4 * 1.6em); }
+    body.mobile-mode .modal-dock .modal, body.mobile-mode .modal-dock .modal .modal-box { height: 170px; }
+  }
+
+  /* ===== 023：題目卡底部火堆帶＋電腦版由上而下結構 ===== */
+  .qbox { display: flex; flex-direction: column; background: var(--panel); border: 1px dashed var(--line); min-width: 0; }
+  .qbox .deck-slot { border: none; }
+  .qbox .fire-wrap { flex: 0 0 auto; width: 100%; margin: 0; border-top: 1px solid var(--line); background: #2f271e; align-items: center; justify-content: center; position: relative; }
+  .qbox .pool { top: 4px; }
+  .log-title { font-size: 12px; color: var(--hunger); letter-spacing: 1px; margin-bottom: 6px; font-weight: 700; }
+  body.mobile-mode .log-title { display: none; }
+  /* 電腦版 */
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) .scene { display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto auto; gap: 24px 24px; align-items: stretch; max-width: 1280px; }
+    body:not(.mobile-mode) .camp { grid-column: 1 / -1; gap: 14px; }
+    body:not(.mobile-mode) .qbox .deck-slot { height: 230px; min-height: 230px; max-height: 230px; }
+    body:not(.mobile-mode) .qbox .fire-wrap { height: 72px; min-height: 72px; }
+    body:not(.mobile-mode) #fireCanvas { width: 90px; height: auto; }
+    body:not(.mobile-mode) .log { height: 304px; min-height: 304px; max-height: 304px; padding: 12px 14px; font-size: 14px; }
+    body:not(.mobile-mode) .log-content { line-height: 2.1; height: calc(8 * 2.1em); }
+    body:not(.mobile-mode) .party { padding: 48px 0 4px; gap: 14px; }
+    body:not(.mobile-mode) .figure { height: 64px; }
+    body:not(.mobile-mode) .figure canvas { width: 50px; }
+    body:not(.mobile-mode) .stats-line { font-size: 12.5px; }
+  }
+  /* 手機版：題目卡含火堆帶共 250px，主按鈕獨佔一列 */
+  body.mobile-mode .qbox { order: 1; width: 100%; flex: 0 0 100%; }
+  body.mobile-mode .qbox .deck-slot { height: 230px; min-height: 230px; max-height: 230px; }
+  body.mobile-mode .qbox .fire-wrap { width: 100%; flex: 0 0 64px; height: 64px; min-height: 64px; }
+  body.mobile-mode .qbox #fireCanvas { width: 64px; }
+  body.mobile-mode .expedBtn { flex: 0 0 100%; width: 100%; }
+  @media (max-height: 760px) {
+    body.mobile-mode .qbox .deck-slot { height: 150px; min-height: 150px; max-height: 150px; }
+    body.mobile-mode .qbox .fire-wrap { flex-basis: 60px; height: 60px; min-height: 60px; }
+    body.mobile-mode .qbox #fireCanvas { width: 54px; }
+  }
+
+  /* ===== 025 版面：電腦版題目全寬、按鈕＋Log 同區；手機 Log 4 行可滑至 8 行 ===== */
+  .action-zone { display: contents; }
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) .scene { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+    body:not(.mobile-mode) .qbox .deck-slot { height: 250px; min-height: 250px; max-height: 250px; }
+    body:not(.mobile-mode) .qbox .fire-wrap { height: 110px; min-height: 110px; }
+    body:not(.mobile-mode) #fireCanvas { width: 110px; }
+    body:not(.mobile-mode) .qbox .pool { top: 14px; }
+    body:not(.mobile-mode) .action-zone { display: flex; flex-direction: column; gap: 8px; position: relative; width: 900px; max-width: 100%; }
+    body:not(.mobile-mode) .action-zone .expedBtn { max-width: none; width: 100%; height: 48px; }
+    body:not(.mobile-mode) .log { height: auto; min-height: 0; max-height: none; padding: 10px 14px; font-size: 14px; }
+    body:not(.mobile-mode) .log-content { line-height: 1.75; height: calc(8 * 1.75em); }
+    body:not(.mobile-mode) .modal-dock { position: absolute; inset: 0; height: auto; z-index: 20; pointer-events: none; }
+    body:not(.mobile-mode) .modal-dock .modal { inset: 0; }
+    body:not(.mobile-mode) .modal-dock .modal .modal-box { width: 100%; height: 100%; justify-content: center; gap: 16px; }
+  }
+  /* 手機 */
+  body.mobile-mode .qbox .deck-slot { height: 267px; min-height: 267px; max-height: 267px; }
+  body.mobile-mode .log-content { height: calc(4 * 1.6em); overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; touch-action: pan-y; }
+  body.mobile-mode .log-content::-webkit-scrollbar { display: none; }
+  @media (max-height: 760px) {
+    body.mobile-mode .qbox .deck-slot { height: 190px; min-height: 190px; max-height: 190px; }
+    body.mobile-mode .log-content { height: calc(4 * 1.6em); }
+  }
+
+  /* ===== 026 字體放大與座位結果格 ===== */
+  .card { font-size: 19px; line-height: 1.65; padding: 14px 18px; }
+  .deck-slot > .empty { font-size: 17px; line-height: 1.75; color: var(--ink); }
+  .seat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 12px; }
+  .seat-cell { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; padding: 4px 8px; background: var(--panel); border: 1px solid var(--line); font-size: .9em; min-width: 0; }
+  .seat-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat-val { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .seat-cell.hurt .seat-val { color: #e0705a; font-weight: 700; }
+  .seat-cell.safe .seat-val, .seat-cell.off .seat-val { color: var(--muted); }
+  .seat-cell.off { opacity: .45; }
+  body.mobile-mode .card { font-size: 15px; line-height: 1.5; padding: 8px 10px; }
+  body.mobile-mode .deck-slot > .empty { font-size: 15px; line-height: 1.6; }
+  body.mobile-mode .seat-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 8px; }
+  body.mobile-mode .seat-cell { padding: 3px 6px; font-size: 13.5px; }
+
+  /* ===== 027 電腦版：題目全寬、Log 右側直欄 16 行、題目 22px ===== */
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) { padding: 56px 20px 16px; }
+    body:not(.mobile-mode) .scene { grid-template-columns: minmax(0, 1fr) 260px; max-width: 1880px; width: 100%; gap: 22px 22px; align-items: stretch; }
+    body:not(.mobile-mode) .qbox { grid-column: 1 / -1; }
+    body:not(.mobile-mode) .camp { grid-column: 1; }
+    body:not(.mobile-mode) .log { grid-column: 2; height: auto; min-height: 0; max-height: none; padding: 12px 14px; font-size: 13.5px; }
+    body:not(.mobile-mode) .log-content { line-height: 1.7; height: calc(16 * 1.7em); }
+    body:not(.mobile-mode) .qbox .deck-slot { height: 310px; min-height: 310px; max-height: 310px; }
+    body:not(.mobile-mode) .card { font-size: 22px; line-height: 1.65; padding: 16px 22px; }
+    body:not(.mobile-mode) .deck-slot > .empty { font-size: 21px; line-height: 1.75; padding: 6px 10px; }
+    body:not(.mobile-mode) .seat-cell { font-size: 19px; padding: 6px 12px; }
+    body:not(.mobile-mode) .action-zone { height: 250px; width: 900px; }
+    body:not(.mobile-mode) .party { max-width: 1400px; }
+  }
+
+  /* ===== 028 電腦版：右側直欄＝題目＋Log，左側＝大火堆＋角色＋按鈕 ===== */
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) .scene { grid-template-columns: minmax(0, 1fr) 640px; grid-template-rows: auto 1fr; gap: 16px 28px; }
+    body:not(.mobile-mode) .qbox { grid-column: 2; grid-row: 1; }
+    body:not(.mobile-mode) .log { grid-column: 2; grid-row: 2; }
+    body:not(.mobile-mode) .camp { grid-column: 1; grid-row: 1 / span 2; justify-content: center; gap: 12px; }
+    body:not(.mobile-mode) .qbox .deck-slot { height: 520px; min-height: 520px; max-height: 520px; }
+    body:not(.mobile-mode) .seat-grid { grid-template-columns: repeat(3, 1fr); }
+    body:not(.mobile-mode) .camp > .fire-wrap { width: 100%; height: 170px; min-height: 170px; margin: 0; align-items: center; border: none; background: none; }
+    body:not(.mobile-mode) .camp > .fire-wrap #fireCanvas { width: 140px; height: auto; }
+    body:not(.mobile-mode) .camp > .fire-wrap .pool { top: 50px; }
+    body:not(.mobile-mode) .countdown { font-size: 56px; }
+    body:not(.mobile-mode) .party { max-width: none; }
+    body:not(.mobile-mode) .log-content { line-height: 1.7; height: calc(16 * 1.7em); }
+  }
+
+  /* ===== 029 電腦版：確認視窗縮小，置於按鈕下方，不遮按鈕 ===== */
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) .modal-dock { top: 62px; bottom: auto; left: 0; right: 0; height: 188px; }
+    body:not(.mobile-mode) .modal-dock .modal { justify-content: center; }
+    body:not(.mobile-mode) .modal-dock .modal .modal-box { width: 440px; height: 188px; gap: 12px; padding: 14px 18px; font-size: 16px; }
+    body:not(.mobile-mode) .modal-dock .modal-actions button { height: 42px; font-size: 16px; }
+  }
+
+  /* ===== 030 電腦版：角色放大上移、火堆加大、題目與 Log 對齊 ===== */
+  @media (min-width: 900px) {
+    body:not(.mobile-mode) .scene { align-items: start; }
+    body:not(.mobile-mode) .camp { justify-content: flex-start; gap: 10px; }
+    body:not(.mobile-mode) .camp > .fire-wrap { height: 140px; min-height: 140px; }
+    body:not(.mobile-mode) .camp > .fire-wrap #fireCanvas { width: 160px; }
+    body:not(.mobile-mode) .camp > .fire-wrap .pool { top: 34px; }
+    body:not(.mobile-mode) .figure { height: 84px; }
+    body:not(.mobile-mode) .figure canvas { width: 60px; }
+    body:not(.mobile-mode) .slot { padding-top: 22px; gap: 6px; }
+    body:not(.mobile-mode) .cname { font-size: 14px; }
+    body:not(.mobile-mode) .log-content { line-height: 1.7; height: calc(13 * 1.7em); }
+  }
+
+  /* ===== 034 電腦版不顯示右上角提示（Log 開場已有同樣說明）；窄螢幕（手機）維持顯示 ===== */
+  @media (min-width: 900px) { .corner-hint { display: none !important; } }
 </style>
 </head>
 <body>
-<div class="dayLabel" id="dayLabel">第1天</div>
+<div class="dayLabel" id="dayLabel">第1天<span class="daySub" id="daySub">亂世荒野求生</span></div>
+<div class="corner-hint" id="cornerHint">提示：1秒內連按3次「你(P1)」可切換手機全螢幕模式</div>
+
 <div class="scene">
-  <div class="camp">
-    <div class="fire-wrap">
+  <div class="qbox" id="qbox">
+    <div class="deck-slot" id="deckSlot">
+      <div class="empty">叛國軍閥勾結上萬名劫匪，深夜挖通地道突襲王城，控制了國王與王室。<br>國家瞬間陷入混亂，6 名逃難者倉皇躲進深山洞窟，只能靠「投票」決定誰冒死外出採糧採藥、物資又該如何分配。<br><br>洞外不時傳來搜山隊的腳步聲，洞內存糧一天比一天少。出去的人可能帶回生機，也可能帶傷而歸。沒有人能永遠置身事外，每一次投票，都牽動著六人的命運。</div>
+    </div>
+    <div class="fire-wrap" id="fireWrap">
       <canvas class="fire" id="fireCanvas"></canvas>
       <div class="countdown" id="countdown"></div>
-      <div class="gain" id="gain"></div>
       <div class="pool" id="pool"></div>
     </div>
-    <div class="party" id="party">
-      <div class="slot me" id="slot-p1">
-        <span class="tag">P1</span>
-        <span class="pick" id="pick-p1"></span>
-        <span class="tally" id="tally-p1"></span>
-        <div class="figure"><canvas id="ch-p1"></canvas></div>
-        <div class="cname"></div>
-        <div class="stats-line">
-          <div class="stat"><span class="lab">生命</span><span class="val" id="hp-p1">100/100</span></div>
-          <div class="stat"><span class="lab">飢餓</span><span class="val" id="hunger-p1">100/100</span></div>
-          <div class="stat"><span class="lab">食物</span><span class="val" id="food-p1">0</span></div>
-          <div class="stat"><span class="lab">金錢</span><span class="val" id="bread-p1">0</span></div>
-        </div>
-      </div>
-
-      <div class="slot" id="slot-p2">
-        <span class="tag">P2</span>
-        <span class="pick" id="pick-p2"></span>
-        <span class="tally" id="tally-p2"></span>
-        <div class="figure"><canvas id="ch-p2"></canvas></div>
-        <div class="cname">慈悲瑪莉</div>
-        <div class="stats-line">
-          <div class="stat"><span class="lab">生命</span><span class="val" id="hp-p2">100/100</span></div>
-          <div class="stat"><span class="lab">飢餓</span><span class="val" id="hunger-p2">100/100</span></div>
-          <div class="stat"><span class="lab">食物</span><span class="val" id="food-p2">0</span></div>
-          <div class="stat"><span class="lab">金錢</span><span class="val" id="bread-p2">0</span></div>
-        </div>
-      </div>
-
-      <div class="slot" id="slot-p3">
-        <span class="tag">P3</span>
-        <span class="pick" id="pick-p3"></span>
-        <span class="tally" id="tally-p3"></span>
-        <div class="figure"><canvas id="ch-p3"></canvas></div>
-        <div class="cname">無賴卡爾</div>
-        <div class="stats-line">
-          <div class="stat"><span class="lab">生命</span><span class="val" id="hp-p3">100/100</span></div>
-          <div class="stat"><span class="lab">飢餓</span><span class="val" id="hunger-p3">100/100</span></div>
-          <div class="stat"><span class="lab">食物</span><span class="val" id="food-p3">0</span></div>
-          <div class="stat"><span class="lab">金錢</span><span class="val" id="bread-p3">0</span></div>
-        </div>
-      </div>
+  </div>
+  <div class="camp">
+    <div class="party" id="party"></div>
+    <div id="voteNotice" role="status" style="display:none;color:var(--hunger);font-size:13px"></div>
+    <div class="action-zone" id="actionZone">
+      <button class="expedBtn" id="expedBtn">迎接命運（開始第1天）</button>
+      <div class="modal-dock" id="modalDock"></div>
     </div>
-    <button class="expedBtn" id="expedBtn">迎接命運</button>
   </div>
-
-  <div class="side">
-    <div class="deck-slot" id="deckSlot"><span class="empty">末日，幾名勇者躲在洞窟裡…</span></div>
-    <div class="log" id="log"><p>準備迎接命運。</p></div>
-  </div>
+    <div class="log" id="log">
+        <p>【系統提示】1 秒內連按 3 次「你(P1)」可切換手機全螢幕模式。</p>
+        <p>王城淪陷，全國大亂。所有生存抉擇皆由投票表決。</p>
+      </div>
 </div>
 
-
-
-<div class="pile-wrap" id="pileWrap" style="display:none"><div class="pile" id="pile" data-tip="共同基金 0"></div></div>
-<div class="pile-wrap" id="pileWrap2" style="display:none"><div class="pile" id="pile2" data-tip="存糧 0"></div></div>
-
-<div class="modal" id="eatModal" style="align-items:flex-end;padding-bottom:4vh">
-  <div class="modal-box" style="min-width:300px">
-    <div>要吃幾份食物？（點選圖示）</div>
+<!-- 進食視窗 -->
+<div class="modal" id="eatModal">
+  <div class="modal-box" style="min-width:290px">
+    <div>要吃幾份食物？（點選圖示，最多2份）</div>
     <div id="eatIcons" style="display:flex;gap:10px;justify-content:center"></div>
-    <div id="eatInfo" style="font-size:13px;color:var(--muted)"></div>
+    <div id="eatInfo" style="font-size:13px;color:var(--muted);line-height:1.5"></div>
     <div class="modal-actions">
       <button id="eatOk">確認</button>
       <button class="ghost" id="eatSkip">不吃</button>
@@ -418,34 +717,10 @@
   </div>
 </div>
 
-<div class="modal" id="msgModal" style="align-items:flex-end;padding-bottom:4vh">
-  <div class="modal-box" style="max-width:320px">
-    <div id="msgText" style="line-height:1.7;white-space:pre-line"></div>
-    <div class="modal-actions"><button id="msgClose">關閉</button></div>
-  </div>
-</div>
-
-
-<div class="shop" id="shop">
-  <div class="shop-box">
-    <div class="shop-head"><b>末日商人</b><span class="shop-say" id="shopSay"></span></div>
-    <div class="shop-grid" id="shopGrid"></div>
-    <div class="auc" id="auc"><div class="auc-top" id="aucTop"></div><div class="auc-cards" id="aucCards"></div><div class="auc-btns" id="aucBtns"></div></div>
-    <div class="shop-bar"><span id="shopInfo"></span><button id="shopOk">離開</button></div>
-    <div class="eq-row" id="eqRow"></div>
-  </div>
-</div>
-<div class="demo" id="demo">
-  <div class="modal-box" style="min-width:320px">
-    <div style="font-size:18px">DEMO 測試到此</div>
-    <div style="color:var(--muted)">是否重新開始？</div>
-    <div class="modal-actions"><button id="demoRestart">重新開始</button></div>
-  </div>
-</div>
-
+<!-- 投票確認視窗 -->
 <div class="modal" id="modal">
   <div class="modal-box">
-    <div id="modalText">確定投給？</div>
+    <div id="modalText" style="white-space:pre-line;line-height:1.55">確定投給？</div>
     <div class="modal-actions">
       <button id="modalOk">確定</button>
       <button class="ghost" id="modalCancel">取消</button>
@@ -453,80 +728,350 @@
   </div>
 </div>
 
+<!-- 結局彈窗 -->
+<div class="demo" id="demo">
+  <div class="modal-box" style="min-width:320px;max-width:480px">
+    <div id="endTitle" style="font-size:22px;font-weight:700;color:var(--hunger);letter-spacing:1.5px">THE END</div>
+    <div id="endDesc" style="color:var(--ink);line-height:1.75;white-space:pre-line;font-size:14px;text-align:left;max-height:65vh;overflow-y:auto"></div>
+    <div class="modal-actions"><button id="demoRestart">重新開始（隨機抽選同伴與座位）</button></div>
+  </div>
+</div>
+
 <script>
+  // 版本：預設＝無頭銜（名字單純、性格隨機配對）；網址帶 #titled＝有頭銜版（名字帶稱號、性格跟著名字走）；連按 P2 三次可來回切換
+  const TITLED = /titled/.test(location.hash);
+  const START_MOBILE = /mobile/.test(location.hash);
   const MAX = 100;
-  const HUNGER_COST = 11;
-  const HUNGER_RESTORE = 7; // 每份食物恢復的飢餓
-  const BREAD_MIN = 4;
-  const BREAD_MAX = 20;
-  const NPC_EAT_THRESHOLD = 50;
-  const VOTE_MIN_MS = 1500;
-  const VOTE_MAX_MS = 1500;
+  const TOTAL_DAYS = 30;
+  const HUNGER_COST = 8;       // 每天基礎消耗飢餓
+  const HUNGER_RESTORE = 12;   // 每份食物恢復 12 飢餓
+  const EAT_MAX = 2;           // 每次最多吃 2 份食物
+  const STARVE_DMG = 8;        // 飢餓歸零時每晚損失 8 點生命
+  const SINGLE_HERB_HEAL = 18; // 單株草藥恢復 18 點生命（需立即敷用）
+  const VOTE_MIN_MS = 750;
+  const VOTE_MAX_MS = 1050;
 
-  // 每回合的題目；危險機率每回合在範圍內隨機抽一個，並顯示在題目上
-  const SCENES = [
-    p => `投票：今天派誰遠征？（${p}%重度危險）`,
-    p => `投票：今天派誰採果？（${p}%輕度危險）`,
-    p => `投票：有群怪物正在嘗試撬開洞穴的木門\n誰該站前排開戰？\n（看起來${p}%中度危險）`,
+  // P1 固定為「你」；P2~P6 從以下 11 名角色中隨機抽選並徹底打散座位順序
+  const PLAYER_DEF = { role: 'you', name: '你', tunic: '#7fa37a', legs: '#5a4a36' };
+  const ALL_NPCS = [
+    { role: 'mary',  name: '瑪莉', title: '慈悲瑪莉',     tunic: '#d9b632', legs: '#665025' },
+    { role: 'carl',  name: '卡爾', title: '無賴卡爾',     tunic: '#354c83', legs: '#222c45' },
+    { role: 'noah',  name: '諾亞', title: '膽小鬼諾亞',   tunic: '#9361be', legs: '#473452' },
+    { role: 'eilin', name: '李歐', title: '聖潔修女艾琳', tunic: '#b84b43', legs: '#512c29' },
+    { role: 'mien',  name: '米恩', title: '開朗米恩',     tunic: '#42b5b0', legs: '#285452' },
+    { role: 'andy',  name: '安迪', title: '醉漢安迪',     tunic: '#d77b36', legs: '#603c25' },
+    { role: 'mina',  name: '敏娜', title: '多話敏娜',     tunic: '#d574aa', legs: '#5c3149' },
+    { role: 'hans',  name: '漢斯', title: '肌肉漢斯',     tunic: '#477849', legs: '#293d29' },
+    { role: 'rodi',  name: '羅帝', title: '英勇羅帝',     tunic: '#529bd6', legs: '#2b4866' },
+    { role: 'mabi',  name: '馬比丘', title: '醜陋馬比丘',   tunic: '#a7adb4', legs: '#484b50' },
+    { role: 'jess',  name: '安娜', title: '少女潔西卡',   tunic: '#e5d6b5', legs: '#776c55' },
   ];
-  const ROUND_TYPES = ['apple', 'berry', 'door'];
-  // 被派出去工作的人，額外消耗的飢餓值（依危險等級）
-  const WORK_HUNGER = {
-    light: [11, 13], medium: [12, 14], heavy: [13, 16], extreme: [14, 19],
-  };
-  let workCost = {}; // 本回合各角色額外飢餓消耗
-  let roundType = 'apple';
 
-  // 危險等級對應的生命損失範圍
-  const LEVEL = {
-    light:   { min: 6,  max: 13 }, // 輕度
-    medium:  { min: 14, max: 18 }, // 中度
-    heavy:   { min: 19, max: 28 }, // 重度
-    extreme: { min: 29, max: 39 }, // 極度
-  };
+  const IDS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  const NAMES = {};
+  const TUNIC = {};
+  const LEGS = {};
+  const ROLES = {};
+  const NPC_PERSONAS = {};
+  const NPC_TRUST = {};
+  const MIEN_EXTREMES = ['selfish', 'selfless', 'reckless', 'cowardly'];
+  // 名字與性格獨立。編碼僅供內部查閱，不顯示給玩家。
+  const PERSONALITY_DEFS = Object.freeze({
+    A: { behavior: 'mary', label: '照顧弱者、衡量全隊（原：瑪莉）' },
+    B: { behavior: 'carl', label: '自私、欺弱、重視強者（原：卡爾）' },
+    C: { behavior: 'noah', label: '保命、囤糧求安心（原：諾亞）' },
+    D: { behavior: 'eilin', label: '謹慎、照顧弱者、瀕危自救（原：李歐）' },
+    E: { behavior: 'andy', label: '衝動、嘴饞、自我優先（原：安迪）' },
+    F: { behavior: 'mina', label: '重人情、偏袒、記恨（原：敏娜）' },
+    G: { behavior: 'hans', label: '務實、重視出力者（原：漢斯）' },
+    H: { behavior: 'rodi', label: '勇敢、保護弱者（原：羅帝）' },
+    I: { behavior: 'mabi', label: '自保、防備、記恩仇（原：馬比丘）' },
+    J: { behavior: 'jess', label: '善良、謹慎、知恩（原：安娜）' },
+    K: { behavior: 'selfish', label: '極端自私（原：米恩：自私型）' },
+    L: { behavior: 'selfless', label: '極端無私（原：米恩：無私型）' },
+    M: { behavior: 'reckless', label: '莽撞冒險（原：米恩：莽撞型）' },
+    N: { behavior: 'cowardly', label: '極端怯懦（原：米恩：怯懦型）' },
+  });
+  function getNpcBehavior(id) {
+    return PERSONALITY_DEFS[NPC_PERSONAS[id]]?.behavior || ROLES[id];
+  }
+  function drawPartyPersonalities() {
+    const optional = Object.keys(PERSONALITY_DEFS).filter(code => code !== 'A' && code !== 'B');
+    return shuffleArray(['A', 'B', ...shuffleArray(optional).slice(0, 3)]);
+  }
 
-  // 洞窟襲擊：依得票排站位，站位決定受傷機率與傷害修正
+  const $ = id => document.getElementById(id);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = randInt(0, i);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // 建立 6 個角色 DOM 卡片
+  const partyEl = $('party');
+  IDS.forEach((id, idx) => {
+    const tag = 'P' + (idx + 1);
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (id === 'p1' ? ' me' : '');
+    slot.id = 'slot-' + id;
+    slot.innerHTML = `
+      <span class="tag">${tag}</span>
+      <div class="weapon-badge" id="badge-${id}"></div>
+      <span class="pick" id="pick-${id}"></span>
+      <span class="tally" id="tally-${id}"></span>
+      <div class="figure"><canvas id="ch-${id}"></canvas></div>
+      <div class="cname" id="name-${id}"></div>
+      <div class="stats-line">
+        <div class="stat"><span class="lab">生命</span><span class="val" id="hp-${id}">100/100</span></div>
+        <div class="stat"><span class="lab">飢餓</span><span class="val" id="hunger-${id}">70/100</span></div>
+        <div class="stat"><span class="lab">食物</span><span class="val" id="food-${id}">2</span></div>
+        <div class="stat"><span class="lab">持有</span><span class="val" id="item-${id}">無</span></div>
+      </div>
+      <div class="curtain-clip"><div class="curtain" id="cur-${id}"><span>遠征中</span></div></div>
+    `;
+    partyEl.appendChild(slot);
+  });
+
+  // 30 天亂世求生完整流程（內部保留 combat 判定，但文字不顯示系統標籤；採藥統一帶回 1 株草藥並投票給誰用）
+  const DAY_PLANS = [
+    {
+      day: 1, type: 'exped', combat: true, gained: 9, curtainText: '拾取散落麵包',
+      lo: 60, hi: 70, dmgMin: 16, dmgMax: 20, workHunger: [11, 13],
+      prompt: p => `【第1天】山道上有輛翻覆的馬車。盜賊剛離開，泥地還散著麵包，派誰去撿？\n重度危險 ${p}%・可能尋獲食物`,
+      verb: '在翻覆馬車旁拾糧時',
+      injuries: ['跨過碎裂車板時劃傷手臂', '搬開翻倒木箱時壓傷胸口', '避開遠處巡騎時跌落路旁石坡'],
+    },
+    {
+      day: 2, type: 'exped', combat: false, gained: 9, curtainText: '尋找水源與野果',
+      lo: 76, hi: 84, dmgMin: 22, dmgMax: 26, workHunger: [11, 14],
+      prompt: p => `【第2天】洞內存水快用完了。山坡濕滑，派誰尋找洞穴附近安全的水源與野果？\n極度危險 ${p}%・可能尋獲食物`,
+      verb: '在洞穴附近尋找水源與野果時',
+      injuries: ['沿濕滑石坡下行時摔入溪溝，重傷小腿', '溪岸突然崩落，跌撞岩石傷及肩膀與胸口', '穿過狹窄岩縫時遭落石砸傷側腹'],
+    },
+    {
+      day: 3, type: 'door', combat: true, gained: 0,
+      lo: 62, hi: 72, dmgMin: 16, dmgMax: 20, workHunger: [11, 13],
+      prompt: p => `【第3天】搜山的劫匪循著足跡找到洞穴，木門被撞得作響。誰該靠前迎戰？\n重度危險 ${p}%`,
+      afterEvent: 'sword',
+    },
+    {
+      day: 4, type: 'door', combat: true, gained: 0,
+      lo: 68, hi: 76, dmgMin: 22, dmgMax: 26, workHunger: [12, 14],
+      prompt: p => `【第4天】昨夜的木門還沒修好，山賊又帶著狼犬逼近。誰該靠前迎戰？\n極度危險 ${p}%`,
+      afterEvent: 'shield',
+    },
+    {
+      day: 5, type: 'berry', combat: true, gained: 8, curtainText: '近郊果林採集',
+      lo: 24, hi: 34, dmgMin: 6, dmgMax: 8, workHunger: [7, 9],
+      prompt: p => `【第5天】清晨林間暫時安靜了，枝頭還有野果。派誰趁現在去採集？\n輕度危險 ${p}%・可能尋獲食物`,
+      verb: '在近郊果林採果時',
+      injuries: ['被林間竄出的野豬擦撞瘀青', '避開流浪惡犬時被樹枝劃傷手背', '被樹叢裡的馬蜂螫腫臉頰'],
+    },
+    {
+      day: 6, type: 'exped', combat: false, gained: 9, curtainText: '瘴氣沼澤取糧',
+      lo: 62, hi: 72, dmgMin: 16, dmgMax: 20, workHunger: [11, 14],
+      prompt: p => `【第6天】沼澤裡露出一輛沉沒貨車，乾糧或許還沒泡壞。派誰涉水查看？\n重度危險 ${p}%・可能尋獲食物`,
+      verb: '在瘴氣沼澤取糧時',
+      injuries: ['吸入濃烈沼澤毒瘴引發劇烈咳血', '雙腿陷入腐爛泥沼造成嚴重凍傷與擦傷', '搬運木箱時踩空滑入泥水嗆傷'],
+    },
+    {
+      day: 7, type: 'exped', combat: true, gained: 9, curtainText: '尋找驛站口糧',
+      lo: 58, hi: 68, dmgMin: 16, dmgMax: 20, workHunger: [10, 13],
+      prompt: p => `【第7天】盜賊離開半毀的驛站，後倉或許還剩口糧。派誰悄悄去找？\n重度危險 ${p}%・可能尋獲食物`,
+      verb: '在廢棄驛站尋糧時',
+      injuries: ['被倒塌木架割傷手臂', '踩穿腐朽地板跌傷肩膀', '躲開遠處腳步聲時撞上斷牆'],
+      afterEvent: 'collapse',
+    },
+    {
+      day: 8, type: 'berry', combat: true, gained: 8, curtainText: '莊園果園搜刮',
+      lo: 26, hi: 36, dmgMin: 6, dmgMax: 8, workHunger: [7, 9],
+      prompt: p => `【第8天】濃霧散開，廢棄莊園的果樹映入眼前。派誰穿過荒草採集？\n輕度危險 ${p}%・可能尋獲食物`,
+      verb: '在莊園果園搜刮時',
+      injuries: ['踩中莊園草叢裡的獵人捕獸夾傷及腳背', '被受驚的野鹿衝撞跌倒擦傷', '採果時被暗處的毒蛇咬傷手腕'],
+    },
+    {
+      day: 9, type: 'exped', combat: true, gained: 10, curtainText: '山溝尋糧中',
+      lo: 72, hi: 80, dmgMin: 22, dmgMax: 26, workHunger: [12, 15],
+      prompt: p => `【第9天】逃難馬車墜在深深的山溝，車旁留著糧袋。派誰沿陡坡下去查看？\n極度危險 ${p}%・可能尋獲食物`,
+      verb: '在山溝查看逃難馬車時',
+      injuries: ['攀下陡坡時摔落撞傷胸口', '拖出糧袋時被滑落的車架壓傷肩膀', '返回山路時踩鬆碎石跌傷手臂'],
+    },
+    {
+      day: 10, type: 'door', combat: true, gained: 0,
+      lo: 70, hi: 78, dmgMin: 22, dmgMax: 26, workHunger: [12, 14],
+      prompt: p => `【第10天】夜色裡傳來犬吠，叛軍開始撬動洞穴木門。誰該靠前迎戰？\n極度危險 ${p}%`,
+      afterEvent: 'sword',
+    },
+    {
+      day: 11, type: 'herb_gather', combat: false, gained: 1, curtainText: '峭壁採藥中',
+      lo: 44, hi: 54, dmgMin: 10, dmgMax: 14, workHunger: [9, 11],
+      prompt: p => `【第11天】峭壁石縫長著草藥，但雨後岩面很滑。派誰攀上去採藥？\n中度危險 ${p}%・可帶回1株草藥`,
+      verb: '在陡峭岩壁採藥時',
+      injuries: ['攀爬濕滑岩壁時失足摔落扭傷腳踝', '抓握的風化岩石崩落導致磨破雙手與膝蓋', '被上方掉落的碎石砸中肩膀'],
+    },
+    {
+      day: 12, type: 'berry', combat: true, gained: 8, curtainText: '腐木林採果',
+      lo: 46, hi: 56, dmgMin: 10, dmgMax: 14, workHunger: [9, 12],
+      prompt: p => `【第12天】腐木林裡還有野果，只是路徑已被荒草遮住。派誰進林採集？\n中度危險 ${p}%・可能尋獲食物`,
+      verb: '在腐木林採集時',
+      injuries: ['挖掘塊莖時被腐木下的毒蟲咬傷', '被樹冠撲下的猛禽抓破肩膀', '在昏暗樹林中遭流浪獵犬咬傷'],
+      afterEvent: 'bait',
+    },
+    {
+      day: 13, type: 'door', combat: true, gained: 0,
+      lo: 72, hi: 80, dmgMin: 22, dmgMax: 26, workHunger: [12, 14],
+      prompt: p => `【第13天】沉重的腳步逼近洞口，重甲劫匪再次撞門。誰該靠前迎戰？\n極度危險 ${p}%`,
+      afterEvent: 'shield',
+    },
+    {
+      day: 14, type: 'berry', combat: true, gained: 8, curtainText: '暖泉河谷採集',
+      lo: 28, hi: 38, dmgMin: 6, dmgMax: 8, workHunger: [7, 9],
+      prompt: p => `【第14天】寒風暫歇，暖泉河谷還留著幾片果叢。派誰去採些野果？\n輕度危險 ${p}%・可能尋獲食物`,
+      verb: '在暖泉河谷採集時',
+      injuries: ['被河谷裡的暴躁野山羊頂傷腰部', '撥開荊棘叢採果時被刺傷雙手', '被林間獵人遺留的繩套絆倒擦傷'],
+      afterEvent: 'potent_herb',
+    },
+    {
+      day: 15, type: 'exped', combat: false, gained: 9, curtainText: '危樓鐘樓搜刮',
+      lo: 62, hi: 72, dmgMin: 16, dmgMax: 20, workHunger: [11, 14],
+      prompt: p => `【第15天】燒毀的鐘樓上還有糧箱，腳下木梯卻已腐朽。派誰上去尋糧？\n重度危險 ${p}%・可能尋獲食物`,
+      verb: '在廢墟鐘樓搜刮時',
+      injuries: ['踩斷燒焦的木製階梯從半空摔落挫傷', '被鐘樓頂部震落的大塊磚石砸中後背', '在坍塌的樑柱間硬生生擠出時扭傷關節'],
+    },
+    {
+      day: 16, type: 'herb_gather', combat: true, gained: 1, curtainText: '溪谷採藥中',
+      lo: 42, hi: 52, dmgMin: 10, dmgMax: 14, workHunger: [9, 11],
+      prompt: p => `【第16天】溪谷石旁長著草藥，遠處偶爾傳來狼嚎。派誰沿溪去採藥？\n中度危險 ${p}%・可帶回1株草藥`,
+      verb: '在潮濕溪谷採藥時',
+      injuries: ['在溪畔被飢餓的孤狼咬傷小腿', '避開溪畔野獸時被荊棘劃傷', '渡溪逃避狼群時被湍急暗流沖撞岩石'],
+    },
+    {
+      day: 17, type: 'berry', combat: true, gained: 8, curtainText: '短暫放晴採集',
+      lo: 32, hi: 42, dmgMin: 6, dmgMax: 8, workHunger: [8, 10],
+      prompt: p => `【第17天】烏雲間透出一點陽光，林中的野果還沒落盡。派誰出去採集？\n輕度危險 ${p}%・可能尋獲食物`,
+      verb: '在林間採集時',
+      injuries: ['被搶食野果的飢餓山犬咬傷腳踝', '在樹叢間被荊棘與毒藤刮傷手臂', '被林間覓食的猛禽抓傷手腕'],
+    },
+    {
+      day: 18, type: 'exped', combat: true, gained: 10, curtainText: '舊營地尋糧中',
+      lo: 74, hi: 82, dmgMin: 22, dmgMax: 26, workHunger: [12, 15],
+      prompt: p => `【第18天】叛軍撤離了舊營地，冷灶旁或許剩著乾糧。派誰避開巡軍去找？\n極度危險 ${p}%・可能尋獲食物`,
+      verb: '在撤空的舊營地尋糧時',
+      injuries: ['踩中營地遺留的捕獸夾傷及大腿', '搬動焦黑木架時被斷釘刺傷肩膀', '避開遠處巡邏聲時跌入壕溝撞傷後背'],
+    },
+    {
+      day: 19, type: 'door', combat: true, gained: 0,
+      lo: 74, hi: 82, dmgMin: 22, dmgMax: 26, workHunger: [12, 14],
+      prompt: p => `【第19天】搜山隊包圍洞穴，撞木一下一下砸向門板。誰該靠前迎戰？\n極度危險 ${p}%`,
+      afterEvent: 'sword',
+    },
+    {
+      day: 20, type: 'exped', combat: true, gained: 10, curtainText: '荒原尋糧中',
+      lo: 76, hi: 84, dmgMin: 22, dmgMax: 26, workHunger: [13, 15],
+      prompt: p => `【第20天】荒原上停著逃難車隊的殘骸，風沙間露出糧箱。派誰去找食物？\n極度危險 ${p}%・可能尋獲食物`,
+      verb: '在荒原車隊殘骸旁尋糧時',
+      injuries: ['被突然滑落的車廂壓傷手臂', '在沙土掩蓋的深溝失足摔傷', '躲避遠處人影時撞上尖銳車軸'],
+      afterEvent: 'potent_herb',
+    },
+    {
+      day: 21, type: 'herb_gather', combat: true, gained: 1, curtainText: '岩洞採藥中',
+      lo: 30, hi: 40, dmgMin: 6, dmgMax: 8, workHunger: [8, 10],
+      prompt: p => `【第21天】附近岩洞透著微光，石縫間似乎長有草藥。派誰進去採藥？\n輕度危險 ${p}%・可帶回1株草藥`,
+      verb: '在微光岩洞採藥時',
+      injuries: ['被岩洞頂部受驚的蝙蝠群抓傷臉頰', '在狹窄石縫採藥時被毒蠍螫傷手背', '被洞內躲藏的野獸擦撞跌倒'],
+    },
+    {
+      day: 22, type: 'berry', combat: false, gained: 8, curtainText: '落雷枯林採集',
+      lo: 50, hi: 60, dmgMin: 10, dmgMax: 14, workHunger: [10, 12],
+      prompt: p => `【第22天】雷聲在枯林上方滾動，低矮果叢仍有漿果。派誰趁雨勢稍歇去採集？\n中度危險 ${p}%・可能尋獲食物`,
+      verb: '在落雷枯林採果時',
+      injuries: ['被近處落雷劈斷的燃燒枯木砸傷肩膀', '在雷暴狂風中被飛石與斷枝擊中頭部', '踩中雷擊起火的焦土燙傷雙腳'],
+    },
+    {
+      day: 23, type: 'door', combat: true, gained: 0,
+      lo: 76, hi: 84, dmgMin: 28, dmgMax: 36, workHunger: [12, 15],
+      prompt: p => `【第23天】洞外響起巨斧劈門的聲音，碎木不斷落下。誰該靠前迎戰？\n毀滅級危險 ${p}%`,
+      afterEvent: 'shield',
+    },
+    {
+      day: 24, type: 'herb_gather', combat: false, gained: 1, curtainText: '冰湖尋藥中',
+      lo: 68, hi: 76, dmgMin: 16, dmgMax: 20, workHunger: [11, 14],
+      prompt: p => `【第24天】冰湖中央的小島長著草藥，腳下薄冰卻吱吱作響。派誰踏冰採藥？\n重度危險 ${p}%・可帶回1株草藥`,
+      verb: '在結冰湖面採藥時',
+      injuries: ['腳下薄冰突然碎裂，半身跌入刺骨冰水嚴重失溫凍傷', '在冰面滑倒被鋒利的碎冰割傷雙腿', '遭遇湖面寒風暴襲導致四肢凍裂流血'],
+    },
+    {
+      day: 25, type: 'exped', combat: true, gained: 11, curtainText: '空倉尋糧中',
+      lo: 78, hi: 86, dmgMin: 28, dmgMax: 36, workHunger: [13, 15],
+      prompt: p => `【第25天】叛軍搬空倉庫後離開，角落或許漏下些糧食。派誰悄悄去找？\n毀滅級危險 ${p}%・可能尋獲食物`,
+      verb: '在撤空的倉庫尋糧時',
+      injuries: ['被鬆動倒下的倉門砸傷胸口', '踩穿倉庫暗坑跌傷後背', '從狹窄窗框退出時被碎木刺傷肩膀'],
+    },
+    {
+      day: 26, type: 'exped', combat: false, gained: 11, curtainText: '暴風雪遠征中',
+      lo: 80, hi: 88, dmgMin: 28, dmgMax: 36, workHunger: [13, 15],
+      prompt: p => `【第26天】暴風雪掩住山路，途中還有遺落的軍糧。派誰冒著風雪尋糧？\n毀滅級危險 ${p}%・可能尋獲食物`,
+      verb: '在酷寒暴風雪遠征時',
+      injuries: ['在零下暴風雪中迷失方向，全身嚴重凍傷並咳血', '被狂暴風雪捲起的冰塊砸破額頭，凍僵摔落冰溝', '頂著極寒強風拖回物資時肺部凍傷吐血'],
+      afterEvent: 'collapse',
+    },
+    {
+      day: 27, type: 'door', combat: true, gained: 0,
+      lo: 78, hi: 86, dmgMin: 28, dmgMax: 36, workHunger: [12, 15],
+      prompt: p => `【第27天】洞外火光越來越多，劫匪湧向搖搖欲墜的木門。誰該靠前迎戰？\n毀滅級危險 ${p}%`,
+    },
+    {
+      day: 28, type: 'herb_gather', combat: true, gained: 1, curtainText: '寒谷最後採藥',
+      lo: 44, hi: 54, dmgMin: 10, dmgMax: 14, workHunger: [9, 11],
+      prompt: p => `【第28天】寒谷裂縫還有草藥，山路卻已開始結冰。派誰去採藥？\n中度危險 ${p}%・可帶回1株草藥`,
+      verb: '在寒谷採藥時',
+      injuries: ['被守在岩縫旁的冰原餓狼咬傷手臂', '躲避盤旋猛禽時跌倒擦傷手臂', '閃避餓狼撲擊時撞上尖銳岩石'],
+    },
+    {
+      day: 29, type: 'exped', combat: true, gained: 11, curtainText: '山路尋糧中',
+      lo: 80, hi: 89, dmgMin: 28, dmgMax: 36, workHunger: [13, 15],
+      prompt: p => `【第29天】巡軍暫時離開山路，路邊留下幾袋散糧。派誰趁空隙去找？\n毀滅級危險 ${p}%・可能尋獲食物`,
+      verb: '在巡軍離開的山路尋糧時',
+      injuries: ['躲開折返的巡騎時跌下石坡傷及側腹', '拖出糧袋時被坍塌的路肩掩埋撞傷胸口', '摸黑返回洞穴時滑入深溝重傷手臂'],
+    },
+    {
+      day: 30, type: 'final_boss', combat: true, gained: 0,
+      lo: 70, hi: 88, dmgMin: 17, dmgMax: 34, workHunger: [12, 15],
+      prompt: () => '',
+    },
+  ];
+
   const DOOR_EVENTS = [
-    '被破門而入的怪物抓傷', '被怪物從門縫刺出的長矛劃傷', '被飛濺的木屑劃傷', '被怪物撞開的木門拍倒', '被怪物投擲的石塊砸中',
-    '被怪物的弓箭擦傷', '被怪物的利爪撕傷', '被怪物的棍棒掃中', '被碎裂的門板擊中', '被怪物咬傷',
-    '被怪物的毒針刺傷', '被怪物踢中胸口', '被怪物的斧頭劈傷', '被怪物的尾巴掃倒', '被怪物的火把燙傷',
-    '被怪物扔來的骨頭擊中', '被撞飛的木桶砸中', '被怪物的鎖鏈抽中', '被怪物的拳頭擊中', '被擁擠的怪物推倒',
+    '被破門而入的劫匪揮刀砍傷', '被從門縫刺出的長矛劃傷側腹', '被炸裂的門板木屑與鐵釘擊傷',
+    '被魁梧山賊撞飛摔在岩壁上', '被惡徒投擲的石塊砸中胸口', '被劫匪的釘頭槌掃中肩膀',
+    '被火把與滾燙油脂噴濺灼傷', '被獵犬咬住手臂撕裂皮肉', '被叛軍的重斧劈開防線砍傷',
   ];
-  const DOOR = { lo: 18, hi: 24 }; // 洞窟襲擊（中度）機率範圍（%）
-  let DOOR_BASE = 21;              // 本回合基礎受傷機率（%），每回合重抽
-  const DOOR_DMG_MIN = LEVEL.medium.min, DOOR_DMG_MAX = LEVEL.medium.max; // 基礎傷害（中度）
 
-  // 危險事件：回來時有機率觸發，該角色損失生命並彈出訊息視窗
-  const DANGER = {
-    apple: { lo: 25, hi: 31, chance: 0.28, min: LEVEL.heavy.min, max: LEVEL.heavy.max, verb: '在遠征中', events: [
-      '被怪物打傷', '被怪物用弓箭擦傷', '被怪物用鐵鎚敲擊', '被怪物毆打', '被怪物的爪子劃傷',
-      '被怪物咬傷', '被怪物投擲的石塊砸中', '踩中陷阱被尖刺刺傷', '被怪物的尾巴掃飛', '被怪物的毒液灼傷',
-      '被怪物撞飛摔在岩石上', '被怪物用長矛刺傷', '被怪物的火球燒傷', '被怪物拖行擦傷', '遇上塌方被落石砸中',
-      '被怪物用斧頭劈傷', '被怪物扔來的骨頭擊中', '逃跑時摔下斜坡', '被怪物用棍棒打中', '被怪物的回力鏢割傷',
-    ] },
-    berry: { lo: 13, hi: 17, chance: 0.15, min: LEVEL.light.min, max: LEVEL.light.max, verb: '在採果途中', events: [
-      '被鹿撞傷', '被巨型鳥類驚嚇跌倒', '被野豬撞傷', '採到苔石跌傷', '遇上暴雨失溫',
-      '遇到烈日中暑', '遇到沙塵暴', '遇到冰雹', '被荊棘劃傷', '被蜂群叮傷',
-      '被毒蛇咬傷', '踩到濕滑的石頭扭傷腳', '被樹枝打到臉', '被熊嚇到跌進溝裡', '被樹上掉落的果實砸中',
-      '被藤蔓絆倒', '被狼群驚嚇扭傷腳', '陷進泥沼拉傷', '被毒蟲叮咬發燒', '誤食酸澀野果拉肚子',
-    ] },
-  };
-  // 共同基金／存糧木箱功能：目前停用（改回 true 即可重啟）
-  const USE_CRATE = false;
-  let voteRound = 0;
-  let day = 1;
-  let lootKey = 'apple'; // 本回合分配的物品：apple=金幣、berry=莓果
-
-  let foodStore = 0; // 存糧（莓果木箱）
-  let storage = 0; // 緊急儲備糧食（三人共用）
-
-  const people = {
-    p1: { hp: MAX, hunger: 60, bread: 0, food: 0 },
-    p2: { hp: MAX, hunger: 60, bread: 0, food: 0 },
-    p3: { hp: MAX, hunger: 60, bread: 0, food: 0 },
-  };
-  const IDS = ['p1', 'p2', 'p3'];
-  const NAMES = { p1: 'P1', p2: '慈悲瑪莉', p3: '無賴卡爾' };
+  // 第30天三波專屬戰鬥描述
+  const BOSS_WAVE_1_EVENTS = [
+    '被第一波衝進來的劫匪嘍囉用柴刀砍傷手臂',
+    '被撬門嘍囉投擲的石塊與木棍擊中肩膀',
+    '在狹窄洞口與幾名劫匪嘍囉肉搏時被短刀劃傷側腹',
+  ];
+  const BOSS_WAVE_2_EVENTS = [
+    '被統領的精銳護衛軍用制式長戟刺傷胸口',
+    '遭護衛軍的重盾猛烈衝撞震傷內腑吐血',
+    '架開護衛軍的長劍時被利刃劃開肩膀',
+  ];
+  const BOSS_WAVE_3_EVENTS = [
+    '被狂笑著揮舞重劍的叛軍統領劈傷肩膀',
+    '圍攻時遭叛軍統領一腳踹飛撞上岩壁吐血',
+    '死命架住叛軍統領的斬擊時虎口崩裂並被劍鋒劃傷胸膛',
+  ];
 
   const PAL = {
     k: '#1e1811', r: '#b5604a', g: '#c9a050', b: '#e0b97a',
@@ -534,37 +1079,21 @@
   };
 
   const SPRITES = {
-    heart: [
-      '........', '.rr..rr.', 'rrwrrrrr', 'rrrrrrrr',
-      '.rrrrrr.', '..rrrr..', '...rr...', '........',
-    ],
-    meat: [
-      '...kkk..', '..kgggk.', '.kgwggk.', 'kggggkk.',
-      'kgggkk..', '.kkgk...', '...kk...', '........',
-    ],
-    bread: [
-      '........', '..kkkk..', '.kccccck', 'kcbwbbck',
-      'kbbbbbbk', 'kbbbbbbk', '.kkkkkk.', '........',
-    ],
-    hungerFace: [
-      '..kkkk..', '.kbbbbk.', 'kbkbbkbk', 'kbbbbbbk',
-      'kbkkkkbk', 'kbkbbkbk', '.kbbbbk.', '..kkkk..',
-    ],
-    crate: [
-      'k'.repeat(11), 'k' + 'b'.repeat(9) + 'k',
-      'k' + 'd'.repeat(9) + 'k', 'k' + 'd'.repeat(9) + 'k',
-      'k' + 'd'.repeat(9) + 'k', 'k' + 'd'.repeat(9) + 'k',
-      'k'.repeat(11), 'k' + 'c'.repeat(9) + 'k',
-      'k'.repeat(11), 'k' + 'c'.repeat(9) + 'k',
-      'k'.repeat(11),
-    ],
-    apple: [
-      '..kkkk..', '.kyyyyk.', 'kyygggyk', 'kygkkgyk',
-      'kygkkgyk', 'kyygggyk', '.kyyyyk.', '..kkkk..',
-    ],
     berry: [
       '.kk..kk.', 'kuwkkuwk', 'kuukkuuk', '.kkuukk.',
       '..kuwk..', '..kuuk..', '...kk...', '........',
+    ],
+    sword: [
+      '......ww', '.....wrw', '....wwr.', '...wrw..',
+      'y.wrw...', '.yww....', '..yy....', '.c.yy...',
+    ],
+    shield: [
+      '.kkkkkk.', 'kcddddck', 'kdcddcdk', 'kddccddk',
+      'kdcddcdk', '.kddddk.', '..kddk..', '...kk...',
+    ],
+    herb: [
+      '....ss..', '...ssss.', '..sswss.', '..ssss..',
+      '...ss...', '..s.s.s.', '.ss.s.ss', '....c...',
     ],
     fire: [
       '....g.....', '...ggg....', '..grgrg...',
@@ -577,11 +1106,15 @@
     ],
   };
 
-  const TUNIC = { p1: '#7fa37a', p2: '#d4a03a', p3: '#4f6b8a' };
-  const LEGS  = { p1: '#5a4a36', p2: '#5a4a36', p3: '#2a2a33' };
+  let day = 1;
+  let workCost = {};
+  let currentPlan = null;
+  let currentDangerPct = 60;
+  let currentIsCombat = true;
+  let lastHerbGatherer = null;
+  const people = {};
 
-  const $ = id => document.getElementById(id);
-  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const aliveIds = () => IDS.filter(id => !people[id].dead);
 
   function drawSprite(canvas, rows, scale, overrides = {}) {
     const pal = { ...PAL, ...overrides };
@@ -598,28 +1131,37 @@
     });
   }
 
-  document.querySelectorAll('canvas[data-icon]').forEach(c => {
-    drawSprite(c, SPRITES[c.dataset.icon], 2);
-  });
-  // ---------- 受傷血跡：生命越低，身上血跡像素越多（10 階段） ----------
-  // 階段：生命 100 無血跡；90–99 為 1，每低 10 多一階，9 以下為 10
-  const BLOOD_COUNTS = [0, 2, 5, 10, 16, 23, 31, 40, 50, 58, 64]; // 共 68 格身體像素，最後約 4 格不染血
+  // ---------- 受傷血跡（10 階段） ----------
+  const BLOOD_COUNTS = [0, 2, 5, 10, 16, 23, 31, 40, 50, 58, 64];
   const BLOOD_COLORS = ['#a8322b', '#c0453a', '#8c2620'];
   function bloodStage(hp) {
     if (hp >= MAX) return 0;
-    return Math.min(10, Math.floor((MAX - 1 - hp) / 10) + 1);
+    return Math.min(10, Math.floor((MAX - 1 - Math.max(0, hp)) / 10) + 1);
   }
   function seededOrder(seed, n) {
     let a = seed >>> 0;
-    const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const rnd = () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
     const arr = Array.from({ length: n }, (_, i) => i);
-    for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
     return arr;
   }
   const BODY_CELLS = [];
   SPRITES.char.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') BODY_CELLS.push([x, y]); }));
-  const BLOOD_ORDER = { p1: seededOrder(11, BODY_CELLS.length), p2: seededOrder(22, BODY_CELLS.length), p3: seededOrder(33, BODY_CELLS.length) };
+  const BLOOD_ORDER = {};
+  IDS.forEach((id, idx) => {
+    BLOOD_ORDER[id] = seededOrder((idx + 1) * 19, BODY_CELLS.length);
+  });
   const drawnStage = {};
+
   function drawCharacter(id) {
     const stage = bloodStage(people[id].hp);
     if (drawnStage[id] === stage) return;
@@ -633,49 +1175,308 @@
       ctx.fillRect(x * 5, y * 5, 5, 5);
     });
   }
-  drawSprite($('fireCanvas'), SPRITES.fire, 15); // 靜態火堆
 
-  // 角色名字顏色與服裝同色
-  IDS.forEach(id => { const el = document.querySelector('#slot-' + id + ' .cname'); if (el && id !== 'p1') el.style.color = TUNIC[id]; });
+  drawSprite($('fireCanvas'), SPRITES.fire, 14);
 
+  // 初始化／重開局：從 P2~P12 共 11 名角色中隨機抽選 5 人放到 P2~P6，座位順序完全隨機不固定
+  function initRoster() {
+    const fiveNpcs = shuffleArray(ALL_NPCS).slice(0, 5);
+    const chosen = [PLAYER_DEF, ...fiveNpcs];
+    const partyPersonalities = drawPartyPersonalities();
+
+    IDS.forEach((id, idx) => {
+      const c = chosen[idx];
+      NAMES[id] = TITLED && c.title ? c.title : c.name;
+      TUNIC[id] = c.tunic;
+      LEGS[id] = c.legs;
+      ROLES[id] = c.role;
+      NPC_PERSONAS[id] = (idx === 0 || TITLED) ? null : partyPersonalities[idx - 1]; // 有頭銜版：性格跟著名字（role）走
+      people[id] = { hp: MAX, hunger: 70, food: randInt(7, 11), swords: 0, shields: 0, dead: false };
+      drawnStage[id] = -1;
+      const nameEl = $('name-' + id);
+      nameEl.textContent = NAMES[id];
+      nameEl.style.color = id === 'p1' ? 'var(--ink)' : c.tunic;
+    });
+    IDS.forEach(id => { NPC_TRUST[id] = Object.fromEntries(IDS.map(other => [other, 0])); });
+  }
+
+  // 天數僅顯示「第X天」，不顯示 /30
   function render() {
     IDS.forEach(id => {
       const p = people[id];
-      $('hp-' + id).textContent = `${p.hp}/${MAX}`;
-      $('hunger-' + id).textContent = `${p.hunger}/${MAX}`;
+      const hpEl = $('hp-' + id);
+      const hgEl = $('hunger-' + id);
+      const compact = document.body.classList.contains('mobile-mode');
+      hpEl.textContent = p.dead ? '陣亡' : (compact ? `${p.hp}` : `${p.hp}/${MAX}`);
+      hpEl.classList.toggle('warn', p.hp <= 35);
+      hgEl.textContent = compact ? `${p.hunger}` : `${p.hunger}/${MAX}`;
+      hgEl.classList.toggle('warn', p.hunger <= 24);
       $('food-' + id).textContent = p.food;
-      $('bread-' + id).textContent = p.bread;
+
+      const itemEl = $('item-' + id);
+      const badgeEl = $('badge-' + id);
+      badgeEl.innerHTML = '';
+
+      const parts = [];
+      if (p.swords > 0) parts.push(p.swords > 1 ? `鐵劍x${p.swords}` : '鐵劍');
+      if (p.shields > 0) parts.push(p.shields > 1 ? `木盾x${p.shields}` : '木盾');
+
+      itemEl.classList.remove('gear-txt', 'shield-txt');
+      if (parts.length > 0) {
+        itemEl.textContent = parts.join('+');
+        itemEl.classList.add(p.swords > 0 ? 'gear-txt' : 'shield-txt');
+      } else {
+        itemEl.textContent = '無';
+      }
+
+      for (let k = 0; k < Math.min(2, p.swords); k++) {
+        const cv = document.createElement('canvas');
+        drawSprite(cv, SPRITES.sword, 2);
+        badgeEl.appendChild(cv);
+      }
+      for (let k = 0; k < Math.min(2, p.shields); k++) {
+        const cv = document.createElement('canvas');
+        drawSprite(cv, SPRITES.shield, 2);
+        badgeEl.appendChild(cv);
+      }
+
+      $('slot-' + id).classList.toggle('dead', p.dead);
       drawCharacter(id);
     });
-    $('pile').dataset.tip = `共同基金 ${storage}`;
-    $('pile2').dataset.tip = `存糧 ${foodStore}`;
+    $('dayLabel').textContent = `第${day}天`;
   }
 
+  // 先以標點與詞語分組，讓不同螢幕優先在語意邊界換行。
+  const proseSegmenter = typeof Intl.Segmenter === 'function'
+    ? new Intl.Segmenter('zh-Hant', { granularity: 'word' }) : null;
+  const protectedTerms = ['採糧採藥', '突襲王城', '叛國軍閥', '劫匪大軍', '深山洞窟', '可能尋獲食物', ...ALL_NPCS.map(n => n.name), ...ALL_NPCS.map(n => n.title)];
+  function proseUnits(text, maxChars = 16) {
+    const clauses = text.match(/[^，。！？；：、,.!?;:]+[，。！？；：、,.!?;:]*|[，。！？；：、,.!?;:]+/gu) || [];
+    const result = [];
+    clauses.forEach(clause => {
+      if ([...clause].length <= maxChars) { result.push(clause); return; }
+      const escaped = protectedTerms.join('|');
+      const pieces = clause.split(new RegExp('(' + escaped + ')', 'u')).filter(Boolean);
+      const words = pieces.flatMap(piece => protectedTerms.includes(piece) ? [piece]
+        : proseSegmenter ? [...proseSegmenter.segment(piece)].map(x => x.segment) : [piece]);
+      let unit = '';
+      words.forEach(word => {
+        const punctuation = /^[，。！？；：、,.!?;:）】」』]+$/u.test(word);
+        if (unit && [...unit + word].length > maxChars && !punctuation) {
+          result.push(unit); unit = '';
+        }
+        unit += word;
+      });
+      if (unit) result.push(unit);
+    });
+    return result;
+  }
+  function renderProse(element, text) {
+    element.classList.add('story-text');
+    element.replaceChildren();
+    String(text).split('\n').forEach((line, index) => {
+      if (index) element.appendChild(document.createElement('br'));
+      proseUnits(line).forEach(unit => {
+        const span = document.createElement('span');
+        span.className = 'text-unit';
+        span.textContent = unit;
+        element.appendChild(span);
+      });
+    });
+  }
+
+  const logEntries = [];
+  let logPage = 0;
+  let logPages = [];
+  let logSequence = 0;
+  const pagedTexts = new Map();
+  function textTokens(text, source = 0) {
+    const tokens = [];
+    String(text).split('\n').forEach((line, i) => {
+      if (i) tokens.push({ text: '\n', source });
+      proseUnits(line).forEach(text => tokens.push({ text, source }));
+    });
+    return tokens;
+  }
+  function appendToken(el, token) {
+    const node = document.createElement(token.text === '\n' ? 'br' : 'span');
+    if (token.text !== '\n') { node.className = 'text-unit'; node.textContent = token.text; }
+    el.appendChild(node);
+    return node;
+  }
+  function splitMeasuredPages(tokens, target, height) {
+    const style = getComputedStyle(target);
+    const probe = document.createElement('div');
+    probe.className = 'story-text';
+    probe.style.cssText = `position:fixed;left:-10000px;top:0;visibility:hidden;box-sizing:border-box;width:${Math.max(120, target.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight))}px;font:${style.font};line-height:${style.lineHeight};`;
+    document.body.appendChild(probe);
+    const pages = []; let page = [];
+    const groups = [];
+    tokens.forEach(token => {
+      const last = groups[groups.length - 1];
+      if (last && last[0].source === token.source) last.push(token); else groups.push([token]);
+    });
+    groups.forEach(group => {
+      if (group[0].source && page.length) {
+        const current = page.slice();
+        probe.replaceChildren(); group.forEach(t => appendToken(probe, t));
+        const groupHeight = probe.getBoundingClientRect().height;
+        probe.replaceChildren(); current.forEach(t => appendToken(probe, t));
+        group.forEach(t => appendToken(probe, t));
+        const combinedHeight = probe.getBoundingClientRect().height;
+        probe.replaceChildren(); current.forEach(t => appendToken(probe, t));
+        if (groupHeight <= height && combinedHeight > height + .5) { pages.push(page); page = []; probe.replaceChildren(); }
+      }
+      group.forEach(token => {
+      const node = appendToken(probe, token);
+      if (page.length && probe.getBoundingClientRect().height > height + .5) {
+        node.remove(); pages.push(page); page = []; probe.replaceChildren();
+        appendToken(probe, token);
+      }
+      page.push(token);
+      });
+    });
+    if (page.length) pages.push(page);
+    probe.remove();
+    return pages.length ? pages : [[]];
+  }
+  function drawTokens(el, tokens) {
+    el.replaceChildren(); tokens.forEach(token => appendToken(el, token));
+  }
+  function makePager(onPrevious, onNext) {
+    const bar = document.createElement('div'); bar.className = 'pager';
+    const prev = document.createElement('button'); prev.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>'; prev.title = '上一頁'; prev.setAttribute('aria-label', '上一頁'); prev.onclick = onPrevious;
+    const label = document.createElement('span'); label.setAttribute('aria-live', 'polite');
+    const next = document.createElement('button'); next.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'; next.title = '下一頁'; next.setAttribute('aria-label', '下一頁'); next.onclick = onNext;
+    label.hidden = true;
+    bar.append(prev, next);
+    return { bar, prev, label, next };
+  }
+  function ensureLogUI() {
+    if ($('logContent')) return;
+    $('log').replaceChildren();
+    const content = document.createElement('div'); content.id = 'logContent'; content.className = 'log-content story-text';
+    const title = document.createElement('div'); title.className = 'log-title'; title.textContent = '遊戲紀錄';
+    $('log').append(title, content);
+  }
+  function renderLog(rebuild = false, anchor = null) {
+    ensureLogUI();
+    const content = $('logContent');
+    const lineHeight = parseFloat(getComputedStyle(content).lineHeight);
+    const lines = document.body.classList.contains('mobile-mode') ? 8 : 13;
+    if (rebuild || !logPages.length) {
+      const tokens = logEntries.flatMap((entry, i) => [...(i ? [{ text: '\n', source: entry.id }] : []), ...textTokens(entry.text, entry.id)]);
+      logPages = splitMeasuredPages(tokens, content, lineHeight * lines).slice(0, 1);
+      if (logEntries.length > 40) logEntries.length = 40;
+    }
+    logPage = 0;
+    drawTokens(content, logPages[0]);
+
+  }
   function log(msg) {
-    const p = document.createElement('p');
-    p.textContent = msg;
-    const box = $('log');
-    box.insertBefore(p, box.firstChild);
-    // 只保留最新 5 則
-    while (box.children.length > 5) box.removeChild(box.lastChild);
+    const oldAnchor = logPage > 0 ? logPages[logPage]?.find(t => t.text !== '\n')?.source : null;
+    logEntries.unshift({ id: ++logSequence, text: msg });
+    renderLog(true, oldAnchor);
+    const lc = $('logContent'); if (lc) lc.scrollTop = 0;
+  }
+  function reflowReadingPages() {
+    const anchor = logPage > 0 ? logPages[logPage]?.find(t => t.text !== '\n')?.source : null;
+    renderLog(true, anchor);
+
+  }
+  // 電腦版：若視窗高度不足（例如 Windows 顯示縮放 125% 使實際可用高度只有 864），整體等比縮小以完整顯示
+  // 火堆位置：電腦版在左側角色列上方，手機版在題目卡底部
+  function placeFire() {
+    const fw = $('fireWrap');
+    const desktop = !document.body.classList.contains('mobile-mode') && innerWidth >= 900;
+    if (desktop && fw.parentElement !== document.querySelector('.camp')) document.querySelector('.camp').prepend(fw);
+    if (!desktop && fw.parentElement !== $('qbox')) $('qbox').appendChild(fw);
+  }
+  function fitDesktop() {
+    placeFire();
+    const sc = document.querySelector('.scene');
+    sc.style.zoom = '';
+    alignDesktop();
+    if (document.body.classList.contains('mobile-mode') || innerWidth < 900) return;
+    const needH = sc.offsetHeight + 56 + 24;
+    const needW = sc.offsetWidth + 40;
+    const z = Math.min(1, innerHeight / needH, innerWidth / needW);
+    if (z < 1) sc.style.zoom = z.toFixed(3);
+  }
+  // 電腦版對齊：題目卡下緣＝角色框下緣；Log 下緣＝確認視窗區下緣
+  function alignDesktop() {
+    const deck = $('deckSlot'), lg = $('log');
+    [deck, lg].forEach(el => { el.style.height = el.style.minHeight = el.style.maxHeight = ''; });
+    $('actionZone').style.height = '';
+    if (document.body.classList.contains('mobile-mode') || innerWidth < 900) return;
+    const partyBottom = $('party').getBoundingClientRect().bottom;
+    const deckH = Math.round(partyBottom - deck.getBoundingClientRect().top - 1);
+    deck.style.height = deck.style.minHeight = deck.style.maxHeight = deckH + 'px';
+    // Log 維持 13 行所需高度，確認視窗區往下延伸到與 Log 同一下緣
+    const zone = $('actionZone');
+    zone.style.height = Math.max(250, Math.round(lg.getBoundingClientRect().bottom - zone.getBoundingClientRect().top)) + 'px';
+  }
+  window.addEventListener('resize', () => requestAnimationFrame(() => { fitDesktop(); reflowReadingPages(); }));
+
+  // grid：依座位顯示每人結果，[{ id, value, cls }]
+  function showCard(text, isReport = false, grid = null) {
+    const deck = $('deckSlot');
+    deck.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card' + (isReport ? ' report' : '');
+    const prose = document.createElement('div');
+    renderProse(prose, text);
+    card.appendChild(prose);
+    if (grid) {
+      const g = document.createElement('div'); g.className = 'seat-grid';
+      grid.forEach(c => {
+        const cell = document.createElement('div'); cell.className = 'seat-cell ' + (c.cls || '');
+        const n = document.createElement('span'); n.className = 'seat-name'; n.textContent = NAMES[c.id]; n.style.color = c.id === 'p1' ? 'var(--ink)' : TUNIC[c.id];
+        const v = document.createElement('span'); v.className = 'seat-val'; v.textContent = c.value;
+        cell.append(n, v); g.appendChild(cell);
+      });
+      card.appendChild(g);
+    }
+    deck.appendChild(card);
+
   }
 
-  function randInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+  let phase = 'idle';
+  let stepResolve = null;
+
+  async function showStepCard(text, btnLabel = '繼續', grid = null) {
+    showCard(text, true, grid);
+    const prevPhase = phase;
+    phase = 'step';
+    const btn = $('expedBtn');
+    btn.textContent = btnLabel;
+    btn.disabled = false;
+    await new Promise(res => { stepResolve = res; });
+    btn.disabled = true;
+    phase = prevPhase;
   }
 
-  // 每天開始：P2、P3 有食物就自動吃 1～3 份；P1（玩家）自己選吃幾份（最多 EAT_MAX 份）
-  // 每份食物恢復 7 飢餓，只吃食物，不吃金幣
-  const EAT_MAX = 3;
-  function applyEat(id, n) {
+  async function playCurtain(id, label) {
+    const c = $('cur-' + id);
+    c.querySelector('span').textContent = label;
+    c.classList.add('drop');
+    await wait(1000);
+    c.classList.add('shown');
+    await wait(1050);
+    c.classList.remove('shown');
+    c.classList.remove('drop');
+    await wait(1000);
+  }
+
+  // ---------- 每日進食（每次最多吃 2 份） ----------
+  function applyEat(id, n, silent = false) {
     const p = people[id];
-    if (n <= 0) return;
+    if (n <= 0 || p.dead) return;
     p.food -= n;
     p.hunger = Math.min(MAX, p.hunger + HUNGER_RESTORE * n);
-    log(`${NAMES[id]} 吃了 ${n} 份食物，飢餓度 +${HUNGER_RESTORE * n}。`);
+    if (!silent) log(`${NAMES[id]} 吃 ${n} 份（飢餓 +${HUNGER_RESTORE * n}）`);
   }
 
-  // P1 選擇吃幾份：橫向食物圖示，點第 N 個 = 吃 N 份
   function pickEatCount(max) {
     return new Promise(resolve => {
       const box = $('eatIcons');
@@ -684,9 +1485,10 @@
       const icons = [];
       const refresh = () => {
         icons.forEach((c, i) => c.classList.toggle('on', i < sel));
+        const afterHunger = Math.min(MAX, people.p1.hunger + HUNGER_RESTORE * sel);
         $('eatInfo').textContent = sel > 0
-          ? `吃 ${sel} 份，飢餓度 +${HUNGER_RESTORE * sel}（目前 ${people.p1.hunger}/${MAX}）`
-          : `不吃（目前 ${people.p1.hunger}/${MAX}）`;
+          ? `吃 ${sel} 份，飢餓度變為 ${afterHunger}/${MAX}`
+          : `不吃（目前飢餓 ${people.p1.hunger}/${MAX}）`;
       };
       for (let i = 1; i <= max; i++) {
         const c = document.createElement('canvas');
@@ -709,181 +1511,99 @@
 
   async function dailyEat() {
     let ate = false;
-    ['p2', 'p3'].forEach(id => {
+    const eatGroups = {};
+    IDS.filter(id => id !== 'p1').forEach(id => {
       const p = people[id];
-      if (p.food <= 0 || p.hunger >= MAX) return;
-      applyEat(id, Math.min(p.food, randInt(1, EAT_MAX)));
+      if (p.dead || p.food <= 0 || p.hunger >= 85) return;
+      const need = p.hunger < 55 ? Math.min(p.food, EAT_MAX) : 1;
+      applyEat(id, need, true);
+      (eatGroups[need] = eatGroups[need] || []).push(NAMES[id]);
       ate = true;
     });
+    if (ate) log('進食：' + Object.keys(eatGroups).map(n => {
+      const names = eatGroups[n];
+      return `${names.join('、')} ${names.length > 1 ? '各' : ''}吃 ${n} 份（+${HUNGER_RESTORE * n}）`;
+    }).join('；'));
     render();
-    if (ate) await wait(800);
+    if (ate) await wait(400);
     const p1 = people.p1;
-    if (p1.food > 0 && p1.hunger < MAX) {
+    if (!p1.dead && p1.food > 0 && p1.hunger < MAX) {
+      showCard('【清晨進食階段】\n請選擇今天要吃幾份食物（每次最多可吃 2 份）。');
       const n = await pickEatCount(Math.min(p1.food, EAT_MAX));
-      if (n > 0) { applyEat('p1', n); ate = true; }
+      if (n > 0) applyEat('p1', n);
       render();
-      await wait(500);
+      await wait(300);
     }
   }
 
-  // 遠征中窗簾：每個格子都有一張，從上往下 2 秒拉下 → 顯示「遠征中」2 秒 → 2 秒收回
-  IDS.forEach(id => {
-    const clip = document.createElement('div');
-    clip.className = 'curtain-clip';
-    const c = document.createElement('div');
-    c.className = 'curtain';
-    c.id = 'cur-' + id;
-    c.innerHTML = '<span>遠征中</span>';
-    clip.appendChild(c);
-    $('slot-' + id).appendChild(clip);
-  });
-
-  async function playCurtain(id) {
-    const c = $('cur-' + id);
-    c.classList.add('drop');
-    await wait(1740);
-    c.classList.add('shown');
-    await wait(2000);
-    c.classList.remove('shown');
-    c.classList.remove('drop');
-    await wait(1740);
-  }
-
-  // 金幣飛向緊急儲備區：左右各一半，從火堆飄出，落入儲備區後計數增加
-  async function showFoodFly(n) {
-    const fr = $('fireCanvas').getBoundingClientRect();
-    const sr = $('storage').getBoundingClientRect();
-    const cx = fr.left + fr.width / 2;
-    const cy = fr.top + fr.height / 2;
-    const tx = sr.left + sr.width / 2 - 8;
-    const ty = sr.top + sr.height / 2 - 8;
-    const half = Math.ceil(n / 2);
-    const landings = [];
-    for (let i = 0; i < n; i++) {
-      const side = i < half ? -1 : 1;
-      const sx = cx + side * (30 + Math.random() * 60) - 8;
-      const sy = cy + (Math.random() * 60 - 30) - 8;
-      const cv = document.createElement('canvas');
-      drawSprite(cv, SPRITES[lootKey], 2);
-      cv.className = 'flyer';
-      cv.style.left = sx + 'px';
-      cv.style.top = sy + 'px';
-      document.body.appendChild(cv);
-      const anim = cv.animate(
-        [
-          { transform: 'translate(0,0)', opacity: 0 },
-          { transform: 'translate(0,0)', opacity: 1, offset: 0.2 },
-          { transform: `translate(${tx - sx}px, ${ty - sy}px)`, opacity: 1 },
-        ],
-        { duration: 900, delay: i * 90, easing: 'ease-in', fill: 'forwards' }
-      );
-      landings.push(anim.finished.then(() => {
-        cv.remove();
-        storage += 1;
-        render();
-      }));
-    }
-    await Promise.all(landings);
-    await wait(400);
-  }
-
-  // ---------- 金幣池與分配 ----------
+  // ---------- 戰利品／食物池與飛行分配 ----------
   const pool = [];
   let pending = 0;
   let distResolve = null;
   let distLeader = null;
 
-  // 金幣圖示從火堆左右各一半飄出，留在火堆兩側等待分配
-  async function spawnPool(n) {
+  async function spawnMixedPool(items) {
     const box = $('pool');
     box.innerHTML = '';
     pool.length = 0;
+    const n = items.length;
+    if (!n) return;
+    if (n === 1) {
+      const key = items[0];
+      const cv = document.createElement('canvas');
+      drawSprite(cv, SPRITES[key], key === 'berry' ? 3 : 4);
+      cv.style.left = '-96px';
+      cv.style.top = '14px';
+      cv.style.animation = 'popIn .3s ease-out both';
+      box.appendChild(cv);
+      pool.push({ el: cv, key });
+      await wait(340);
+      return;
+    }
     const half = Math.ceil(n / 2);
     for (let i = 0; i < n; i++) {
+      const key = items[i];
       const isLeft = i < half;
       const k = isLeft ? i : i - half;
       const col = Math.floor(k / 3), row = k % 3;
       const cv = document.createElement('canvas');
-      drawSprite(cv, SPRITES[lootKey], 2);
-      cv.style.left = (isLeft ? -(70 + col * 20) - 16 : 70 + col * 20) + 'px';
-      cv.style.top = (6 + row * 22) + 'px';
-      cv.style.animation = 'popIn .35s ease-out both';
-      cv.style.animationDelay = (i * 40) + 'ms';
+      drawSprite(cv, SPRITES[key], key === 'berry' ? 2 : 2.5);
+      cv.style.left = (isLeft ? -(56 + col * 18) - 16 : 56 + col * 18) + 'px';
+      cv.style.top = (2 + row * 18) + 'px';
+      cv.style.animation = 'popIn .3s ease-out both';
+      cv.style.animationDelay = (i * 28) + 'ms';
       box.appendChild(cv);
-      pool.push(cv);
+      pool.push({ el: cv, key });
     }
-    await wait(n * 40 + 450);
+    await wait(n * 28 + 300);
   }
 
-  // 單一圖示飛向目標，落下時執行 onLand
-  function flyIcon(srcIcon, targetEl, onLand) {
-    const r = srcIcon.getBoundingClientRect();
+  async function spawnPool(n, spriteKey = 'berry') {
+    const arr = Array.from({ length: n }, () => spriteKey);
+    await spawnMixedPool(arr);
+  }
+
+  function flyPoolItem(item, targetEl, onLand) {
+    const r = item.el.getBoundingClientRect();
     const t = targetEl.getBoundingClientRect();
     const cv = document.createElement('canvas');
-    drawSprite(cv, SPRITES[lootKey], 2);
+    drawSprite(cv, SPRITES[item.key], item.key === 'berry' ? 2 : 3);
     cv.className = 'flyer';
     cv.style.left = r.left + 'px';
     cv.style.top = r.top + 'px';
     document.body.appendChild(cv);
-    srcIcon.remove();
+    item.el.remove();
     const dx = t.left + t.width / 2 - 8 - r.left;
     const dy = t.top + t.height / 2 - 8 - r.top;
     const anim = cv.animate(
       [{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px, ${dy}px)` }],
-      { duration: 550, easing: 'ease-in', fill: 'forwards' }
+      { duration: 400, easing: 'ease-in', fill: 'forwards' }
     );
     return anim.finished.then(() => { cv.remove(); onLand(); });
   }
 
-  // 餅乾堆在地上：隨機落點，堆高時往左右與上方增加
-  function addCookieToPile(pileId = 'pile', key = 'apple', count = storage) {
-    const pile = $(pileId);
-    const cv = document.createElement('canvas');
-    drawSprite(cv, SPRITES[key], 2);
-    const W = pile.clientWidth, H = pile.clientHeight;
-    const x = (Math.random() + Math.random() - 1) * W * 0.36;
-    const maxH = Math.min(34, 6 + count * 0.9);
-    const y = 32 + Math.pow(Math.random(), 2) * maxH; // 木箱內部，由底部往上堆
-    cv.style.left = (W / 2 + x - 8) + 'px';
-    cv.style.bottom = y + 'px';
-    pile.appendChild(cv);
-  }
-
-  // 餅乾堆區域：自動貼齊 P1 左側的空白區（與角色格同高）
-  function layoutPile() {
-    const s = $('slot-p1').getBoundingClientRect();
-    const w = $('pileWrap');
-    w.style.width = '88px';
-    w.style.height = '88px';
-    w.style.left = (s.left + window.scrollX - 88 - 6) + 'px';
-    w.style.top = (s.bottom + window.scrollY - 88) + 'px';
-    // 存糧木箱：放在金錢木箱正上方，留一點小間隔
-    const w2 = $('pileWrap2');
-    w2.style.width = '88px';
-    w2.style.height = '88px';
-    w2.style.left = w.style.left;
-    w2.style.top = (s.bottom + window.scrollY - 88 - 88 - 4) + 'px';
-  }
-
   function takeFromPool() {
     return pool.splice(randInt(0, pool.length - 1), 1)[0];
-  }
-
-  // 固定 n 份飛入共同基金
-  async function sendToStorage(n) {
-    const berry = lootKey === 'berry';
-    $(berry ? 'pileWrap2' : 'pileWrap').style.display = '';
-    layoutPile();
-    const ps = [];
-    for (let i = 0; i < n && pool.length; i++) {
-      ps.push(flyIcon(takeFromPool(), $(berry ? 'pile2' : 'pile'), () => {
-        if (berry) { foodStore += 1; addCookieToPile('pile2', 'berry', foodStore); }
-        else { storage += 1; addCookieToPile(); }
-        render();
-      }));
-      await wait(120);
-    }
-    await Promise.all(ps);
   }
 
   function checkDistDone() {
@@ -894,313 +1614,728 @@
     }
   }
 
-  // 從金幣池送一份給某人
-  // target 為 'store' 時飛入共同箱子（木箱）
-  function sendFromPool(target) {
+  function sendItemFromPool(target) {
     pending++;
-    const toStore = target === 'store';
-    const dest = toStore ? $(lootKey === 'berry' ? 'pile2' : 'pile') : $('slot-' + target);
-    return flyIcon(takeFromPool(), dest, () => {
-      if (toStore) {
-        if (lootKey === 'berry') { foodStore += 1; addCookieToPile('pile2', 'berry', foodStore); }
-        else { storage += 1; addCookieToPile(); }
+    const item = takeFromPool();
+    return flyPoolItem(item, $('slot-' + target), () => {
+      if (item.key === 'sword') {
+        receiveGear(target, 'sword');
+      } else if (item.key === 'shield') {
+        receiveGear(target, 'shield');
       } else {
-        people[target][lootKey === 'berry' ? 'food' : 'bread'] += 1;
+        people[target].food += 1;
+        if (distLeader === 'p1' && target !== 'p1') NPC_TRUST[target].p1 += 1;
       }
       render();
     }).then(() => { pending--; checkDistDone(); });
   }
 
-  // P1 也可以把金幣額外分配到共同箱子
-  $('pile').addEventListener('click', () => {
-    if (phase !== 'distribute' || distLeader !== 'p1' || !pool.length || lootKey === 'berry') return;
-    sendFromPool('store');
-  });
-  $('pile2').addEventListener('click', () => {
-    if (phase !== 'distribute' || distLeader !== 'p1' || !pool.length || lootKey !== 'berry') return;
-    sendFromPool('store');
-  });
+  // 輔助計算：角色的整體承受力（內部依是否為武裝衝突決定劍盾是否計入）
+  function resilienceScore(id, isCombat = true) {
+    const p = people[id];
+    if (p.dead) return -999;
+    const gearBonus = isCombat ? (p.swords * 16 + p.shields * 24) : 0;
+    return p.hp + gearBonus + (p.hunger >= 50 ? 8 : p.hunger <= 20 ? -16 : 0);
+  }
 
-  // P1：點選角色，一次分一份，全部分完才結束
-  IDS.forEach(target => {
-    $('slot-' + target).addEventListener('click', e => {
-      if (phase !== 'distribute' || distLeader !== 'p1' || !pool.length) return;
-      if (e.target.closest('.eat')) return;
-      sendFromPool(target);
-    });
-  });
+  function isCarlTopResourceHolder(carlId) {
+    const alive = aliveIds();
+    if (!carlId || people[carlId].dead || people[carlId].hp < 50) return false;
+    const power = id => (people[id].swords + people[id].shields) * 3 + people[id].food + people[id].hp * 0.05;
+    const maxPower = Math.max(...alive.map(power));
+    return power(carlId) >= maxPower - 0.5 || (people[carlId].swords + people[carlId].shields) > 0;
+  }
 
-  // P2／P3：8～10 秒分完，分批、快慢不一，中間有停頓與假猶豫
-  // 依 NPC 個性決定分配：回傳 { p1, p2, p3 } 各拿幾份
-  function planNpc(leader, total) {
-    const others = IDS.filter(id => id !== leader);
-    const alloc = { p1: 0, p2: 0, p3: 0 };
-    let mine;
-    if (leader === 'p2') {
-      // 慈悲瑪莉：50% 一個都不拿；否則只拿 1～2 個
-      mine = Math.random() < 0.5 ? 0 : Math.min(total, randInt(1, 2));
-    } else {
-      // 無賴卡爾：一定先分給自己 2～3 個
-      mine = Math.min(total, randInt(2, 3));
+  // 性格在同一局內固定；所有同伴重開局重新抽取，隊伍必有 A 與 B。
+  function npcDecisionContext(id) {
+    const alive = aliveIds();
+    const others = alive.filter(x => x !== id);
+    const strongest = others.slice().sort((a,b) => resilienceScore(b, currentIsCombat) - resilienceScore(a, currentIsCombat))[0] || id;
+    const wounded = alive.slice().sort((a,b) => people[a].hp - people[b].hp)[0];
+    const needy = alive.slice().sort((a,b) => (people[a].hunger + people[a].food * HUNGER_RESTORE) - (people[b].hunger + people[b].food * HUNGER_RESTORE))[0];
+    const friend = others.slice().sort((a,b) => NPC_TRUST[id][b] - NPC_TRUST[id][a] || people[b].hp - people[a].hp)[0] || id;
+    const resented = others.filter(x => NPC_TRUST[id][x] < 0).sort((a,b) => NPC_TRUST[id][a] - NPC_TRUST[id][b])[0];
+    return { alive, others, strongest, wounded, needy, friend, resented };
+  }
+
+  function personalityVote(voter, mode) {
+    const trait = getNpcBehavior(voter);
+    const { alive, others, strongest, wounded, needy, friend, resented } = npcDecisionContext(voter);
+    const me = people[voter];
+    if (!others.length) return voter;
+    const danger = mode === 'danger';
+    const fit = me.hp >= 55 && me.hunger >= 25;
+    const scared = currentDangerPct >= 55 || !fit;
+    if (trait === 'noah' || trait === 'cowardly') {
+      if (danger) return scared ? strongest : (me.hunger < 40 && me.hp >= 70 ? voter : strongest);
+      if (mode === 'shield' || mode === 'inheritance' || (mode === 'herb' && me.hp < 85)) return voter;
+      return mode === 'sword' ? strongest : wounded;
     }
-    alloc[leader] = mine;
-    let rest = total - mine;
-    // 其餘盡量均分給其他人；除不盡的那一份隨機給其中一人
-    const first = Math.random() < 0.5 ? 0 : 1;
-    others.forEach((id, i) => {
-      alloc[id] = Math.floor(rest / others.length);
-    });
-    for (let k = 0; k < rest % others.length; k++) alloc[others[(first + k) % others.length]]++;
+    if (trait === 'eilin') {
+      if (danger) return fit && currentDangerPct <= 35 ? voter : strongest;
+      if (mode === 'herb') return me.hp <= 45 ? voter : wounded;
+      if (mode === 'sword') return strongest;
+      if (mode === 'shield') return me.hp <= 60 ? voter : wounded;
+      return needy;
+    }
+    if (trait === 'andy') {
+      if (danger) return fit ? voter : strongest;
+      if (mode === 'herb') return me.hp < 75 ? voter : wounded;
+      if (mode === 'sword' || mode === 'inheritance') return voter;
+      return wounded;
+    }
+    if (trait === 'mina') {
+      if (danger) return resented || strongest;
+      if (mode === 'herb') return me.hp <= 40 ? voter : (people[friend].hp < 80 ? friend : wounded);
+      return friend;
+    }
+    if (trait === 'hans') {
+      if (danger) return fit ? voter : strongest;
+      if (mode === 'sword' || mode === 'shield') return fit ? voter : strongest;
+      if (mode === 'herb') return me.hp <= 55 ? voter : wounded;
+      return needy;
+    }
+    if (trait === 'rodi' || trait === 'selfless' || trait === 'reckless') {
+      if (danger) return (trait === 'reckless' ? me.hp > 20 : fit) ? voter : strongest;
+      if (mode === 'sword') return fit ? voter : strongest;
+      if (mode === 'herb' || mode === 'shield') return wounded;
+      return needy;
+    }
+    if (trait === 'mabi') {
+      if (danger) return resented || (currentDangerPct <= 40 && fit ? voter : strongest);
+      if (mode === 'herb') return me.hp < 90 ? voter : friend;
+      return voter;
+    }
+    if (trait === 'jess') {
+      if (danger) return currentDangerPct <= 40 && fit ? voter : strongest;
+      if (mode === 'herb') return me.hp <= 35 ? voter : wounded;
+      if (mode === 'sword') return strongest;
+      if (mode === 'shield') return me.hp <= 55 ? voter : friend;
+      return needy;
+    }
+    if (trait === 'selfish') {
+      if (danger) return currentDangerPct <= 40 && fit ? voter : strongest;
+      return mode === 'herb' && me.hp === MAX ? strongest : voter;
+    }
+    return null;
+  }
+
+  function personalityFoodDistribution(leader, total) {
+    const trait = getNpcBehavior(leader);
+    if (!['noah','eilin','andy','mina','hans','rodi','mabi','jess',...MIEN_EXTREMES].includes(trait)) return null;
+    const { alive, others, friend } = npcDecisionContext(leader);
+    const alloc = Object.fromEntries(IDS.map(id => [id, 0]));
+    if (!others.length) { alloc[leader] = total; return alloc; }
+    let reserve = 0;
+    if (['noah','cowardly'].includes(trait)) reserve = people[leader].hunger < 40 ? 4 : 3;
+    if (trait === 'andy') reserve = people[leader].hunger < 45 ? 4 : 3;
+    if (trait === 'hans') reserve = people[leader].hunger < 45 ? 3 : 2;
+    if (['mabi','selfish'].includes(trait)) reserve = Math.ceil(total * 0.5);
+    alloc[leader] = Math.min(total, reserve);
+    for (let i = alloc[leader]; i < total; i++) {
+      const candidates = alive.slice().sort((a,b) => {
+        const score = id => {
+          let value = people[id].hunger + (people[id].food + alloc[id]) * HUNGER_RESTORE;
+          if (id === leader && ['noah','cowardly','andy','hans','mabi','selfish'].includes(trait)) value += 100;
+          if (id === leader && ['eilin','rodi','selfless','jess'].includes(trait)) value += 12;
+          if (trait === 'mina' && id === friend) value -= 24;
+          if (trait === 'mabi') value -= Math.max(-3, NPC_TRUST[leader][id]) * 8;
+          if (trait === 'hans' && id !== leader && people[id].hp >= 55 && people[id].hunger < 40) value -= 12;
+          if (trait === 'jess' && people[id].hp < 50) value -= 12;
+          return value;
+        };
+        return score(a) - score(b) || people[a].hp - people[b].hp;
+      });
+      alloc[candidates[0]]++;
+    }
     return alloc;
   }
 
-  async function distributeNpc() {
-    const alloc = planNpc(distLeader, pool.length);
-    const chunks = IDS.filter(id => alloc[id] > 0).map(id => [id, alloc[id]]);
-    for (let i = chunks.length - 1; i > 0; i--) { const j = randInt(0, i); [chunks[i], chunks[j]] = [chunks[j], chunks[i]]; }
-    // 無賴卡爾：分配過程中先把自己的份拿走，剩下才分給其他人
-    if (distLeader === 'p3') chunks.sort((a, b) => (b[0] === 'p3') - (a[0] === 'p3'));
-    const GAP = 140;
-    const total = 3000;
-    const pauseBudget = Math.max(0, total - pool.length * GAP);
-    const slots = chunks.length - 1;
-    const weights = Array.from({ length: Math.max(slots, 0) }, () => 0.4 + Math.random() * 2.2);
-    const sumW = weights.reduce((a, b) => a + b, 0) || 1;
+  // ---------- 6位角色的「食物」分配邏輯 ----------
+  function planNpcFoodDistribution(leader, total) {
+    const personalityPlan = personalityFoodDistribution(leader, total);
+    if (personalityPlan) return personalityPlan;
+    const role = getNpcBehavior(leader);
+    const alive = aliveIds();
+    const others = alive.filter(id => id !== leader);
+    const alloc = {};
+    IDS.forEach(id => { alloc[id] = 0; });
+    if (!others.length) { alloc[leader] = total; return alloc; }
 
-    const result = { p1: 0, p2: 0, p3: 0, store: 0 };
+    if (role === 'mary') {
+      for (let i = 0; i < total; i++) {
+        const candidates = alive.slice().sort((a, b) => {
+          const effHungerA = people[a].hunger + (people[a].food + alloc[a]) * HUNGER_RESTORE + (a === leader ? 4 : 0);
+          const effHungerB = people[b].hunger + (people[b].food + alloc[b]) * HUNGER_RESTORE + (b === leader ? 4 : 0);
+          if (effHungerA !== effHungerB) return effHungerA - effHungerB;
+          return people[a].hp - people[b].hp;
+        });
+        alloc[candidates[0]]++;
+      }
+      return alloc;
+    }
+
+    if (role === 'carl') {
+      const mine = Math.min(total, Math.max(3, Math.ceil(total * 0.45)));
+      alloc[leader] = mine;
+      let rest = total - mine;
+      let worthy = others.filter(id => people[id].hp > 42 && people[id].hunger > 15);
+      if (!worthy.length) {
+        worthy = others.slice().sort((a, b) => people[b].hp - people[a].hp).slice(0, Math.max(1, Math.ceil(others.length / 2)));
+      }
+      worthy.forEach((id, idx) => {
+        alloc[id] = Math.floor(rest / worthy.length) + (idx < (rest % worthy.length) ? 1 : 0);
+      });
+      return alloc;
+    }
+
+    let mine = 2;
+    if (role === 'noah') {
+      mine = Math.random() < 0.35 ? (Math.random() < 0.5 ? 0 : 1) : Math.min(total, randInt(2, 3));
+    } else if (role === 'eilin') {
+      mine = Math.random() < 0.65 ? Math.min(total, Math.max(3, Math.ceil(total * 0.45))) : 1;
+    } else if (role === 'mien') {
+      const roll = Math.random();
+      mine = roll < 0.33 ? 0 : roll < 0.66 ? Math.max(1, Math.floor(total / alive.length)) : Math.min(total, Math.ceil(total * 0.45));
+    } else {
+      const selfNeed = people[leader].hunger < 45 ? 3 : 2;
+      mine = Math.min(total, selfNeed);
+    }
+
+    alloc[leader] = mine;
+    let rest = total - mine;
+    const receivers = others.slice().sort((a, b) => {
+      return (people[a].hunger + randInt(-12, 12)) - (people[b].hunger + randInt(-12, 12));
+    });
+    receivers.forEach(id => { alloc[id] = Math.floor(rest / receivers.length); });
+    for (let k = 0; k < rest % receivers.length; k++) {
+      alloc[receivers[k]]++;
+    }
+    return alloc;
+  }
+
+  async function distributeNpcFood() {
+    const alloc = planNpcFoodDistribution(distLeader, pool.length);
+    aliveIds().filter(id => id !== distLeader).forEach(id => {
+      NPC_TRUST[id][distLeader] += alloc[id] > 0 ? Math.min(2, alloc[id]) : -1;
+    });
+    const chunks = aliveIds().filter(id => alloc[id] > 0).map(id => [id, alloc[id]]);
+    const role = getNpcBehavior(distLeader);
+    if (role === 'carl' || role === 'eilin') {
+      chunks.sort((a, b) => (b[0] === distLeader) - (a[0] === distLeader));
+    }
+    const result = {};
+    IDS.forEach(id => { result[id] = 0; });
     const ps = [];
     for (let i = 0; i < chunks.length; i++) {
       const [t, c] = chunks[i];
       for (let k = 0; k < c; k++) {
-        ps.push(sendFromPool(t));
+        ps.push(sendItemFromPool(t));
         result[t]++;
-        await wait(GAP);
+        await wait(85);
       }
-      if (i < slots) await wait(Math.max(450, pauseBudget * weights[i] / sumW));
+      if (i < chunks.length - 1) await wait(240);
     }
     await Promise.all(ps);
     return result;
   }
 
-  // 火堆右側浮出獲得的金幣數量
-  async function showGain(n) {
-    const g = $('gain');
-    g.innerHTML = '';
-    const cv = document.createElement('canvas');
-    drawSprite(cv, SPRITES[lootKey], 3);
-    const span = document.createElement('span');
-    span.textContent = `+${n}`;
-    g.append(cv, span);
-    g.classList.add('show');
-    await wait(1800);
-    g.classList.remove('show');
-    await wait(400);
-  }
-
-  // ---------- 投票 ----------
-  let phase = 'idle';
-  let votes = { p1: null, p2: null, p3: null };
+  // ---------- 6人投票系統 ----------
+  let votes = {};
   let pendingTarget = null;
   let blinkTimers = {};
+  let voteFinishResolve = null;
+  let currentVoteMode = 'danger'; // 'danger' | 'sword' | 'shield' | 'herb' | 'inheritance' | 'epilogue'
 
-  function setPick(voter, target) {
+  function setPick(voter, target, showTag = false) {
     const box = $('pick-' + voter);
     box.textContent = '';
     if (!target) { box.classList.remove('show'); return; }
-    box.style.background = TUNIC[target];
+    if (target === 'stay') {
+      box.style.background = '#b8862d';
+      if (showTag) box.textContent = '留下';
+    } else if (target === 'leave') {
+      box.style.background = '#4f6b8a';
+      if (showTag) box.textContent = '離開';
+    } else {
+      box.style.background = TUNIC[target];
+      if (showTag) box.textContent = target.toUpperCase();
+    }
     box.classList.add('show');
   }
 
-  // 已投票但未公布：色塊停止閃爍，顯示土色；非玩家方塊加上「?」
   function setDone(voter) {
+    if (people[voter].dead) return;
     const box = $('pick-' + voter);
     box.style.background = 'var(--line)';
     box.textContent = voter === 'p1' ? '' : '?';
     box.classList.add('show');
   }
 
-  function showCard(text) {
-    const deck = $('deckSlot');
-    deck.innerHTML = '';
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.textContent = text;
-    deck.appendChild(card);
+  const SWORD_LIMIT = 2;
+  const SHIELD_LIMIT = 1;
+  function canReceiveGear(id, key) {
+    return !people[id].dead && (key === 'sword' ? people[id].swords < SWORD_LIMIT : people[id].shields < SHIELD_LIMIT);
+  }
+  function receiveGear(id, key) {
+    if (!canReceiveGear(id, key)) return false;
+    people[id][key === 'sword' ? 'swords' : 'shields']++;
+    return true;
+  }
+  function eligibleVoteTargets(mode) {
+    return aliveIds().filter(id => !['sword','shield'].includes(mode) || canReceiveGear(id, mode));
+  }
+  function syncPendingSelection() {
+    IDS.forEach(id => $('slot-' + id).classList.toggle('selected', id === pendingTarget));
+  }
+  function gearVoteWarning(target) {
+    const text = currentVoteMode === 'shield'
+      ? `${NAMES[target]} 已持有盾牌，請選其他人。`
+      : `${NAMES[target]} 已持有2把鐵劍，請選其他人。`;
+    $('voteNotice').textContent = text;
+    $('voteNotice').style.display = 'block';
+  }
+  function chooseNpcTarget(voter, mode) {
+    const eligible = eligibleVoteTargets(mode);
+    const chosen = chooseNpcTargetByPersonality(voter, mode);
+    if (eligible.includes(chosen)) return chosen;
+    if (!eligible.length) return null;
+    return eligible.slice().sort((a,b) => mode === 'shield' ? people[a].hp - people[b].hp : resilienceScore(b, true) - resilienceScore(a, true))[0];
+  }
+  async function awardLimitedGear(key, context = '') {
+    const name = key === 'sword' ? '生鏽鐵劍' : '腐朽木盾';
+    if (!eligibleVoteTargets(key).length) {
+      log(`所有人都已有足夠的${name}，留下這件裝備。`);
+      return;
+    }
+    await spawnPool(1, key);
+    await runVoteSession(`【${context || name}】\n${key === 'sword' ? '武器可能有助團體防禦，也能保護自己。' : '防具通常只能保護自己。'}\n投票交給誰？`, key);
+    const winner = await getSingleWinner(`獲得了【${name}】`);
+    if (pool.length) await flyPoolItem(takeFromPool(), $('slot-' + winner), () => { receiveGear(winner, key); render(); });
+    await showStepCard(`【表決結果】\n【${name}】交由 ${NAMES[winner]} 持有。`, '繼續');
   }
 
-  function npcVote(voter) {
+  // 角色的投票決策邏輯
+  function chooseNpcTargetByPersonality(voter, mode) {
+    const role = getNpcBehavior(voter);
+    const alive = aliveIds();
+    const others = alive.filter(id => id !== voter);
+    if (!others.length) return voter;
+    const personalityTarget = personalityVote(voter, mode);
+    if (personalityTarget) return personalityTarget;
+
+    // ================== 【瑪莉 mary】衡量整體狀態型 ==================
+    if (role === 'mary') {
+      if (mode === 'sword') {
+        const noSword = alive.filter(id => people[id].swords === 0);
+        const poolList = noSword.length ? noSword : alive;
+        return poolList.slice().sort((a, b) => resilienceScore(b, true) - resilienceScore(a, true))[0];
+      }
+      if (mode === 'shield' || mode === 'herb') {
+        return alive.slice().sort((a, b) => people[a].hp - people[b].hp)[0];
+      }
+      if (mode === 'inheritance') {
+        return alive.slice().sort((a, b) => {
+          const scoreA = people[a].hunger + people[a].food * HUNGER_RESTORE + (a === voter ? 3 : 0);
+          const scoreB = people[b].hunger + people[b].food * HUNGER_RESTORE + (b === voter ? 3 : 0);
+          return scoreA - scoreB;
+        })[0];
+      }
+      const ranked = alive.slice().sort((a, b) => resilienceScore(b, currentIsCombat) - resilienceScore(a, currentIsCombat));
+      const bestId = ranked[0];
+      const maxScore = resilienceScore(bestId, currentIsCombat);
+      const maryScore = resilienceScore(voter, currentIsCombat);
+
+      if (people[voter].hp <= 55 || people[voter].hunger <= 24) {
+        return others.slice().sort((a, b) => resilienceScore(b, currentIsCombat) - resilienceScore(a, currentIsCombat))[0];
+      }
+      if (maxScore - maryScore <= 12) {
+        return voter;
+      }
+      return bestId;
+    }
+
+    // ================== 【卡爾 carl】弱者汰除＋肥差搶奪＋終局強者挺身 ==================
+    if (role === 'carl') {
+      if (mode === 'sword' || mode === 'shield' || mode === 'inheritance') {
+        return voter;
+      }
+      if (mode === 'herb') {
+        // 只要自己有受傷就搶草藥；若自己幾乎滿血則投給戰力最強的人（或自己）
+        if (people[voter].hp < 92) return voter;
+        return alive.slice().sort((a, b) => resilienceScore(b, true) - resilienceScore(a, true))[0];
+      }
+      // 終局反轉（第 25~30 天毀滅級危險，若自己是資源/裝備強者，主動挺身而出）
+      if (day >= 25 && currentDangerPct >= 75 && isCarlTopResourceHolder(voter)) {
+        return voter;
+      }
+      // 輕鬆肥差搶資源（危險 <= 46% 且有食物可拿，若血量 >= 55 則搶著出發壟斷分配權）
+      if (currentDangerPct <= 46 && currentPlan && currentPlan.type !== 'herb_gather' && currentPlan.gained > 0 && people[voter].hp >= 55) {
+        return voter;
+      }
+      // 汰除弱者（把快死的人送出去送死）
+      const weaklings = others.filter(id => people[id].hp <= 48 || (people[id].hp + people[id].hunger * 0.5) <= 68);
+      if (weaklings.length > 0) {
+        weaklings.sort((a, b) => (people[a].hp + people[a].hunger * 0.3) - (people[b].hp + people[b].hunger * 0.3));
+        return weaklings[0];
+      }
+      return others[randInt(0, others.length - 1)];
+    }
+
+    // ================== 諾亞、李歐、米恩 ==================
+    if (role === 'noah') {
+      if (mode === 'herb') {
+        if (Math.random() < 0.35 && lastHerbGatherer && !people[lastHerbGatherer].dead && people[lastHerbGatherer].hp < MAX) {
+          return lastHerbGatherer;
+        }
+        return people[voter].hp < 80 ? voter : alive.slice().sort((a, b) => people[a].hp - people[b].hp)[0];
+      }
+      if (mode !== 'danger') return Math.random() < 0.35 ? (!people.p1.dead ? 'p1' : others[0]) : voter;
+      return Math.random() < 0.35 ? voter : others[randInt(0, others.length - 1)];
+    }
+    if (role === 'eilin') {
+      if (mode === 'herb') {
+        if (people[voter].hp < 95 && Math.random() < 0.8) return voter;
+        return alive.slice().sort((a, b) => people[a].hp - people[b].hp)[0];
+      }
+      if (mode !== 'danger') return Math.random() < 0.75 ? voter : others[randInt(0, others.length - 1)];
+      if (Math.random() < 0.65) {
+        return others.slice().sort((a, b) => people[a].hp - people[b].hp)[0];
+      }
+      return others[randInt(0, others.length - 1)];
+    }
+    if (role === 'mien') {
+      if (mode !== 'danger') return alive[randInt(0, alive.length - 1)];
+      if (Math.random() < 0.5) {
+        return alive.slice().sort((a, b) => people[b].food - people[a].food)[0];
+      }
+      return alive[randInt(0, alive.length - 1)];
+    }
+
+    // ================== 一般末日常人角色（安迪、敏娜、漢斯、羅帝、馬比丘、安娜） ==================
+    if (mode === 'sword') {
+      if (Math.random() < 0.40) return voter;
+      const strongPool = alive.slice().sort((a, b) => resilienceScore(b, true) - resilienceScore(a, true)).slice(0, 3);
+      return strongPool[randInt(0, strongPool.length - 1)];
+    }
+    if (mode === 'shield') {
+      if (people[voter].hp <= 55 && Math.random() < 0.65) return voter;
+      const roll = Math.random();
+      if (roll < 0.38) {
+        const swordHolders = alive.filter(id => people[id].swords > 0);
+        if (swordHolders.length) return swordHolders[randInt(0, swordHolders.length - 1)];
+      } else if (roll < 0.75) {
+        const wounded = alive.slice().sort((a, b) => people[a].hp - people[b].hp);
+        return wounded[0];
+      }
+      return voter;
+    }
+    if (mode === 'herb') {
+      // 常人面對唯一一株草藥：自己重傷時想自救；否則在「剛才冒險採藥且受傷的人」與「全隊傷勢最重的人」之間抉擇
+      if (people[voter].hp <= 55 && Math.random() < 0.65) return voter;
+      if (lastHerbGatherer && !people[lastHerbGatherer].dead && people[lastHerbGatherer].hp < 85 && Math.random() < 0.45) {
+        return lastHerbGatherer;
+      }
+      return alive.slice().sort((a, b) => people[a].hp - people[b].hp)[0];
+    }
+    if (mode === 'inheritance') {
+      if (people[voter].hunger <= 35 && Math.random() < 0.55) return voter;
+      return alive[randInt(0, alive.length - 1)];
+    }
+
+    // 面對危險任務（mode === 'danger'）
+    if ((role === 'hans' || role === 'rodi') && currentDangerPct <= 45 && people[voter].hp >= 80 && Math.random() < 0.18) {
+      return voter;
+    }
+    if (Math.random() < 0.65) {
+      const topCandidates = others.slice().sort((a, b) => resilienceScore(b, currentIsCombat) - resilienceScore(a, currentIsCombat)).slice(0, Math.min(3, others.length));
+      return topCandidates[randInt(0, topCandidates.length - 1)];
+    }
+    return others[randInt(0, others.length - 1)];
+  }
+
+  function npcVote(voter, mode) {
+    if (people[voter].dead) return;
+    const alive = aliveIds();
     const duration = randInt(VOTE_MIN_MS, VOTE_MAX_MS);
-    const speed = voter === 'p2' ? 367 : 633; // 原速度 110 / 190 ms，降低 70%
-    let i = 0;
+    const speed = 280 + randInt(0, 180);
+    let i = randInt(0, alive.length - 1);
     blinkTimers[voter] = setInterval(() => {
-      setPick(voter, IDS[i % IDS.length]);
+      setPick(voter, alive[i % alive.length], false);
       i++;
     }, speed);
     setTimeout(() => {
       clearInterval(blinkTimers[voter]);
-      votes[voter] = IDS[randInt(0, IDS.length - 1)];
+      votes[voter] = chooseNpcTarget(voter, mode);
       setDone(voter);
       checkAllVoted();
     }, duration);
   }
 
-  IDS.forEach(target => {
-    $('slot-' + target).addEventListener('click', () => {
-      if (phase !== 'vote' || votes.p1) return;
-      pendingTarget = target;
-      const self = target === 'p1' ? '（自己）' : '';
-      $('modalText').textContent = `投給 ${NAMES[target]}${self}？`;
-      $('modal').classList.add('show');
-    });
-  });
+  // ---------- 連按三次「你」(P1) 切換手機全螢幕模式 ----------
+  let p1TapTimes = [];
+  let p2TapTimes = [];
+  let p1VoteModalTimer = null;
 
-  // P1 投票時：滑鼠移到哪個角色，P1 上方色塊就預覽該角色的顏色
+  function hideCornerHint() {
+    const ch = $('cornerHint');
+    if (ch && !ch.classList.contains('hide')) {
+      ch.classList.add('hide');
+    }
+  }
+
+  function toggleMobileMode() {
+    hideCornerHint();
+    const isNowMobile = document.body.classList.toggle('mobile-mode');
+    fitDesktop();
+    reflowReadingPages();
+    if (isNowMobile) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+    render();
+  }
+
+  function openVoteModalFor(target) {
+    if (phase !== 'vote' || currentVoteMode === 'epilogue' || votes.p1 || people[target].dead) return;
+    if (!eligibleVoteTargets(currentVoteMode).includes(target)) {
+      gearVoteWarning(target);
+      return;
+    }
+    if (p1VoteModalTimer) { clearTimeout(p1VoteModalTimer); p1VoteModalTimer = null; }
+    $('voteNotice').style.display = 'none';
+    pendingTarget = target;
+    syncPendingSelection();
+    setPick('p1', target, true);
+    const self = target === 'p1' ? '（自己）' : '';
+    const actionTxt = currentVoteMode === 'sword'
+      ? `把【生鏽鐵劍】投給 ${NAMES[target]}${self}？`
+      : currentVoteMode === 'shield'
+      ? `把【腐朽木盾】投給 ${NAMES[target]}${self}？`
+      : currentVoteMode === 'herb'
+      ? `把【草藥】投給 ${NAMES[target]}${self}？`
+      : currentVoteMode === 'inheritance'
+      ? `把【無法均分的剩餘遺物】投給 ${NAMES[target]}${self}？`
+      : `投給 ${NAMES[target]}${self}？`;
+    renderProse($('modalText'), actionTxt);
+    $('modalOk').textContent = '確定';
+    $('modalCancel').textContent = '取消';
+    $('modalCancel').className = 'ghost';
+    $('modal').classList.add('show');
+  }
+
   IDS.forEach(target => {
     const el = $('slot-' + target);
+    el.addEventListener('click', () => {
+      // 1 秒內連按 3 次 P2：整個重新開始，並切換為「有頭銜版」（保留手機模式設定）
+      if (target === 'p2') {
+        const now = Date.now();
+        p2TapTimes = p2TapTimes.filter(t => now - t <= 1000);
+        p2TapTimes.push(now);
+        if (p2TapTimes.length >= 3) {
+          p2TapTimes = [];
+          const mobile = document.body.classList.contains('mobile-mode');
+          // 開關：目前無頭銜 → 開啟頭銜；目前有頭銜 → 關閉頭銜；兩者都整個重新開始
+          const parts = [];
+          if (!TITLED) parts.push('titled');
+          if (mobile) parts.push('mobile');
+          location.hash = parts.length ? '#' + parts.join(',') : '';
+          location.reload();
+          return;
+        }
+      }
+      // 檢測是否在 1 秒內連續點擊 3 次「你」(p1)
+      if (target === 'p1') {
+        const now = Date.now();
+        p1TapTimes = p1TapTimes.filter(t => now - t <= 1000);
+        p1TapTimes.push(now);
+        if (p1TapTimes.length >= 3) {
+          p1TapTimes = [];
+          if (p1VoteModalTimer) { clearTimeout(p1VoteModalTimer); p1VoteModalTimer = null; }
+          if (currentVoteMode !== 'epilogue') {
+            pendingTarget = null;
+    syncPendingSelection();
+            $('modal').classList.remove('show');
+          }
+          toggleMobileMode();
+          return;
+        }
+      }
+
+      // 分食物階段
+      if (phase === 'distribute' && distLeader === 'p1' && pool.length && !people[target].dead) {
+        sendItemFromPool(target);
+        return;
+      }
+
+      // 一般投票階段
+      if (phase === 'vote' && currentVoteMode !== 'epilogue' && !votes.p1 && !people[target].dead) {
+        if (target === 'p1') {
+          if (p1VoteModalTimer) clearTimeout(p1VoteModalTimer);
+          p1VoteModalTimer = setTimeout(() => {
+            p1VoteModalTimer = null;
+            openVoteModalFor('p1');
+          }, 260);
+        } else {
+          openVoteModalFor(target);
+        }
+      }
+    });
+
     el.addEventListener('mouseenter', () => {
-      if (phase !== 'vote' || votes.p1 || pendingTarget) return;
+      if (phase !== 'vote' || currentVoteMode === 'epilogue' || votes.p1 || pendingTarget || people[target].dead) return;
       el.classList.add('hover');
-      setPick('p1', target);
+      setPick('p1', target, true);
     });
     el.addEventListener('mouseleave', () => {
       el.classList.remove('hover');
-      if (phase !== 'vote' || votes.p1 || pendingTarget) return;
+      if (phase !== 'vote' || currentVoteMode === 'epilogue' || votes.p1 || pendingTarget) return;
       setDone('p1');
     });
   });
 
   $('modalOk').addEventListener('click', () => {
+    if (currentVoteMode === 'epilogue') return;
     if (!pendingTarget) return;
+    if (!eligibleVoteTargets(currentVoteMode).includes(pendingTarget)) { gearVoteWarning(pendingTarget); return; }
     votes.p1 = pendingTarget;
     setDone('p1');
-    log('P1 已投票。');
     pendingTarget = null;
+    syncPendingSelection();
     $('modal').classList.remove('show');
     checkAllVoted();
   });
 
   $('modalCancel').addEventListener('click', () => {
+    if (currentVoteMode === 'epilogue') return;
     pendingTarget = null;
+    syncPendingSelection();
     $('modal').classList.remove('show');
     if (!votes.p1) setDone('p1');
   });
 
-  // 全部投完後倒數 3 2 1，期間色塊維持灰色（未公布），倒數結束才一起公布
   let revealing = false;
   async function countdown() {
     const el = $('countdown');
-    // 倒數顯示在火堆正中間
     el.classList.add('show');
     for (const n of [2, 1]) {
       el.textContent = n;
-      await wait(800);
+      await wait(480);
     }
     el.classList.remove('show');
-    await wait(200);
+    await wait(140);
   }
 
   async function checkAllVoted() {
-    if (revealing || !IDS.every(id => votes[id])) return;
+    if (currentVoteMode === 'epilogue') return;
+    const alive = aliveIds();
+    if (revealing || !alive.every(id => votes[id])) return;
     revealing = true;
+    phase = 'resolve';
     await countdown();
     await revealVotes();
-    resolve();
+    if (voteFinishResolve) {
+      const r = voteFinishResolve;
+      voteFinishResolve = null;
+      r();
+    }
   }
 
-  // 逐一揭曉：依 P1、P2、P3 順序翻開，同時累加被投角色的票數
   async function revealVotes() {
-    const count = { p1: 0, p2: 0, p3: 0 };
-    for (const id of IDS) {
+    const count = {};
+    IDS.forEach(id => { count[id] = 0; });
+    for (const id of aliveIds()) {
       const target = votes[id];
-      setPick(id, target);
-      log(`${NAMES[id]} 投給 ${NAMES[target]}。`);
+      setPick(id, target, true);
       count[target]++;
       const t = $('tally-' + target);
       t.textContent = count[target] + '票';
       t.classList.add('show');
-      await wait(600);
+      await wait(240);
     }
-    // 最高票發亮 1.5 秒
+    log('投票：' + aliveIds().filter(id => count[id] > 0).sort((a, b) => count[b] - count[a]).map(id => `${NAMES[id]} ${count[id]} 票`).join('、'));
     const top = tally();
     top.forEach(id => $('slot-' + id).classList.add('win'));
-    await wait(1500);
+    await wait(1150);
     top.forEach(id => $('slot-' + id).classList.remove('win'));
     IDS.forEach(id => $('tally-' + id).classList.remove('show'));
   }
 
-  // 平手：平手的角色格一起閃爍，再進入抽牌
+  function tally() {
+    const alive = aliveIds();
+    const count = {};
+    IDS.forEach(id => { count[id] = 0; });
+    alive.forEach(id => { if (votes[id]) count[votes[id]]++; });
+    const max = Math.max(...alive.map(id => count[id]));
+    return alive.filter(id => count[id] === max);
+  }
+
   async function flashTied(ids) {
     ids.forEach(id => $('slot-' + id).classList.add('tie'));
-    await wait(1200);
+    await wait(950);
     ids.forEach(id => $('slot-' + id).classList.remove('tie'));
   }
 
-  function tally() {
-    const count = {};
-    IDS.forEach(id => { count[id] = 0; });
-    IDS.forEach(id => { count[votes[id]]++; });
-    const max = Math.max(...IDS.map(id => count[id]));
-    return IDS.filter(id => count[id] === max);
-  }
-
-
-  // 平手抽牌：所有人頭上的色塊蓋成土色 → 飛到火堆下方疊成一疊並洗牌 → 倒數 3 2 1 → 抽出一張往右翻開
+  // 平手抽牌動畫
   async function drawCard(tied) {
-    // 疊牌位置：火堆下方、P2 格子上方（中心點）
-    const p2 = $('slot-p2').getBoundingClientRect();
-    const cx = p2.left + p2.width / 2;
-    const cy = $('fireCanvas').getBoundingClientRect().bottom + 6 + 20; // 緊貼火堆底座下方
-    const W = 30, H = 40;
+    const alive = aliveIds();
+    const fr = $('fireCanvas').getBoundingClientRect();
+    const cx = fr.left + fr.width / 2;
+    const cy = Math.min(window.innerHeight - 60, fr.top + fr.height / 2);
+    const W = 28, H = 36;
 
-    // 先把頭上色塊蓋成土色，再換成實體卡片
-    IDS.forEach(id => setDone(id));
-    $('pick-p1').textContent = '?';
-    await wait(500);
+    alive.forEach(id => setDone(id));
+    if (!people.p1.dead) $('pick-p1').textContent = '?';
+    await wait(300);
 
-    const cards = IDS.map(id => {
+    const cards = alive.map(id => {
       const r = $('pick-' + id).getBoundingClientRect();
       const c = document.createElement('div');
       c.className = 'dcard';
       c.textContent = '?';
       c.style.left = (r.left + r.width / 2 - W / 2) + 'px';
       c.style.top = (r.top + r.height / 2 - H / 2) + 'px';
-      c.style.transform = 'scale(1)';
       document.body.appendChild(c);
       return { id, el: c };
     });
     IDS.forEach(id => setPick(id, null));
 
-    // 飛到疊牌位置，輕微錯位像是蓋起來的一疊
+    const base = c => ({
+      dx: cx - W / 2 - parseFloat(c.el.style.left),
+      dy: cy - H / 2 - parseFloat(c.el.style.top),
+    });
+
     await Promise.all(cards.map((c, i) => {
-      const from = c.el.getBoundingClientRect();
-      const dx = cx - W / 2 - parseFloat(c.el.style.left);
-      const dy = cy - H / 2 - parseFloat(c.el.style.top);
+      const { dx, dy } = base(c);
       return c.el.animate(
-        [{ transform: 'translate(0,0) scale(1)' },
-         { transform: `translate(${dx}px, ${dy}px) scale(1)` }],
-        { duration: 700, easing: 'ease-in-out', fill: 'forwards', delay: i * 80 }
+        [{ transform: 'translate(0,0)' }, { transform: `translate(${dx}px, ${dy}px)` }],
+        { duration: 420, easing: 'ease-in-out', fill: 'forwards', delay: i * 35 }
       ).finished;
     }));
 
-    // 輕微洗牌：每張左右小幅交錯位移、微轉
-    const base = c => {
-      const dx = cx - W / 2 - parseFloat(c.el.style.left);
-      const dy = cy - H / 2 - parseFloat(c.el.style.top);
-      return { dx, dy };
-    };
-    for (let round = 0; round < 4; round++) {
+    for (let round = 0; round < 2; round++) {
       await Promise.all(cards.map(c => {
         const { dx, dy } = base(c);
-        const ox = randInt(-14, 14), oy = randInt(-5, 5), rot = randInt(-8, 8);
+        const ox = randInt(-14, 14), oy = randInt(-5, 5), rot = randInt(-9, 9);
         return c.el.animate(
-          [{ transform: `translate(${dx}px, ${dy}px)` },
-           { transform: `translate(${dx + ox}px, ${dy + oy}px) rotate(${rot}deg)`, offset: 0.5 },
-           { transform: `translate(${dx}px, ${dy}px)` }],
-          { duration: 320, easing: 'ease-in-out' }
+          [
+            { transform: `translate(${dx}px, ${dy}px)` },
+            { transform: `translate(${dx + ox}px, ${dy + oy}px) rotate(${rot}deg)`, offset: 0.5 },
+            { transform: `translate(${dx}px, ${dy}px)` },
+          ],
+          { duration: 220, easing: 'ease-in-out' }
         ).finished;
       }));
     }
-    // 定位在疊牌位置（固定，之後以 left/top 控制）
+
     cards.forEach(c => {
       const { dx, dy } = base(c);
       c.el.getAnimations().forEach(a => a.cancel());
@@ -1209,693 +2344,913 @@
       c.el.style.transform = 'none';
     });
 
-    // 從「平手角色得到的票」中抽出一張，放到最上面
-    const pool = cards.filter(c => tied.includes(votes[c.id]));
-    const drawn = pool[randInt(0, pool.length - 1)];
+    const cardPool = cards.filter(c => tied.includes(votes[c.id]));
+    const drawn = cardPool[randInt(0, cardPool.length - 1)];
     document.body.appendChild(drawn.el);
 
-    // 倒數 3 2 1：數字顯示在最上面那張牌上
     for (const n of [2, 1]) {
       drawn.el.textContent = n;
-      await wait(800);
+      await wait(480);
     }
     drawn.el.textContent = '?';
-    await wait(300);
+    await wait(160);
 
-    // 往右移出一張
     await drawn.el.animate(
-      [{ transform: 'translateX(0)' }, { transform: 'translateX(70px)' }],
-      { duration: 500, easing: 'ease-out', fill: 'forwards' }
+      [{ transform: 'translateX(0)' }, { transform: 'translateX(60px)' }],
+      { duration: 340, easing: 'ease-out', fill: 'forwards' }
     ).finished;
-    drawn.el.style.transform = 'translateX(70px)';
+    drawn.el.style.transform = 'translateX(60px)';
     drawn.el.getAnimations().forEach(a => a.cancel());
-    await wait(300);
+    await wait(160);
 
-    // 翻開：橫向壓扁 → 換成該顏色 → 展開
     await drawn.el.animate(
-      [{ transform: 'translateX(70px) scaleX(1)' }, { transform: 'translateX(70px) scaleX(0)' }],
-      { duration: 220, easing: 'ease-in', fill: 'forwards' }
+      [{ transform: 'translateX(60px) scaleX(1)' }, { transform: 'translateX(60px) scaleX(0)' }],
+      { duration: 160, easing: 'ease-in', fill: 'forwards' }
     ).finished;
     const winner = votes[drawn.id];
-    drawn.el.textContent = '';
+    drawn.el.textContent = winner.toUpperCase();
     drawn.el.style.background = TUNIC[winner];
     await drawn.el.animate(
-      [{ transform: 'translateX(70px) scaleX(0)' }, { transform: 'translateX(70px) scaleX(1)' }],
-      { duration: 220, easing: 'ease-out', fill: 'forwards' }
+      [{ transform: 'translateX(60px) scaleX(0)' }, { transform: 'translateX(60px) scaleX(1)' }],
+      { duration: 160, easing: 'ease-out', fill: 'forwards' }
     ).finished;
 
-    // 公布：被抽中的角色格發亮
     $('slot-' + winner).classList.add('win');
-    await wait(1500);
+    await wait(1150);
     $('slot-' + winner).classList.remove('win');
     cards.forEach(c => c.el.remove());
     return winner;
   }
 
-  // 回合結尾：全員飢餓扣除、NPC 自動進食、天數 +1
-  async function endRound() {
-    IDS.forEach(id => {
-      people[id].hunger = Math.max(0, people[id].hunger - HUNGER_COST - (workCost[id] || 0));
+  async function runVoteSession(cardText, mode = 'danger') {
+    currentVoteMode = mode;
+    pendingTarget = null;
+    syncPendingSelection();
+    $('voteNotice').style.display = 'none';
+    votes = {};
+    IDS.forEach(id => { votes[id] = null; });
+    revealing = false;
+    IDS.forEach(id => setPick(id, null));
+    setDone('p1');
+    showCard(cardText, false);
+    $('expedBtn').textContent = '請點選角色卡片進行投票';
+    $('expedBtn').disabled = true;
+    phase = 'vote';
+    IDS.filter(id => id !== 'p1').forEach(id => npcVote(id, mode));
+    await new Promise(res => { voteFinishResolve = res; });
+  }
+
+  async function getSingleWinner(actionLabel) {
+    const tied = tally();
+    let winner;
+    if (tied.length === 1) {
+      winner = tied[0];
+      log(`投票結果：${NAMES[winner]} ${actionLabel}。`);
+    } else {
+      log(`平手（${tied.map(id => NAMES[id]).join('、')}），洗牌抽籤決定！`);
+      await flashTied(tied);
+      winner = await drawCard(tied);
+      log(`抽籤結果：${NAMES[winner]} ${actionLabel}！`);
+    }
+    IDS.forEach(id => setPick(id, null));
+    return winner;
+  }
+
+  // ---------- 陣亡檢查與遺物分配（先盡量均分，最後無法均分的餘數投票決定全歸誰） ----------
+  async function handleDeathsAndInheritance() {
+    const newlyDead = IDS.filter(id => people[id].hp <= 0 && !people[id].dead);
+    if (!newlyDead.length) return false;
+
+    let totalFood = 0;
+    let totalSwords = 0;
+    let totalShields = 0;
+    const deadNames = newlyDead.map(id => NAMES[id]).join('、');
+
+    newlyDead.forEach(id => {
+      people[id].hp = 0;
+      people[id].dead = true;
+      totalFood += people[id].food;
+      totalSwords += people[id].swords;
+      totalShields += people[id].shields;
+      people[id].food = 0;
+      people[id].swords = 0;
+      people[id].shields = 0;
+      log(`【陣亡】${NAMES[id]} 傷重不治倒下了……`);
     });
-    log(`新的一天，三人飢餓度各 -${HUNGER_COST}。`);
-    Object.keys(workCost).forEach(id => log(`${NAMES[id]} 工作消耗，飢餓度再 -${workCost[id]}。`));
     render();
 
-    await wait(1500);
+    if (people.p1.dead) return true;
+    const alive = aliveIds();
+    if (!alive.length) return true;
+
+    if (totalFood === 0 && totalSwords === 0 && totalShields === 0) {
+      await showStepCard(`【同伴陣亡】\n${deadNames} 倒下了，身上沒有留下任何物資。`, '繼續');
+      return false;
+    }
+
+    for (let i = 0; i < totalSwords; i++) await awardLimitedGear('sword', '遺物：生鏽鐵劍');
+    for (let i = 0; i < totalShields; i++) await awardLimitedGear('shield', '遺物：腐朽木盾');
+    totalSwords = 0;
+    totalShields = 0;
+
+    const nAlive = alive.length;
+    const evenFood = Math.floor(totalFood / nAlive);
+    const remFood = totalFood % nAlive;
+    const evenSwords = Math.floor(totalSwords / nAlive);
+    const remSwords = totalSwords % nAlive;
+    const evenShields = Math.floor(totalShields / nAlive);
+    const remShields = totalShields % nAlive;
+
+    // 1. 先處理可均分的部分
+    if (evenFood > 0 || evenSwords > 0 || evenShields > 0) {
+      const evenParts = [];
+      if (evenFood > 0) evenParts.push(`食物各 ${evenFood} 份`);
+      if (evenSwords > 0) evenParts.push(`生鏽鐵劍各 ${evenSwords} 把`);
+      if (evenShields > 0) evenParts.push(`腐朽木盾各 ${evenShields} 面`);
+
+      const itemsToFly = [];
+      for (let i = 0; i < evenFood * nAlive; i++) itemsToFly.push('berry');
+      for (let i = 0; i < evenSwords * nAlive; i++) itemsToFly.push('sword');
+      for (let i = 0; i < evenShields * nAlive; i++) itemsToFly.push('shield');
+
+      await showStepCard(
+        `【遺物均分】\n${deadNames} 倒下了，生前留下的物資由生還的 ${nAlive} 人先盡量均分。\n每人分得：${evenParts.join('、')}。`,
+        '領取均分遺物'
+      );
+
+      await spawnMixedPool(itemsToFly);
+      const flyPromises = [];
+      for (const id of alive) {
+        for (let k = 0; k < evenFood; k++) {
+          const item = pool.find(x => x.key === 'berry') || takeFromPool();
+          pool.splice(pool.indexOf(item), 1);
+          flyPromises.push(flyPoolItem(item, $('slot-' + id), () => { people[id].food += 1; render(); }));
+        }
+        for (let k = 0; k < evenSwords; k++) {
+          const item = pool.find(x => x.key === 'sword') || takeFromPool();
+          pool.splice(pool.indexOf(item), 1);
+          flyPromises.push(flyPoolItem(item, $('slot-' + id), () => { receiveGear(id, 'sword'); render(); }));
+        }
+        for (let k = 0; k < evenShields; k++) {
+          const item = pool.find(x => x.key === 'shield') || takeFromPool();
+          pool.splice(pool.indexOf(item), 1);
+          flyPromises.push(flyPoolItem(item, $('slot-' + id), () => { receiveGear(id, 'shield'); render(); }));
+        }
+      }
+      await Promise.all(flyPromises);
+      log(`${deadNames} 的遺物已均分給所有生還者（每人 ${evenParts.join('、')}）。`);
+    }
+
+    // 2. 無法均分的餘數：投票決定剩下的全部歸誰
+    if (remFood > 0 || remSwords > 0 || remShields > 0) {
+      const remParts = [];
+      if (remFood > 0) remParts.push(`${remFood} 份食物`);
+      if (remSwords > 0) remParts.push(`${remSwords} 把生鏽鐵劍`);
+      if (remShields > 0) remParts.push(`${remShields} 面腐朽木盾`);
+      const remDesc = remParts.join('、');
+
+      const remItems = [];
+      for (let i = 0; i < remFood; i++) remItems.push('berry');
+      for (let i = 0; i < remSwords; i++) remItems.push('sword');
+      for (let i = 0; i < remShields; i++) remItems.push('shield');
+
+      await spawnMixedPool(remItems);
+      log(`火堆旁放著無法均分的遺物（${remDesc}），進入全員投票！`);
+      await runVoteSession(
+        `【剩餘遺物投票】\n${deadNames} 留下了無法均分的【${remDesc}】。\n剩下的全部歸誰？`,
+        'inheritance'
+      );
+      const winner = await getSingleWinner(`獨得剩餘遺物（${remDesc}）`);
+
+      const remPromises = [];
+      while (pool.length > 0) {
+        const item = takeFromPool();
+        remPromises.push(flyPoolItem(item, $('slot-' + winner), () => {
+          if (item.key === 'sword') receiveGear(winner, 'sword');
+          else if (item.key === 'shield') receiveGear(winner, 'shield');
+          else people[winner].food += 1;
+          render();
+        }));
+        await wait(85);
+      }
+      await Promise.all(remPromises);
+      await showStepCard(`【遺物表決結果】\n剩餘遺物（${remDesc}）全部歸 ${NAMES[winner]} 所有。`, '繼續');
+    }
+
+    return false;
+  }
+
+  // ---------- 插隊投票事件 1：生鏽鐵劍（情境化描述，不顯示冰冷百分比數字） ----------
+  async function rustySwordVoteEvent() {
+    await awardLimitedGear('sword');
+  }
+
+  // ---------- 插隊投票事件 2：腐朽木盾（情境化描述，強調只保護持有者） ----------
+  async function rottenShieldVoteEvent() {
+    await awardLimitedGear('shield');
+  }
+
+  // ---------- 草藥投票事件（採藥歸來或意外發現，均為 1 株高恢復量草藥投票決定給誰用） ----------
+  async function singleHerbVoteEvent(gathererId = null) {
+    lastHerbGatherer = gathererId;
+    await spawnPool(1, 'herb');
+
+    const promptText = gathererId
+      ? `【草藥】\n${NAMES[gathererId]} 帶回1株，須立即使用。\n投票給誰治傷？`
+      : `【發現草藥】\n找到1株，須立即使用。\n投票給誰治傷？`;
+
+    log('火堆旁放著唯一一株【草藥】，請投票決定給誰治療！');
+    await runVoteSession(promptText, 'herb');
+    const winner = await getSingleWinner('獲得了【草藥】');
+
+    let healedAmt = 0;
+    let hungerBonus = false;
+    if (pool.length) {
+      await flyPoolItem(takeFromPool(), $('slot-' + winner), () => {
+        const beforeHp = people[winner].hp;
+        people[winner].hp = Math.min(MAX, people[winner].hp + SINGLE_HERB_HEAL);
+        healedAmt = people[winner].hp - beforeHp;
+        if (healedAmt === 0) {
+          people[winner].hunger = Math.min(MAX, people[winner].hunger + 6);
+          hungerBonus = true;
+        }
+        render();
+      });
+    }
+
+    lastHerbGatherer = null;
+    if (hungerBonus) {
+      await showStepCard(`【敷藥結果】\n${NAMES[winner]} 並未受傷，便將草藥的根莖嚼食充飢，飢餓度稍微獲得了緩解。`, '繼續');
+    } else {
+      await showStepCard(`【治療結果】\n${NAMES[winner]} 立即敷上了草藥，傷口止血癒合，生命恢復至 ${people[winner].hp}/${MAX}！`, '繼續');
+    }
+  }
+
+  // ---------- 插隊投票事件 4：洞頂崩裂（狹窄空間一人主撐、眾人旁助）／追兵尾隨 ----------
+  async function suddenHazardVoteEvent(kind) {
+    const isCollapse = kind === 'collapse';
+    currentIsCombat = !isCollapse;
+    currentDangerPct = isCollapse ? 68 : 72;
+
+    const cardPrompt = isCollapse
+      ? '【洞頂崩裂】\n誰撐住木樁，讓其他人加固？\n重度危險 68%'
+      : '【追兵逼近】\n誰繞路引開追兵，讓大家躲回洞穴？\n重度危險 72%';
+
+    log(isCollapse ? '突發狀況：洞頂岩層崩裂！狹窄空間需選一人為主撐住木樁。' : '突發狀況：劫匪追兵尾隨！開始緊急投票。');
+    await runVoteSession(cardPrompt, 'danger');
+    const victim = await getSingleWinner(isCollapse ? '在狹窄處為主死命撐住木樁' : '去當誘餌引開追兵');
+
+    await playCurtain(victim, isCollapse ? '主撐巨石中' : '誘敵斷後中');
+
+    const selfSwords = isCollapse ? 0 : people[victim].swords;
+    const selfShields = isCollapse ? 0 : people[victim].shields;
+
+    const chanceCut = selfSwords * 0.02 + selfShields * 0.02;
+    const dmgCut = selfSwords * 2 + selfShields * 3;
+    const baseChance = currentDangerPct / 100;
+    const u = Math.random();
+    let msg = '';
+
+    const collapseInjuries = [
+      '在狹窄裂縫處死命主撐木樁、等待眾人從旁加固時，被崩落的稜角巨石砸中肩膀',
+      '獨自頂在最窄的受力點支撐木樁時，被碎裂墜落的岩片割開額頭與手臂',
+      '在狹窄空間全力死撐、讓大家得以在旁堆石加固時，因落石重壓扭傷腰背並吐血',
+    ];
+    const baitInjuries = [
+      '繞路引開追兵時被荊棘劃傷後背',
+      '在密林摸黑折返時跌倒撞傷手臂',
+      '躲進石縫避開追兵時被尖石劃傷側腹',
+    ];
+
+    if (u < baseChance - chanceCut) {
+      const raw = randInt(16, 20);
+      const dmg = Math.max(1, raw - dmgCut);
+      people[victim].hp = Math.max(0, people[victim].hp - dmg);
+      const evList = isCollapse ? collapseInjuries : baitInjuries;
+      const ev = evList[randInt(0, evList.length - 1)];
+      msg = `${NAMES[victim]} ${ev}，損失 ${dmg} 點生命。`;
+    } else if (u < baseChance && chanceCut > 0) {
+      msg = `${NAMES[victim]} 驚險脫身，平安返回洞穴。`;
+    } else {
+      msg = isCollapse
+        ? `${NAMES[victim]} 在狹窄處死命撐住木樁，配合其他人在旁迅速加固，驚險萬分地沒有受傷！`
+        : `${NAMES[victim]} 驚險萬分地甩開了追兵，沒有受傷！`;
+    }
+
+    render();
+    log(msg);
+    await showStepCard('【突發狀況結果】\n' + msg, '繼續');
+    await handleDeathsAndInheritance();
+  }
+
+  // ---------- 洞窟襲擊戰鬥結算（眾人一起防守可能有較好結果；鐵劍保護全隊、木盾僅護個人） ----------
+  function doorRows() {
+    const alive = aliveIds();
+    const count = {};
+    alive.forEach(id => { count[id] = 0; });
+    alive.forEach(id => { if (votes[id]) count[votes[id]]++; });
+    const levels = [...new Set(alive.map(id => count[id]))].sort((a, b) => b - a);
+    return levels.map(n => alive.filter(id => count[id] === n));
+  }
+
+  function doorRisk(rowIdx, size, basePct, crowdChanceMod) {
+    let delta;
+    if (rowIdx === 0) delta = size === 1 ? +3 : size === 2 ? +2 : +1;
+    else if (rowIdx === 1) delta = -2;
+    else delta = -3;
+    const damageDelta = rowIdx === 0 ? (size === 1 ? 2 : size === 2 ? 1 : 0) : rowIdx === 1 ? -1 : -2;
+    return { chance: Math.min(0.96, Math.max(0.08, (basePct + delta + crowdChanceMod) / 100)), delta, damageDelta };
+  }
+
+  const ROW_NAMES = ['前排', '第二排', '第三排', '第四排', '第五排', '第六排'];
+
+  async function doorBattle(plan, customEvents = null, customTitle = '【洞窟防禦戰報】') {
+    const rows = doorRows();
+    if (plan.workHunger) {
+      const [wlo, whi] = plan.workHunger;
+      rows[0].forEach(id => { workCost[id] = (workCost[id] || 0) + randInt(wlo, whi); });
+    }
+    log('迎戰站位：' + rows.map((r, i) => `${ROW_NAMES[i]} ${r.map(id => NAMES[id]).join('、')}`).join('；') + '。');
+
+    rows.forEach((r, i) => r.forEach(id => {
+      const t = $('tally-' + id);
+      t.textContent = ROW_NAMES[i];
+      t.classList.add('show');
+    }));
+    await wait(1350);
+
+    const aliveCount = aliveIds().length;
+    const crowdChanceMod = 3 - aliveCount;
+    const crowdDmgReduction = aliveCount - 3;
+
+    const hurt = [];
+    const results = {};
+    const totalTeamSwords = aliveIds().reduce((sum, id) => sum + people[id].swords, 0);
+    const evList = customEvents || DOOR_EVENTS;
+
+    rows.forEach((r, i) => r.forEach(id => {
+      const { chance, damageDelta } = doorRisk(i, r.length, currentDangerPct, crowdChanceMod);
+      const selfSwords = people[id].swords;
+      const selfShields = people[id].shields;
+      const otherTeamSwords = totalTeamSwords - selfSwords;
+      const swordChanceCut = otherTeamSwords * 0.01 + selfSwords * 0.02;
+      const shieldChanceCut = selfShields * 0.02;
+      const totalChanceCut = swordChanceCut + shieldChanceCut;
+
+      const u = Math.random();
+      if (u < chance - totalChanceCut) {
+        const raw = randInt(plan.dmgMin, plan.dmgMax) + damageDelta;
+        const swordDmgCut = otherTeamSwords + selfSwords * 2;
+        const shieldDmgCut = selfShields * 3;
+        const cut = swordDmgCut + shieldDmgCut + crowdDmgReduction;
+        const dmg = Math.max(1, raw - cut);
+        const ev = evList[randInt(0, evList.length - 1)];
+        people[id].hp = Math.max(0, people[id].hp - dmg);
+
+        hurt.push(`${NAMES[id]} 在${ROW_NAMES[i]}${ev}，損失 ${dmg} 點生命。`);
+        results[id] = { dmg, ev, row: i };
+      } else if (u < chance && (totalChanceCut > 0 || crowdChanceMod < 0)) {
+        hurt.push(`${NAMES[id]} 在${ROW_NAMES[i]}撐過襲擊，沒有受傷。`);
+        results[id] = { dmg: 0, label: '撐住' };
+      } else {
+        hurt.push(`${NAMES[id]} 在${ROW_NAMES[i]}避開了襲擊，沒有受傷。`);
+        results[id] = { dmg: 0, label: '閃避' };
+      }
+    }));
+
+    render();
+    if (hurt.length) hurt.forEach(h => log(h));
+
+    // 戰報分頁：依站位由前排到後排，每頁 3 位，每人一句「在哪一排、為什麼受傷、損失多少」；最後一頁附座位總結格
+    const anyHurt = Object.keys(results).some(id => results[id].dmg > 0);
+    const grid = IDS.map(id => people[id].dead && !results[id] ? { id, value: '—', cls: 'off' }
+      : results[id] && results[id].dmg > 0 ? { id, value: '−' + results[id].dmg, cls: 'hurt' }
+      : { id, value: results[id] ? results[id].label : '—', cls: 'safe' });
+    const pages = [];
+    for (let i = 0; i < hurt.length; i += 3) pages.push(hurt.slice(i, i + 3));
+    for (let i = 0; i < pages.length; i++) {
+      const last = i === pages.length - 1;
+      const tag = pages.length > 1 ? `（${i + 1}/${pages.length}）` : '';
+      const note = (i === 0 && !anyHurt) ? '\n敵人被成功擋下，無人受傷！' : '';
+      await showStepCard(`${customTitle}${tag}${note}\n` + pages[i].join('\n'),
+        last ? '了解' : `看其餘 ${hurt.length - (i + 1) * 3} 位`, last ? grid : null);
+    }
+    IDS.forEach(id => {
+      const t = $('tally-' + id);
+      t.classList.remove('show');
+      setPick(id, null);
+    });
+  }
+
+  // ---------- 第 30 天終局：依當下傷勢與性格呈現的寫實語氣與去留決定 ----------
+  // 終局表態：中性旁觀描述（不用他／她）＋一句依性格的短台詞
+  const EPILOGUE_NARRATION = {
+    stay_ok: [
+      '{n}拍掉身上的塵土，往火堆裡添了一根柴，靜靜坐回原本的位置。',
+      '{n}望著洞口的天光看了很久，最後還是把行囊放回岩壁邊。',
+      '{n}默默撿起散落的木片，開始修補被劈爛的木門。',
+      '{n}揉了揉凍僵的手指，在火堆旁重新鋪好睡覺用的乾草。',
+    ],
+    stay_hurt: [
+      '{n}靠著岩壁緩緩坐下，按住仍在滲血的傷口，沒有起身的打算。',
+      '{n}試著站起來，腳步晃了一下，又扶著石壁慢慢坐回火旁。',
+      '{n}臉色蒼白地縮在火堆邊，呼吸又淺又急，視線一直停在洞口。',
+      '{n}低頭看著纏滿布條的手臂，苦笑著把行囊推到一旁。',
+    ],
+    leave_ok: [
+      '{n}把僅剩的乾糧塞進布袋，站在洞口深吸了一口清晨的冷風。',
+      '{n}緊了緊鞋帶，回頭看了火堆一眼，便朝山下的小路走去。',
+      '{n}背起行囊，在洞口停了片刻，朝眾人點了點頭。',
+      '{n}拍了拍身旁夥伴的肩膀，轉身走進逐漸明亮的山林。',
+    ],
+  };
+  const EPILOGUE_LINES = {
+    mary:     ['外頭還亂，總得有人顧著火。', '……我先歇一下，大家活著就好。', 'stay'],
+    carl:     ['外頭沒人管，正是撈好處的時候。', '嘖……這副樣子下山，只會送命。', 'leave'],
+    noah:     ['萬一劫匪又繞回來呢……我不走。', '拜託，別叫我出去……', 'stay'],
+    eilin:    ['這種地方我待夠了，各自保重吧。', '傷成這樣……還是互相照應吧。', 'leave'],
+    andy:     ['嘴裡淡得要命，我要下山找口酒喝。', '頭好暈……讓我躺一陣子。', 'leave'],
+    mina:     ['我得去打聽街坊們的消息。', '咳……我一個人走不下山的。', 'leave'],
+    hans:     ['門還破著，我先把它修好再說。', '先歇口氣，至少還能幫大家擋風。', 'stay'],
+    rodi:     ['軍隊需要熟悉山路的人，我去帶路。', '可惡……現在下山只會拖累人。', 'leave'],
+    mabi:     ['回城裡也沒人想見我，這裡就好。', '這副鬼樣子……還是山洞適合我。', 'stay'],
+    jess:     ['謝謝大家……我想回家找爹娘。', '好想回家……可是一步都走不動。', 'leave'],
+    selfish:  ['我先走了，剩下的你們自己想辦法。', '別指望我，我自己都顧不上。', 'leave'],
+    selfless: ['我留下，誰還需要照顧就說一聲。', '我沒事……你們先顧好自己。', 'stay'],
+    reckless: ['憋了這麼久，總算能出去走走了！', '哈……這點傷算什麼，等我緩口氣。', 'leave'],
+    cowardly: ['外面……真的安全了嗎？我再等等。', '好痛……我哪裡都不去……', 'stay'],
+  };
+  function decideEpilogueSpeech(id) {
+    const def = EPILOGUE_LINES[getNpcBehavior(id)] || ['……再看看吧。', '……讓我歇一下。', 'stay'];
+    const hurt = people[id].hp < 50;
+    const choice = hurt ? 'stay' : def[2];
+    const pool = EPILOGUE_NARRATION[hurt ? 'stay_hurt' : choice + '_ok'];
+    const narration = pool[randInt(0, pool.length - 1)].replace('{n}', NAMES[id]);
+    return { choice, line: `${narration}\n「${hurt ? def[1] : def[0]}」` };
+  }
+
+  async function runFinalEpilogueVote() {
+    currentVoteMode = 'epilogue';
+    votes = {};
+    const alive = aliveIds();
+    const npcAlive = alive.filter(id => id !== 'p1');
+    IDS.forEach(id => {
+      votes[id] = null;
+      setPick(id, null);
+      $('tally-' + id).classList.remove('show');
+    });
+
+    await showStepCard(
+      '【一切結束後的抉擇：暫留洞窟 或 各自離開】\n' +
+      '漫長的生死煎熬終於熬過來了，但外頭的天下尚未完全平息。\n' +
+      '這一次不再少數服從多數——每個人都可以表達自己的意願：要在一切完全平息前「繼續在洞穴裡一起生活」，還是「就此各自離開」？\n\n' +
+      '洞窟裡一片寂靜，只剩下營火劈啪作響，倖存的夥伴們開始依序開口……',
+      '聆聽夥伴們的想法'
+    );
+
+    phase = 'resolve';
+    $('expedBtn').textContent = '夥伴們正在依序表達意願…';
+    $('expedBtn').disabled = true;
+
+    const stayNames = [];
+    const leaveNames = [];
+    const spokenRecords = [];
+
+    // 依序讓每一位存活的同伴（P2~P6）思索、亮出選擇、並說出當下狀態的話語（中間有間隔）
+    for (const id of npcAlive) {
+      setDone(id);
+      const speech = decideEpilogueSpeech(id);
+
+      let k = 0;
+      const timer = setInterval(() => {
+        setPick(id, k % 2 === 0 ? 'stay' : 'leave', false);
+        k++;
+      }, 280);
+      await wait(1150);
+      clearInterval(timer);
+
+      votes[id] = speech.choice;
+      const isStay = speech.choice === 'stay';
+      if (isStay) stayNames.push(NAMES[id]);
+      else leaveNames.push(NAMES[id]);
+
+      setPick(id, speech.choice, true);
+      const t = $('tally-' + id);
+      t.textContent = isStay ? '暫留洞窟' : '各自離開';
+      t.classList.add('show');
+      $('slot-' + id).classList.add('win');
+
+      const recordLine = `【${NAMES[id]}｜選擇：${isStay ? '暫留洞窟' : '各自離開'}】\n${speech.line}`;
+      spokenRecords.push(recordLine);
+      log(`${NAMES[id]}（${isStay ? '暫留洞窟' : '各自離開'}）：${speech.line.replace('\n', ' ')}`);
+
+      showCard(
+        `【夥伴們的去留表態｜${spokenRecords.length}/${npcAlive.length}】\n\n` + recordLine,
+        true
+      );
+
+      await wait(2700);
+      $('slot-' + id).classList.remove('win');
+    }
+
+    // 最後輪到 P1（你）回答自己
+    setDone('p1');
+    $('pick-p1').textContent = '?';$('expedBtn').textContent = '請在下方視窗做出你的決定';
+
+    if (spokenRecords.length === 0) {
+      showCard('【最後的抉擇】\n同伴們都已不在了，洞窟裡只剩下你一個人。\n在一切完全平息前，你想繼續留在洞穴裡生活，還是就此離開？', true);
+    }
+
+    const playerChoice = await new Promise(resolve => {
+      $('modalText').textContent =
+        '【輪到你了】\n在天下完全平息之前，你自己的決定是？';
+      $('modalOk').textContent = '繼續留在洞穴生活（留下）';
+      $('modalCancel').textContent = '就此各自離開（離開）';
+      $('modalCancel').className = 'alt-choice';$('modal').classList.add('show');
+
+      const finish = choice => {
+        $('modal').classList.remove('show');$('modalCancel').className = 'ghost';
+        resolve(choice);
+      };
+      $('modalOk').onclick = () => finish('stay');$('modalCancel').onclick = () => finish('leave');
+    });
+
+    $('modalOk').onclick = null;
+    $('modalCancel').onclick = null;
+
+    votes.p1 = playerChoice;
+    const p1Stay = playerChoice === 'stay';
+    if (p1Stay) stayNames.push('你');
+    else leaveNames.push('你');
+
+    setPick('p1', playerChoice, true);
+    const t1 = $('tally-p1');
+    t1.textContent = p1Stay ? '暫留洞窟' : '各自離開';
+    t1.classList.add('show');
+    $('slot-p1').classList.add('win');
+
+    const p1Line = p1Stay
+      ? '【你｜選擇：暫留洞窟】\n你吐出一口長氣，看著身上乾涸的血跡與搖曳的營火，決定在局勢徹底平息前先留在這座洞窟裡。'
+      : '【你｜選擇：各自離開】\n你拍了拍身上的灰塵，收拾好僅存的行囊望向洞外天光，決定就此踏上歸途。';
+
+    spokenRecords.push(p1Line);
+
+    log(`你 選擇了【${p1Stay ? '暫留洞窟' : '各自離開'}】。`);
+
+    showCard(
+      p1Line,
+      true
+    );
+
+    await wait(2400);
+    $('slot-p1').classList.remove('win');
+
+    // 顯示 THE END 最終畫面
+    const titleEl = $('endTitle');
+    const descEl = $('endDesc');
+    titleEl.textContent = 'THE END';
+    titleEl.style.color = '#e8c26a';
+
+    const staySummary = stayNames.length
+      ? `・選擇暫留洞窟（${stayNames.length}人）：${stayNames.join('、')}`
+      : '・選擇暫留洞窟：無';
+    const leaveSummary = leaveNames.length
+      ? `・選擇各自離開（${leaveNames.length}人）：${leaveNames.join('、')}`
+      : '・選擇各自離開：無';
+
+    let closingNarrative = '';
+    if (stayNames.length > 0 && leaveNames.length > 0) {
+      closingNarrative =
+        '破曉的陽光終於照進滿是刀痕的洞口。\n' +
+        '選擇離開的人背起行囊，與留在火堆旁的夥伴點頭道別，走入逐漸甦醒的山林；而留下來的人則重新添上柴火，靜靜等待遠方平亂的號角徹底平息。';
+    } else if (stayNames.length > 0) {
+      closingNarrative =
+        '破曉的陽光照進洞口，沒有人急著離去。\n' +
+        '經歷了這場九死一生的劫難，所有生還者都默契地留在了營火旁，決定在這個亂世徹底平息之前，繼續在洞窟裡彼此扶持生活下去。';
+    } else {
+      closingNarrative =
+        '破曉的陽光照進洞口，營火的最後一縷青煙緩緩散去。\n' +
+        '生還的眾人各自收拾好行囊，在洞口互道珍重後便踏上了不同的山路，回歸各自的人生。';
+    }
+
+    descEl.textContent =
+      `【亂世破曉・各自的路】\n` +
+      `${staySummary}\n` +
+      `${leaveSummary}\n\n` +
+      `${closingNarrative}\n\n` +
+      `—— 全劇終（THE END） ——`;
+    renderProse(descEl, descEl.textContent);
+
+
+    $('demo').classList.add('show');
+  }
+
+  async function playDay30BossSequence() {
+    const shake = async () => {
+      const hit = (x, y) => ({ transform: `translate(${x}px, ${y}px)` });
+      const kf = [hit(0, 0), hit(-5, 2), hit(5, -2), hit(-3, 0), hit(0, 0)];
+      const sc = document.querySelector('.scene');
+      for (let i = 0; i < 3; i++) {
+        await sc.animate(kf, { duration: 220, easing: 'ease-out' }).finished;
+        await wait(i < 2 ? 150 : 0);
+      }
+      await wait(180);
+    };
+
+    await showStepCard(
+      '【最終決戰：叛軍統領親至！】\n' +
+      '剛愎自用的「叛軍統領」為了獨攬肅清山谷的功勞，只帶了少量親信部隊（劫匪嘍囉、精銳護衛軍，以及一批受高壓脅迫跟隨的王國正規軍士兵）來到洞口！\n\n' +
+      '只要撐過這場死鬥，或許就能迎來生機！',
+      '迎戰第一波'
+    );
+
+    // 第一波：劫匪嘍囉撬門
+    await shake();
+    currentDangerPct = randInt(68, 76);
+    currentIsCombat = true;
+    await runVoteSession(
+      `【最終決戰・第一波】劫匪嘍囉破門，誰該靠前迎戰？\n重度危險 ${currentDangerPct}%`,
+      'danger'
+    );
+    await doorBattle({ dmgMin: 16, dmgMax: 22, workHunger: [5, 7] }, BOSS_WAVE_1_EVENTS, '【第一波：擊退劫匪嘍囉】');
+    if ((await handleDeathsAndInheritance()) || people.p1.dead) { showEnding(true); return; }
+
+    // 第二波：統領的護衛軍
+    await shake();
+    currentDangerPct = randInt(76, 84);
+    currentIsCombat = true;
+    await runVoteSession(
+      `【最終決戰・第二波】精銳護衛衝來，誰該靠前迎戰？\n極度危險 ${currentDangerPct}%`,
+      'danger'
+    );
+    await doorBattle({ dmgMin: 21, dmgMax: 27, workHunger: [5, 7] }, BOSS_WAVE_2_EVENTS, '【第二波：擊潰統領護衛軍】');
+    if ((await handleDeathsAndInheritance()) || people.p1.dead) { showEnding(true); return; }
+
+    // 第三波：驕傲的叛軍統領覺得有趣，要大家一起上
+    await shake();
+    currentDangerPct = randInt(82, 90);
+    currentIsCombat = true;
+    await runVoteSession(
+      `【最終決戰・第三波】叛軍統領親自出手，誰該靠前迎戰？\n毀滅級危險 ${currentDangerPct}%`,
+      'danger'
+    );
+    await doorBattle({ dmgMin: 25, dmgMax: 33, workHunger: [6, 8] }, BOSS_WAVE_3_EVENTS, '【第三波：圍攻叛軍統領】');
+    if ((await handleDeathsAndInheritance()) || people.p1.dead) { showEnding(true); return; }
+
+    // 奇蹟擊倒統領與受脅迫正規軍反戈劇情
+    log('奇蹟般擊倒叛軍統領！洞外受脅迫的王國正規軍當場調轉刀槍擊潰劫匪！');
+    await showStepCard(
+      '【奇蹟逆轉・王國正規軍反戈！】\n' +
+      '在眾人拼死圍攻之下，原本勝券在握、不可一世的叛軍統領，竟意外被你們抓準破綻，奇蹟般地重傷倒地斃命！\n\n' +
+      '洞外原本受到高壓脅迫而屈服的王國正規軍士兵見統領斃命，當場調轉刀槍，將周圍殘存的劫匪士兵全數擊倒，並決定將這道捷報傳回各地，號召全軍反攻平亂！',
+      '進入最後的去留表態'
+    );
+
+    // 進行最後的個人去留表態（依序發言 ➔ 最後輪到 P1 ➔ THE END）
+    await runFinalEpilogueVote();
+  }
+
+  // ---------- 檢查是否遊戲失敗 ----------
+  function showEnding(isGameOver = false) {
+    const alive = aliveIds();
+    const titleEl = $('endTitle');
+    const descEl = $('endDesc');
+
+    if (isGameOver || people.p1.dead) {
+      titleEl.textContent = '【結局：命喪亂世】';
+      titleEl.style.color = 'var(--hp)';
+      descEl.textContent = `你在第 ${day} 天倒下了。\n在這場殘酷的逃難與慢性消耗戰中，飢餓、傷痛與人性的取捨吞噬了你。\n\n目前存活者（${alive.length}人）：${alive.length ? alive.map(id => NAMES[id]).join('、') : '全軍覆沒'}`;
+    renderProse(descEl, descEl.textContent);
+
+      $('demo').classList.add('show');
+    }
+  }
+
+  // ---------- 每日主流程 ----------
+  async function playDay() {
+    hideCornerHint();
+    phase = 'eating';
+    $('expedBtn').disabled = true;
+    if (day > 1) await dailyEat();
+
+    currentPlan = DAY_PLANS[day - 1];
+    workCost = {};
+
+    // 第 30 天進入三波叛軍統領決戰與終局去留表態
+    if (currentPlan.type === 'final_boss' || day === TOTAL_DAYS) {
+      await playDay30BossSequence();
+      return;
+    }
+
+    currentDangerPct = randInt(currentPlan.lo, currentPlan.hi);
+    currentIsCombat = currentPlan.combat !== false;
+
+    // 若是洞窟襲擊日，播放震動特效
+    if (currentPlan.type === 'door') {
+      const hit = (x, y) => ({ transform: `translate(${x}px, ${y}px)` });
+      const kf = [hit(0, 0), hit(-4, 2), hit(4, -2), hit(-2, 0), hit(0, 0)];
+      const sc = document.querySelector('.scene');
+      for (let i = 0; i < 3; i++) {
+        await sc.animate(kf, { duration: 220, easing: 'ease-out' }).finished;
+        await wait(i < 2 ? 160 : 0);
+      }
+      await wait(200);
+    }
+
+    // 進行當日主投票
+    await runVoteSession(currentPlan.prompt(currentDangerPct), 'danger');
+
+    if (currentPlan.type === 'door') {
+      await doorBattle(currentPlan);
+      const gameOver = await handleDeathsAndInheritance();
+      if (gameOver || people.p1.dead) { showEnding(true); return; }
+
+      if (currentPlan.afterEvent === 'sword' && aliveIds().length > 0) {
+        await rustySwordVoteEvent();
+      } else if (currentPlan.afterEvent === 'shield' && aliveIds().length > 0) {
+        await rottenShieldVoteEvent();
+      }
+    } else {
+      // 單人外出（採果／遠征／採草藥）
+      const leader = await getSingleWinner('被選中外出');
+      await wait(420);
+      await playCurtain(leader, currentPlan.curtainText);
+
+      const selfSwords = currentIsCombat ? people[leader].swords : 0;
+      const selfShields = currentIsCombat ? people[leader].shields : 0;
+
+      const chanceCut = selfSwords * 0.02 + selfShields * 0.02;
+      const dmgCut = selfSwords * 2 + selfShields * 3;
+      const u = Math.random();
+      const chance = currentDangerPct / 100;
+      const evPool = currentPlan.injuries;
+      let msg = null;
+
+      if (u < chance - chanceCut) {
+        const raw = randInt(currentPlan.dmgMin, currentPlan.dmgMax);
+        const dmg = Math.max(1, raw - dmgCut);
+        const ev = evPool[randInt(0, evPool.length - 1)];
+        people[leader].hp = Math.max(0, people[leader].hp - dmg);
+        msg = `${NAMES[leader]} ${currentPlan.verb}${ev}，損失 ${dmg} 點生命。`;
+      } else if (u < chance && chanceCut > 0) {
+        msg = `${NAMES[leader]} ${currentPlan.verb}驚險避開危險，平安歸來。`;
+      } else {
+        msg = `${NAMES[leader]} ${currentPlan.verb}順利避開危險，平安歸來，沒有受傷。`;
+      }
+
+      render();
+      log(msg);
+      await showStepCard('【外出戰報】\n' + msg, '了解');
+
+      const diedOutside = people[leader].hp <= 0;
+      const gameOver = await handleDeathsAndInheritance();
+      if (gameOver || people.p1.dead) { showEnding(true); return; }
+
+      const isHerbGather = currentPlan.type === 'herb_gather';
+
+      if (!diedOutside && !people[leader].dead) {
+        const [wlo, whi] = currentPlan.workHunger;
+        workCost[leader] = randInt(wlo, whi);
+
+        if (currentPlan.day === 2) {
+          await showStepCard(`【尋水結果】\n${NAMES[leader]} 找到洞穴附近安全的水源，並採集了一些野果。`, '繼續');
+        }
+
+        if (isHerbGather) {
+          // 採草藥日程：只帶回唯一 1 株草藥，直接進入全員投票決定給誰敷用
+          await singleHerbVoteEvent(leader);
+        } else {
+          // 採集／尋糧：實際帶回 4～7 份食物，由外出者分配
+          const gained = randInt(4, 7);
+          const tl = $('tally-' + leader);
+          tl.textContent = '分配中';
+          tl.classList.add('show');
+
+          log(`${NAMES[leader]} 帶回 ${gained} 份食物`);
+          await spawnPool(gained, 'berry');
+
+          if (leader === 'p1') {
+            distLeader = 'p1';
+            phase = 'distribute';
+            showCard(`【分配收穫】\n你實際帶回了 ${gained} 份食物！\n請直接「點選角色卡片」全部分配完畢。`);
+            $('expedBtn').textContent = '請點選角色卡片進行分配';
+            $('expedBtn').disabled = true;
+            await new Promise(res => { distResolve = res; checkDistDone(); });
+            phase = 'resolve';
+          } else {
+            distLeader = leader;
+            showCard(`【分配收穫】\n${NAMES[leader]} 正在分配實際帶回的 ${gained} 份食物…`);
+            const r = await distributeNpcFood();
+            const summary = aliveIds().filter(id => r[id] > 0).map(id => `${NAMES[id]}+${r[id]}`).join('、');
+            log(`${NAMES[leader]} 分配完畢：${summary}。`);
+          }
+          tl.classList.remove('show');
+        }
+      } else {
+        await showStepCard(`【收穫遺失】\n由於 ${NAMES[leader]} 在外頭不幸陣亡，今天沒有帶回任何${isHerbGather ? '草藥' : '食物'}……`, '繼續');
+      }
+
+      // 檢查是否有當日插隊投票事件（意外發現草藥／崩裂／誘餌）
+      if (aliveIds().length > 0 && !people.p1.dead) {
+        if (currentPlan.afterEvent === 'potent_herb') {
+          await singleHerbVoteEvent(null);
+        } else if (currentPlan.afterEvent === 'collapse' || currentPlan.afterEvent === 'bait') {
+          await suddenHazardVoteEvent(currentPlan.afterEvent);
+          if (people.p1.dead) { showEnding(true); return; }
+        }
+      }
+    }
+
+    // 回合結束：扣除飢餓與飢餓見底傷害
+    await endRound();
+  }
+
+  async function endRound() {
+    const starveNotes = [];
+    const starved = new Set();
+
+    const extras = [];
+    aliveIds().forEach(id => {
+      const extra = workCost[id] || 0;
+      people[id].hunger = Math.max(0, people[id].hunger - HUNGER_COST - extra);
+      if (extra > 0) extras.push(`${NAMES[id]} 勞累再 −${extra}`);
+
+      // 飢餓見底扣血
+      if (people[id].hunger === 0) {
+        starved.add(id);
+        people[id].hp = Math.max(0, people[id].hp - STARVE_DMG);
+        starveNotes.push(NAMES[id]);
+      }
+    });
+
+    log(`夜幕降臨：全員飢餓 −${HUNGER_COST}` + (extras.length ? '；' + extras.join('、') : ''));
+    if (starveNotes.length) log(`${starveNotes.join('、')} 飢餓見底，生命 −${STARVE_DMG}`);
+    render();
+
+    if (starveNotes.length) {
+      await showStepCard(`【飢寒交迫】\n糧袋見底，飢餓的人體力衰竭，各損失 ${STARVE_DMG} 點生命。`, '繼續',
+        IDS.map(id => starved.has(id) ? { id, value: '−' + STARVE_DMG, cls: 'hurt' } : { id, value: people[id].dead ? '—' : '撐住', cls: people[id].dead ? 'off' : 'safe' }));
+    }
+
+    const gameOver = await handleDeathsAndInheritance();
+    if (gameOver || people.p1.dead) { showEnding(true); return; }
+
+    await wait(350);
     IDS.forEach(id => setPick(id, null));
     day++;
-    $('dayLabel').textContent = `第${day}天`;
-    $('expedBtn').textContent = '迎接命運，前進下一天。';
+    render();
+    showCard(`第 ${day - 1} 天結束了。\n點擊下方按鈕迎接第 ${day} 天的命運。`);
+    $('expedBtn').textContent = `迎接命運（前進第${day}天）`;
     phase = 'idle';
     $('expedBtn').disabled = false;
   }
 
-  // 洞窟襲擊：同票不抽籤，同票數的人站同一排
-  function doorRows() {
-    const count = {};
-    IDS.forEach(id => { count[id] = 0; });
-    IDS.forEach(id => { count[votes[id]]++; });
-    const levels = [...new Set(IDS.map(id => count[id]))].sort((a, b) => b - a);
-    return levels.map(n => IDS.filter(id => count[id] === n));
-  }
-  function doorRisk(rowIdx, size) {
-    let delta; // 機率與傷害的同向修正
-    if (rowIdx === 0) delta = size === 1 ? +3 : size === 2 ? -1 : -2;
-    else if (rowIdx === 1) delta = -1;
-    else delta = -2;
-    return { chance: (DOOR_BASE + delta) / 100, delta };
-  }
-  const ROW_NAMES = ['前排', '第二排', '第三排', '第四排', '第五排', '第六排'];
-
-
-  // ================= 末日商人（第一階段：購買／裝備；競標、賣出留待之後） =================
-  const ITEMS = {
-    bread: { name: '麵包', kind: 'food', price: 1, tip: '恢復7飢餓',
-      sprite: ['........','..kkkk..','.kccccck','kcbwbbck','kbbbbbbk','kbbbbbbk','.kkkkkk.','........'] },
-    stick: { name: '泡水短棍', kind: 'weapon', slot: 'weapon', rank: 1, price: 2, pctLo: 0, pctHi: 1,
-      tip: '被水泡得發脹的短棍，也許還能揮兩下。',
-      sprite: ['......cc','.....cdc','....cdc.','...cdc..','..cdc...','.cdc....','cdc.....','dc......'] },
-    sword: { name: '生鏽鐵劍', kind: 'weapon', slot: 'weapon', rank: 2, price: 3, pctLo: 1, pctHi: 2,
-      tip: '鏽跡斑斑的鐵劍，鈍是鈍了點，總比空手強。',
-      sprite: ['......ww','.....wrw','....wwr.','...wrw..','y.wrw...','.yww....','..yy....','.c.yy...'] },
-    shield: { name: '腐爛木盾', kind: 'armor', slot: 'offhand', rank: 1, price: 1, pctLo: 1, pctHi: 2,
-      tip: '爛了一半的木盾，勉強還能擋在身前。',
-      sprite: ['.kkkkkk.','kcddddck','kdcddcdk','kddccddk','kdcddcdk','.kddddk.','..kddk..','...kk...'] },
-  };
-  const EQ_SLOTS = [['head','頭盔'],['neck','項鍊'],['cloak','披風'],['ring1','戒指'],
-    ['chest','胸甲'],['gloves','手套'],['belt','腰帶'],['ring2','戒指'],
-    ['weapon','武器'],['offhand','副手'],['boots','鞋子']];
-  const BAG_SIZE = 6;
-  const gear = { p1: { equip: {}, bag: [] }, p2: { equip: {}, bag: [] }, p3: { equip: {}, bag: [] } };
-
-  const LINE_BOTH = [
-    '一群徒手混戰的兩方，若其中有人有鐵棍，肯定能保護自己也能讓隊友少挨揍的。',
-    '打起來的時候啊，手上有傢伙的人，連旁邊的夥伴也跟著沾光；穿在身上的，就只顧得了自己。',
-  ];
-  const LINE_WEAPON = '手上有凶猛武器的人，不只護著自己，也能讓他夥伴少挨幾下。';
-  const LINE_ARMOR = '穿在身上的東西啊，就只護得了穿它的那個人。';
-  const LINE_LIMIT = ['麵包每人只賣一個，別貪心。', '一人一個，這是規矩。', '末日裡的糧食很金貴，一人限購一個。'];
-  const LINE_POOR = ['錢不夠啊，朋友。', '口袋空空的人，我可不賒帳。', '再翻翻口袋吧，看來是不夠的。'];
-  const LINE_SNIDE = [
-    '嘖，就這點家當，還想武裝自己？', '你確定這玩意兒不會在你手裡先散掉？', '喔？終於想活命啦。',
-    '這價錢，連我都覺得便宜你了。', '別怪我沒提醒，貨物售出，概不退換。', '你的眼光……嗯，很有勇氣。',
-    '拿著它，至少死的時候不會太難看。', '我賣過的東西很多，活著回來退貨的很少。', '挑吧挑吧，反正也沒別的客人。',
-    '這玩意兒可是我從屍堆裡一件一件撿來的。', '看你那樣子，空手出門確實危險。', '別碰壞了，那是我的鎮店之寶。',
-    '哎呀，你連劍怎麼拿都不知道吧？', '這可是上一個主人還沒用完的好貨。', '想好了再買，我可沒有什麼售後服務。',
-    '你的同伴看起來比你更需要它。', '呵，金幣在這年頭可比命值錢。', '它雖然破，但比你的拳頭可靠。',
-    '好眼光——如果你指的是「便宜」的話。', '買了就別後悔，後悔也沒用。', '我保證它撐得過……下一次戰鬥。',
-    '別看我，我也是要吃飯的。', '手伸那麼快，是怕被別人搶走嗎？', '這東西救過人，也害死過人。',
-    '放心，鏽是不會傳染的。', '你出的起錢嗎？看起來不太像。', '買吧，反正我也沒打算活太久。',
-  ];
-  let snideLast = -1;
-
-  let sellSel = [];
-  const LINE_SELL = ['破爛我也收，不過價錢別太期待。', '這個嘛……我勉強收下。', '賣東西啊？我給個公道價。', '二手貨，就這個價。'];
-  const sellPrice = it => Math.max(1, Math.floor(it.price / 3) - 1);
-  const sellTotal = () => sellSel.reduce((a, i) => a + sellPrice(gear.p1.bag[i]), 0);
-  let stock = [], sel = [], shopSpent = 0, remarksOn = true;
-  let bothDone = false, weaponDone = false, armorDone = false;
-
-  function say(t) { $('shopSay').textContent = t ? '「' + t + '」' : ''; }
-  function pickSnide() {
-    let i; do { i = randInt(0, LINE_SNIDE.length - 1); } while (i === snideLast && LINE_SNIDE.length > 1);
-    snideLast = i; return LINE_SNIDE[i];
-  }
-  function itemCanvas(it, scale) { const c = document.createElement('canvas'); drawSprite(c, it.sprite, scale); return c; }
-
-  function renderShop() {
-    const g = $('shopGrid'); g.innerHTML = '';
-    stock.forEach(e => {
-      const it = ITEMS[e.key];
-      const d = document.createElement('div');
-      d.className = 'cell' + (e.sold ? ' empty' : '') + (sel.includes(e.uid) ? ' sel' : '');
-      if (!e.sold) {
-        d.dataset.tip = `${it.name}（${it.price} 金幣）\n${it.tip}`;
-        d.appendChild(itemCanvas(it, 5));
-        const pr = document.createElement('span'); pr.className = 'price'; pr.textContent = it.price; d.appendChild(pr);
-        d.onclick = () => onPickItem(e);
-      }
-      g.appendChild(d);
-    });
-    const total = sel.reduce((a, u) => a + ITEMS[stock.find(x => x.uid === u).key].price, 0);
-    const st = sellTotal();
-    $('shopInfo').textContent = `P1 持有 ${people.p1.bread} 金幣｜買 ${sel.length} 件共 ${total} 金幣` + (sellSel.length ? `｜賣 ${sellSel.length} 件得 ${st} 金幣` : '') + '（點自己背包的裝備可賣出）';
-    $('shopOk').textContent = (sel.length || sellSel.length) ? '成交' : '離開';
-  }
-  function renderEquip() {
-    const row = $('eqRow'); row.innerHTML = '';
-    IDS.forEach(id => {
-      const pn = document.createElement('div'); pn.className = 'eq-panel';
-      pn.innerHTML = `<div class="eq-title"><span style="color:${id === 'p1' ? 'var(--ink)' : TUNIC[id]}">${NAMES[id]}</span><span style="color:#e8c26a">金錢 ${people[id].bread}　食物 ${people[id].food}</span></div>`;
-      const g = document.createElement('div'); g.className = 'eq-grid';
-      EQ_SLOTS.forEach(([k, lab]) => {
-        const d = document.createElement('div'); const it = gear[id].equip[k];
-        d.className = 'eq-slot' + (it ? ' has' : '');
-        if (it) { d.appendChild(itemCanvas(it, 4)); d.dataset.tip = it.name; } else d.textContent = lab;
-        g.appendChild(d);
-      });
-      pn.appendChild(g);
-      const sub = document.createElement('div'); sub.className = 'eq-sub'; sub.textContent = '背包'; pn.appendChild(sub);
-      const bag = document.createElement('div'); bag.className = 'eq-bag';
-      for (let i = 0; i < BAG_SIZE; i++) {
-        const d = document.createElement('div'); const it = gear[id].bag[i];
-        d.className = 'bag-slot' + (it ? ' has' : '');
-        if (it) {
-          d.appendChild(itemCanvas(it, 3));
-          d.dataset.tip = it.name + (id === 'p1' && remarksOn ? `\n賣出可得 ${sellPrice(it)} 金幣` : '');
-          if (id === 'p1' && remarksOn) {
-            d.classList.add('canSell');
-            if (sellSel.includes(i)) d.classList.add('sell');
-            d.onclick = () => onSellToggle(i);
-          }
-        }
-        bag.appendChild(d);
-      }
-      pn.appendChild(bag);
-      row.appendChild(pn);
-    });
-  }
-
-  function onSellToggle(i) {
-    if (sellSel.includes(i)) {
-      sellSel = sellSel.filter(x => x !== i);
-      const total = sel.reduce((a, u) => a + ITEMS[stock.find(x => x.uid === u).key].price, 0);
-      if (total > people.p1.bread + sellTotal()) { sel = []; say('少了這筆賣出的錢，想買的東西得重新挑了。'); }
-    } else { sellSel.push(i); say(pickFrom(LINE_SELL)); }
-    renderShop(); renderEquip();
-  }
-
-  function onPickItem(e) {
-    const it = ITEMS[e.key];
-    if (sel.includes(e.uid)) { sel = sel.filter(u => u !== e.uid); renderShop(); return; }
-    if (it.kind === 'food' && sel.some(u => stock.find(x => x.uid === u).key === 'bread')) {
-      say(LINE_LIMIT[randInt(0, LINE_LIMIT.length - 1)]); return;
-    }
-    const total = sel.reduce((a, u) => a + ITEMS[stock.find(x => x.uid === u).key].price, 0);
-    if (total + it.price > people.p1.bread + sellTotal()) { say(LINE_POOR[randInt(0, LINE_POOR.length - 1)]); return; }
-    sel.push(e.uid);
-    if (remarksOn && it.kind !== 'food') {
-      if (!bothDone) { bothDone = true; say(LINE_BOTH[randInt(0, 1)]); }
-      else if (it.kind === 'weapon' && !weaponDone) { weaponDone = true; say(LINE_WEAPON); }
-      else if (it.kind === 'armor' && !armorDone) { armorDone = true; say(LINE_ARMOR); }
-      else say(pickSnide());
-    }
-    renderShop();
-  }
-
-  // 自動裝備較好的；舊的／較差的進背包
-  function equipItem(id, it) {
-    const g = gear[id], cur = g.equip[it.slot];
-    if (!cur) { g.equip[it.slot] = it; return `裝備了${it.name}`; }
-    if (it.rank > cur.rank) { g.bag.push(cur); g.equip[it.slot] = it; return `換上${it.name}（${cur.name}放進背包）`; }
-    g.bag.push(it); return `${it.name}放進背包（原有裝備較好）`;
-  }
-  function buyItem(id, e, pay) {
-    const it = ITEMS[e.key];
-    pay = pay || it.price;
-    if (e.sold || people[id].bread < pay) return false;
-    people[id].bread -= pay; e.sold = true;
-    if (it.kind === 'food') { people[id].food += 1; log(`${NAMES[id]} 買了一個麵包（食物 +1）。`); }
-    else log(`${NAMES[id]} 買下${it.name}，${equipItem(id, it)}。`);
-    render(); return true;
-  }
-  const LINE_REFUSE = [
-    '都沒錢加價了還爭？這東西我誰也不賣。', '兩邊都掏空口袋了，那就誰也別想拿走。', '平手？那就都別買，我收回去了。',
-    '吵得我頭疼，這件我不賣了。', '沒分出勝負，貨我先留著。', '你們倆的錢包一樣見底，這筆生意免談。',
-    '同樣的價、同樣的窮，我不賣了。', '沒人贏，我也不虧——東西收起來。', '我可不想在這種平手的局面裡當裁判，不賣了。',
-    '想要就多帶點錢來，今天誰都別想。',
-  ];
-  const LINE_CONFUSED = [
-    '咦？剛才不是都搶著要嗎？', '你們是在逗我玩嗎？', '全都放棄了？那我白期待了。', '……所以，沒有人要了？',
-    '剛剛那股氣勢呢？', '好吧，看來是我誤會了。', '都不要？那我可要收攤了。', '一個個都縮回去了，有趣。',
-    '早說嘛，害我白白看了一場戲。', '算了，這貨還是留給下個路過的人吧。',
-  ];
-  const pickFrom = a => a[randInt(0, a.length - 1)];
-
-  // 競標：每輪各自蓋牌出價（放棄／持平／+1／+2／+3），同時翻牌
-  function bidLabel(price, v) { return v === null ? '放棄' : (v === price ? '持平' : '+' + (v - price)); }
-  function npcBid(id, price) {
-    const coins = people[id].bread, room = Math.min(3, coins - price);
-    if (coins < price) return null;
-    if (id === 'p3') { // 無賴卡爾：積極加價
-      if (Math.random() < 0.1) return null;
-      return price + randInt(room >= 1 ? 1 : 0, Math.max(room, 0));
-    }
-    if (Math.random() < 0.4) return null; // 慈悲瑪莉：常常退讓
-    return price + (room >= 1 && Math.random() < 0.4 ? 1 : 0);
-  }
-  function playerBid(price) {
-    return new Promise(res => {
-      const box = $('aucBtns'); box.innerHTML = '';
-      const coins = people.p1.bread;
-      [[null, '放棄'], [price, '持平'], [price + 1, '+1'], [price + 2, '+2'], [price + 3, '+3']].forEach(([v, lab]) => {
-        const bt = document.createElement('button');
-        bt.textContent = v === null || v === price ? lab : `${lab}（${v}）`;
-        if (v === price) bt.textContent = `持平（${v}）`;
-        if (v === null) bt.className = 'ghost';
-        if (v !== null && v > coins) bt.disabled = true;
-        bt.onclick = () => { box.innerHTML = ''; res(v); };
-        box.appendChild(bt);
-      });
-    });
-  }
-  async function auction(key, ids) {
-    const it = ITEMS[key], e = stock.find(x => x.key === key && !x.sold);
-    let price = it.price, active = [...ids], round = 1;
-    $('auc').classList.add('show');
-    log(`${it.name}有 ${ids.map(i => NAMES[i]).join('、')} 同時想要，進入競標。`);
-    const end = () => { $('aucBtns').innerHTML = ''; $('auc').classList.remove('show'); };
-    while (true) {
-      active = active.filter(id => people[id].bread >= price);
-      $('aucTop').textContent = `競標：${it.name}　第 ${round} 輪　目前價 ${price} 金幣`;
-      $('aucBtns').innerHTML = '';
-      const cards = {};
-      $('aucCards').innerHTML = '';
-      active.forEach(id => {
-        const c = document.createElement('div'); c.className = 'auc-card';
-        c.innerHTML = `<div style="color:${id === 'p1' ? 'var(--ink)' : TUNIC[id]}">${NAMES[id]}</div><div class="auc-face">？</div>`;
-        $('aucCards').appendChild(c); cards[id] = c.querySelector('.auc-face');
-      });
-      if (!active.length) { say(pickFrom(LINE_CONFUSED)); log('沒有人出得起價，商人一臉困惑。'); await wait(1800); end(); return; }
-      say(round === 1 ? '想要的人，把牌蓋好。' : '平手！再來一輪。');
-      const bids = {};
-      for (const id of active) {
-        if (id === 'p1') { bids[id] = await playerBid(price); cards[id].textContent = '已出牌'; cards[id].className = 'auc-face ready'; }
-        else { await wait(500); bids[id] = npcBid(id, price); cards[id].textContent = '已出牌'; cards[id].className = 'auc-face ready'; }
-      }
-      await wait(700);
-      for (const id of active) { cards[id].textContent = bids[id] === null ? '放棄' : `${bids[id]} 金`; cards[id].className = 'auc-face up'; await wait(450); }
-      await wait(900);
-      const live = active.filter(id => bids[id] !== null);
-      if (!live.length) { say(pickFrom(LINE_CONFUSED)); log(`所有人都放棄了${it.name}，商人一臉困惑。`); await wait(1800); end(); return; }
-      const max = Math.max(...live.map(id => bids[id]));
-      const top = live.filter(id => bids[id] === max);
-      if (top.length === 1) {
-        const w = top[0];
-        log(`${NAMES[w]} 以 ${max} 金幣標下${it.name}。`);
-        buyItem(w, e, max);
-        say(`${NAMES[w]}，成交。`); renderShop(); renderEquip(); await wait(1500); end(); return;
-      }
-      log(`${top.map(i => NAMES[i]).join('、')} 同出 ${max} 金幣，平手。`);
-      if (top.every(id => people[id].bread <= max)) {
-        say(pickFrom(LINE_REFUSE)); log(`平手且無人能再加價，商人拒絕出售${it.name}。`);
-        await wait(2000); end(); return;
-      }
-      active = top; price = max; round++;
-    }
-  }
-
-  // P2/P3 計畫：是否偏向買裝備、想要哪件武器（依目前金錢挑較優且買得起的）
-  function npcPlan(id) {
-    const gearMode = Math.random() < (id === 'p3' ? 0.9 : 0.4), c = people[id].bread;
-    return { gearMode, weapon: gearMode && !gear[id].equip.weapon ? (c >= 3 ? 'sword' : c >= 2 ? 'stick' : null) : null };
-  }
-  function npcRest(id, plan) {
-    const free = k => stock.find(x => x.key === k && !x.sold);
-    if (plan.gearMode) { const sh = free('shield'); if (sh && !gear[id].equip.offhand) buyItem(id, sh); }
-    const b = free('bread'); if (b) buyItem(id, b);
-  }
-
-  async function merchantEvent() {
-    log('洞穴外路過了一個末日商人。');
-    stock = [
-      { uid: 'b0', key: 'bread' }, { uid: 'b1', key: 'bread' }, { uid: 'b2', key: 'bread' },
-      { uid: 's0', key: 'stick' }, { uid: 'w0', key: 'sword' }, { uid: 'h0', key: 'shield' },
-    ];
-    sel = []; sellSel = []; remarksOn = true; bothDone = weaponDone = armorDone = false;
-    say('嘿……看看有沒有你需要的。');
-    renderShop(); renderEquip();
-    $('shop').classList.add('show');
-    let picks = [];
-    await new Promise(res => {
-      $('shopOk').onclick = () => {
-        remarksOn = false;
-        const bag = gear.p1.bag;
-        const sold = sellSel.slice().sort((a, b) => b - a).map(i => bag.splice(i, 1)[0]);
-        sold.forEach(it => { const g = sellPrice(it); people.p1.bread += g; log(`P1 賣掉${it.name}，得到 ${g} 金幣。`); });
-        sellSel = []; render();
-        picks = sel.map(u => stock.find(x => x.uid === u));
-        sel = [];
-        res();
-      };
-    });
-    const plans = { p2: npcPlan('p2'), p3: npcPlan('p3') };
-    const wanters = { sword: [], stick: [] };
-    picks.forEach(e => { if (ITEMS[e.key].kind === 'weapon') wanters[e.key].push('p1'); });
-    ['p2', 'p3'].forEach(id => { if (plans[id].weapon) wanters[plans[id].weapon].push(id); });
-    picks.filter(e => ITEMS[e.key].kind !== 'weapon').forEach(e => buyItem('p1', e));
-    renderShop(); renderEquip(); say('');
-    for (const k of ['sword', 'stick']) {
-      const w = wanters[k];
-      if (!w.length) continue;
-      if (w.length >= 2) await auction(k, w);
-      else { await wait(700); buyItem(w[0], stock.find(x => x.key === k && !x.sold)); }
-      renderShop(); renderEquip();
-    }
-    for (const id of ['p2', 'p3']) {
-      await wait(900);
-      npcRest(id, plans[id]);
-      renderShop(); renderEquip();
-    }
-    say('生意不錯。下次再來吧。');
-    await wait(1600);
-    $('shop').classList.remove('show');
-  }
-
-  // ---------- 裝備對危險的隱藏效果（事件發生時才抽） ----------
-  function rollTeamWeapons(ids) {
-    let pct = 0; const parts = [];
-    ids.forEach(id => {
-      const w = gear[id].equip.weapon;
-      if (w) { pct += randInt(w.pctLo, w.pctHi); parts.push({ text: `${NAMES[id]}的${w.name}`, shield: false }); }
-    });
-    return { pct, parts };
-  }
-  function rollShield(id) {
-    const sh = gear[id].equip.offhand;
-    if (!sh) return { pct: 0, parts: [] };
-    return { pct: randInt(sh.pctLo, sh.pctHi), parts: [{ text: `${NAMES[id]}的${sh.name}`, shield: true }] };
-  }
-  function cutDamage(raw, parts) {
-    const base = Math.max(1, raw), dmg = Math.max(1, raw - parts.length);
-    let red = base - dmg; const notes = [];
-    parts.forEach(p => { if (red > 0) { notes.push(p.shield ? `${p.text}擋下了 1 點傷害。` : `${p.text}讓傷害減少了 1 點。`); red--; } });
-    return { dmg, notes };
-  }
-
-  async function showMsg(text, btn) {
-    $('msgText').textContent = text;
-    $('msgClose').textContent = btn;
-    $('msgModal').classList.add('show');
-    await new Promise(res => { $('msgClose').onclick = res; });
-    $('msgModal').classList.remove('show');
-    $('msgClose').textContent = '關閉';
-  }
-
-  async function doorBattle() {
-    const rows = doorRows();
-    const [wlo, whi] = WORK_HUNGER.medium;
-    rows[0].forEach(id => { workCost[id] = randInt(wlo, whi); }); // 前排視為被派出去的人
-    log('站位：' + rows.map((r, i) => `${ROW_NAMES[i]} ${r.map(id => NAMES[id]).join('、')}`).join('；') + '。');
-    rows.forEach((r, i) => r.forEach(id => {
-      const t = $('tally-' + id);
-      t.textContent = ROW_NAMES[i];
-      t.style.fontSize = '13px';
-      t.classList.add('show');
-    }));
-    await wait(1800);
-
-    const hurt = [];
-    const tw = rollTeamWeapons(IDS);
-    rows.forEach((r, i) => r.forEach(id => {
-      const { chance, delta } = doorRisk(i, r.length);
-      const sh = rollShield(id);
-      const u = Math.random();
-      if (u < chance - (tw.pct + sh.pct) / 100) {
-        const raw = randInt(DOOR_DMG_MIN, DOOR_DMG_MAX) + delta;
-        const { dmg, notes } = cutDamage(raw, [...sh.parts, ...tw.parts]);
-        const ev = DOOR_EVENTS[randInt(0, DOOR_EVENTS.length - 1)];
-        people[id].hp = Math.max(0, people[id].hp - dmg);
-        hurt.push(`${NAMES[id]} 在洞口迎戰時${ev}，損失 ${dmg} 點生命。` + notes.join(''));
-      } else if (u < chance && (tw.pct + sh.pct) > 0) {
-        hurt.push(`${NAMES[id]} 憑著裝備化解了一次危險。`);
-      }
-    }));
-    render();
-    if (hurt.length) hurt.forEach(h => log(h)); else log('怪物被擋了下來，沒有人受傷。');
-    await showMsg('【戰報】\n' + (hurt.length ? hurt.join('\n') : '怪物被擋了下來，沒有人受傷。'), '了解');
-    IDS.forEach(id => { const t = $('tally-' + id); t.classList.remove('show'); t.style.fontSize = ''; });
-  }
-
-  async function resolve() {
-    phase = 'resolve';
-    workCost = {};
-    if (roundType === 'door') {
-      await doorBattle();
-      IDS.forEach(id => { people[id].bread += 1; });
-      log('洞窟襲擊平息，每人獲得 1 金幣。');
-      render();
-      await showMsg('此時，洞窟外一個路過的末日商人探頭望向洞內', '看看他有什麼');
-      await merchantEvent();
-      await endRound();
-      $('demo').classList.add('show');
+  $('expedBtn').addEventListener('click', () => {
+    if (phase === 'step' && stepResolve) {
+      const r = stepResolve;
+      stepResolve = null;
+      r();
       return;
     }
-    const tied = tally();
-    let leader;
-    if (tied.length === 1) {
-      leader = tied[0];
-      log(`投票結果：${NAMES[leader]} 出去遠征。`);
-    } else {
-      log(`平手：${tied.map(id => NAMES[id]).join('、')}，抽牌決定。`);
-      await flashTied(tied);
-      leader = await drawCard(tied);
-      log(`抽牌選出 ${NAMES[leader]}。`);
+    if (phase === 'idle') {
+      playDay();
     }
+  });
 
-    await wait(900);
+  $('demoRestart').addEventListener('click', () => {
+    day = 1;
+    initRoster();
+    IDS.forEach(id => {
+      setPick(id, null);
+      $('tally-' + id).classList.remove('show');
+    });
+    logEntries.length = 0; logPage = 0; logPages = [];
+    log('重新開始。已隨機抽選本局的同伴並打散座位順序。');
+    showCard('叛國軍閥勾結上萬名劫匪，深夜挖通地道突襲王城，控制了國王與王室。\n國家瞬間陷入混亂，6 名逃難者倉皇躲進深山洞窟，只能靠「投票」決定誰冒死外出採糧採藥、物資又該如何分配。\n\n洞外不時傳來搜山隊的腳步聲，洞內存糧一天比一天少。出去的人可能帶回生機，也可能帶傷而歸。沒有人能永遠置身事外，每一次投票，都牽動著六人的命運。');
+    $('expedBtn').textContent = '迎接命運（開始第1天）';
+    $('expedBtn').disabled = false;
+    $('demo').classList.remove('show');
+    phase = 'idle';
+    render();
+  });
 
-    const berry = lootKey === 'berry';
-    document.querySelectorAll('.curtain span').forEach(sp => { sp.textContent = berry ? '採莓果中' : '遠征中'; });
-    await playCurtain(leader);
+  [...$('log').querySelectorAll('p')].forEach(el => logEntries.push({ id: ++logSequence, text: el.textContent }));
+  renderLog(true);
+  const opening = document.querySelector('#deckSlot .empty');
+  if (opening) {
+    const openingText = opening.innerHTML.replace(/<br\s*\/?\s*>/gi, '\n');
+    const decoded = document.createElement('div');
+    decoded.innerHTML = openingText;
+    renderProse(opening, decoded.textContent);
 
-    // 危險事件
-    const dg = DANGER[lootKey];
-    {
-      const tw = rollTeamWeapons([leader]), sh = rollShield(leader);
-      const pct = tw.pct + sh.pct;
-      const u = Math.random();
-      let msg = null;
-      if (u < dg.chance - pct / 100) {
-        const raw = randInt(dg.min, dg.max);
-        const { dmg, notes } = cutDamage(raw, [...sh.parts, ...tw.parts]);
-        const ev = dg.events[randInt(0, dg.events.length - 1)];
-        people[leader].hp = Math.max(0, people[leader].hp - dmg);
-        msg = `${NAMES[leader]} ${dg.verb}${ev}，損失 ${dmg} 點生命。` + notes.join('');
-      } else if (u < dg.chance && pct > 0) {
-        msg = `${NAMES[leader]} 憑著裝備化解了一次危險。`;
-      }
-      render();
-      const back = roundType === 'apple' ? '遠征歸來' : '採果歸來';
-      if (!msg) msg = `${NAMES[leader]} ${back}，平安無事，沒有受傷。`;
-      log(msg);
-      await showMsg('【戰報】\n' + msg, '了解');
-    }
-
-    {
-      const [wlo, whi] = WORK_HUNGER[roundType === 'apple' ? 'heavy' : 'light'];
-      workCost[leader] = randInt(wlo, whi);
-    }
-    const gained = 4;
-    const tl = $('tally-' + leader);
-    tl.textContent = '分配中';
-    tl.style.fontSize = '13px';
-    tl.classList.add('show');
-    if (berry) {
-      log(`${NAMES[leader]} 採莓果歸來，帶回 ${gained} 份莓果。`);
-      await spawnPool(gained);
-      if (USE_CRATE) {
-        await sendToStorage(3);
-        log(`3 份放入存糧木箱，其餘 ${pool.length} 份由 ${NAMES[leader]} 分配。`);
-      } else {
-        log(`${pool.length} 份莓果由 ${NAMES[leader]} 全部分配給大家。`);
-      }
-    } else {
-      log(`${NAMES[leader]} 遠征歸來，帶回 ${gained} 份金幣。`);
-      await spawnPool(gained);
-      if (USE_CRATE) {
-        await sendToStorage(3);
-        log(`3 份放入共同基金，其餘 ${pool.length} 份由 ${NAMES[leader]} 分配。`);
-      } else {
-        log(`${pool.length} 份金幣由 ${NAMES[leader]} 全部分配給大家。`);
-      }
-    }
-
-    if (leader === 'p1') {
-      distLeader = 'p1';
-      phase = 'distribute';
-      log(berry ? '點選角色分配莓果，要全部分完。' : '點選角色分配金幣，要全部分完。');
-      await new Promise(res => { distResolve = res; checkDistDone(); });
-      phase = 'resolve';
-    } else {
-      distLeader = leader;
-      const r = await distributeNpc();
-      log(`${NAMES[leader]} 分配完畢：P1 ${r.p1}、P2 ${r.p2}、P3 ${r.p3}${USE_CRATE ? (berry ? '、存糧 ' : '、共同基金 ') + r.store : ''}。`);
-    }
-
-    tl.classList.remove('show');
-    tl.style.fontSize = '';
-    await endRound();
   }
-
-  $('expedBtn').addEventListener('click', async () => {
-    if (phase !== 'idle') return;
-    phase = 'eating';
-    $('expedBtn').disabled = true;
-    if (day > 1) await dailyEat();
-    roundType = ROUND_TYPES[voteRound % ROUND_TYPES.length];
-    if (roundType === 'door') {
-      // 洞口被撞擊：極小的晃動，三下敲撞，結束後 0.3 秒才出題
-      const hit = (x, y) => ({ transform: `translate(${x}px, ${y}px)` });
-      const kf = [hit(0, 0), hit(-3, 1), hit(2, -1), hit(-1, 0), hit(0, 0)];
-      const sc = document.querySelector('.scene');
-      for (let i = 0; i < 3; i++) {
-        await sc.animate(kf, { duration: 260, easing: 'ease-out' }).finished;
-        await wait(i < 2 ? 220 : 0);
-      }
-      await wait(300);
-    }
-    phase = 'vote';
-    votes = { p1: null, p2: null, p3: null };
-    revealing = false;
-    IDS.forEach(id => setPick(id, null));
-    setDone('p1'); // P1 上方預設為土色格，尚未選擇
-    // 本回合危險機率：在該等級範圍內隨機抽一個
-    const rg = roundType === 'door' ? DOOR : DANGER[roundType];
-    const pct = randInt(rg.lo, rg.hi);
-    if (roundType === 'door') DOOR_BASE = pct; else DANGER[roundType].chance = pct / 100;
-    const scene = SCENES[voteRound % SCENES.length](pct);
-    if (roundType !== 'door') lootKey = roundType;
-    voteRound++;
-    showCard(scene);
-    log('前進下一天。投票開始，點選角色投票。');
-
-    npcVote('p2');
-    npcVote('p3');
-  });
-
-  // ---------- 金幣圖示候選（暫時展示用） ----------
-  const FOOD_EXTRA = {
-    y: '#e8c26a', o: '#c4703a', p: '#6e5a7a', x: '#9a9a88', s: '#7fa37a',
-  };
-  const FOODS = [
-    ['........','..kkkk..','.kcccck.','kccwccck','kcccccck','.kcccck.','..kkkk..','........'], // 1 麵包（舊）
-    ['..kkkk..','.krrwrk.','krrrrrrk','krrrrrrk','.krrrrk.','..kkkk..','........','........'], // 2 蘋果（舊）
-    ['..kkkk..','.kcccck.','kbbwbbck','kbbbbbbk','kbbbbbbk','.kcccck.','..kkkk.k','..kwk...'], // 3 烤雞
-    ['........','.kkkkk..','kbbbbbkk','kbwbbbbk','kkbbbbbk','.kkkkk..','........','........'], // 4 魚
-    ['........','kkkkkkkk','kyyyyyyk','kyyoyyyk','kyyyyyok','kyyoyyyk','kkkkkkkk','........'], // 5 起司
-    ['...kk...','..kyyk..','.kyyyyk.','.kyyyyk.','..kyyk..','...kkk..','..ksk...','........'], // 6 玉米
-    ['......ss','.....sks','....koo.','...kooo.','..koooo.','.kooo...','..kkk...','........'], // 7 胡蘿蔔
-    ['........','..kkkk..','.kcccck.','kccwccck','kcccccck','.kcccck.','..kkkk..','........'], // 8 馬鈴薯
-    ['........','..kkkk..','.krrrrk.','krrwrrrk','krrrrrrk','.krrrrk.','..kkkk..','........'], // 9 生肉
-    ['........','..kkkk..','.kwwwwk.','kwwwwwwk','kwwwwwwk','.kwwwwk.','..kkkk..','........'], // 10 蛋
-    ['..kkkk..','..kwwk..','..kwwk..','.kwwwwk.','.kwwwwk.','.kwwwwk.','.kkkkkk.','........'], // 11 牛奶
-    ['..kkkk..','.kddddk.','kddddddk','kddddddk','kddddddk','.kkkkkkk','........','........'], // 12 水壺
-    ['.....ss.','...kkk..','..kpkpk.','.kpkpkp.','..kpkpk.','...kpk..','....k...','........'], // 13 葡萄
-    ['..kkkk..','.kcccck.','kcccccck','.kcccck.','..kddk..','..kddk..','..kkkk..','........'], // 14 橡果
-    ['....s...','.kokokk.','koooooook','koooooook','koooooook','.kkkkkkk','........','........'], // 15 南瓜
-    ['..kkkk..','.krrrrk.','krwrrwrk','kkkkkkkk','...kwk..','...kwk..','...kkk..','........'], // 16 蘑菇
-    ['........','..kkkkk.','.krrrrrk','krrwrrrk','.krrrrk.','..kkkkk.','........','........'], // 17 香腸
-    ['...x.x..','..x.x...','........','kkkkkkkk','koooooko','.kkkkkk.','........','........'], // 18 湯碗
-    ['..kkkk..','.kcccck.','kcdcccck','kccccdck','kcdcccck','.kcccck.','..kkkk..','........'], // 19 餅乾
-    ['..kkkk..','.kyyyyk.','.kyyyyk.','kyywyyyk','kyyyyyyk','kyyyyyyk','.kkkkkk.','........'], // 20 蜂蜜
-  ];
-
-  // ---------- 飢餓圖示候選（暫時展示，左下） ----------
-  const HUNGER_ICONS = [
-    ['........','........','kkkkkkkk','k......k','.k....k.','..kkkk..','........','........'], // 01 空碗
-    ['.k.k.k..','.kwkwk..','.kxkxk..','.kxxxk..','..kxk...','...kxk..','...kck..','...kck..'], // 02 叉子（銀色叉頭、木色握把）
-    ['k......k','k.....kk','k....kk.','k...kk..','kkkkk...','kk......','kk......','........'], // 03 刀叉
-    ['........','..kkkk..','.k....k.','k......k','k......k','.k....k.','..kkkk..','........'], // 04 空盤
-    ['kkkkkkkk','.kyyyyk.','..kyyk..','...kk...','...kk...','..kyyk..','.kyyyyk.','kkkkkkkk'], // 05 沙漏
-    ['..x.x...','.kkkkk..','kkoooook','kooooook','koooooook','.kkkkkk.','........','........'], // 06 咕嚕的肚子
-    ['........','kk....kk','kwk..kwk','.kwkkwk.','..kwwk..','.kwkkwk.','kwk..kwk','kk....kk'], // 07 骨頭
-    ['..kkkk..','.kddddk.','kddddddk','kdrrrrdk','kdrrrrdk','kddddddk','kkkkkkkk','........'], // 08 空袋（中間紅色，像張開的嘴）
-    ['.k.k.kk.','.kxk.kxk','.kxk.kxk','.kxkkkxk','..kck.kk','..kck.ck','..kck.ck','...kk.k.'], // 09 刀叉
-    ['..x.x...','...x....','kkkkkkkk','kddddddk','kddddddk','kddddddk','.kkkkkk.','..k..k..'], // 10 空鍋
-    ['..kkkk..','.kxxxxk.','.kxxxxk.','.kxxxxk.','.kxxxxk.','.kxxxxk.','..kkkk..','........'], // 11 空罐
-    ['..kkkk..','.kbbbbk.','kbkbbkbk','kbbbbbbk','kbkkkkbk','kbkbbkbk','.kbbbbk.','..kkkk..'], // 12 飢餓的臉
-    ['..kkkk..','.kbbbbk.','kbbwbbk.','kbbbbbk.','.kbbbkkk','..kbk.wk','...kk.kw','......kk'], // 13 雞腿
-    ['.kkkkkk.','kyyyyyyk','kyyyyyyk','kyyyyyyk','.kyyyyk.','..kkkk..','........','........'], // 14 玉米（空心）
-    ['.....dg.','....dk..','..kkkk..','.krrwrk.','.krrrrrk','.krrrrrk','..krrrk.','...kkk..'], // 15 蘋果
-    ['..kkkk..','.kbbbbk.','kbkbbkbk','kbbbbbbk','kbkrrkbk','kbkrrkbk','.kbbbbk.','..kkkk..'], // 16 張嘴想吃東西的臉
-    ['..kkkk..','.kcccck.','kbbwbbck','kbbbbbbk','kbbbbbbk','.kcccck.','..kkkk..','........'], // 17 麵包
-    ['..kkkk..','.kwwwwk.','kwwwwwwk','kwwwwwwk','.kwwwwk.','..kkkk..','........','........'], // 18 蛋
-    ['......ss','.....sks','....ks..','...ks...','..ks....','.ks.....','kk......','........'], // 19 枯葉
-    ['...yy...','..yyyy..','yyyyyyyy','..yyyy..','...yy...','........','........','........'], // 20 暈眩星星
-  ];
-  // ---------- 金幣符號候選 30 款（暫時展示，左下） ----------
-  const FOOD30 = [
-    ['........','..kkkk..','.kcccck.','kccwccck','kcccccck','.kcccck.','..kkkk..','........'], // 01 麵包
-    ['....dg..','...dk...','..kkkk..','.krrwrk.','krrrrrrk','krrrrrrk','.krrrrk.','..kkkk..'], // 02 蘋果
-    ['..kkkk..','.kcccck.','kbbwbbck','kbbbbbbk','kbbbbbbk','.kcccck.','..kkkk.k','..kwk...'], // 03 烤雞
-    ['........','.kkkkk..','kbbbbbkk','kbwbbbbk','kkbbbbbk','.kkkkk..','........','........'], // 04 魚
-    ['........','kkkkkkkk','kyyyyyyk','kyyoyyyk','kyyyyyok','kyyoyyyk','kkkkkkkk','........'], // 05 起司
-    ['...kk...','..kyyk..','.kyyyyk.','.kyyyyk.','..kyyk..','...kkk..','..ksk...','........'], // 06 玉米
-    ['......ss','.....sks','....koo.','...kooo.','..koooo.','.kooo...','..kkk...','........'], // 07 胡蘿蔔
-    ['........','..kkkk..','.kcdccck','kcccdcck','kcdcccck','.kcccdk.','..kkkk..','........'], // 08 馬鈴薯
-    ['........','..kkkk..','.krrrrk.','krrwrrrk','krrrrrrk','.krrrrk.','..kkkk..','........'], // 09 生肉
-    ['........','..kkkk..','.kwwwwk.','kwwwwwwk','kwwwwwwk','.kwwwwk.','..kkkk..','........'], // 10 蛋
-    ['..kkkk..','..kwwk..','..kwwk..','.kwwwwk.','.kwwwwk.','.kwwwwk.','.kkkkkk.','........'], // 11 牛奶
-    ['..kkkk..','.kddddk.','kddddddk','kddddddk','kddddddk','.kkkkkkk','........','........'], // 12 水壺
-    ['.....ss.','...kkk..','..kpkpk.','.kpkpkp.','..kpkpk.','...kpk..','....k...','........'], // 13 葡萄
-    ['..kkkk..','.kcccck.','kcccccck','.kcccck.','..kddk..','..kddk..','..kkkk..','........'], // 14 橡果
-    ['....s...','.kokokk.','koooooook','koooooook','koooooook','.kkkkkkk','........','........'], // 15 南瓜
-    ['..kkkk..','.krrrrk.','krwrrwrk','kkkkkkkk','...kwk..','...kwk..','...kkk..','........'], // 16 蘑菇
-    ['........','..kkkkk.','.krrrrrk','krrwrrrk','.krrrrk.','..kkkkk.','........','........'], // 17 香腸
-    ['...x.x..','..x.x...','........','kkkkkkkk','koooooko','.kkkkkk.','........','........'], // 18 湯
-    ['..kkkk..','.kcccck.','kcdcccck','kccccdck','kcdcccck','.kcccck.','..kkkk..','........'], // 19 餅乾
-    ['..kkkk..','.kyyyyk.','.kyyyyk.','kyywyyyk','kyyyyyyk','kyyyyyyk','.kkkkkk.','........'], // 20 蜂蜜
-    ['........','kkkkkkkk','krrrrrrk','krkrrkrk','krrrrrrk','.krrrrk.','..kkkk..','........'], // 21 西瓜
-    ['..kkkk..','.krrrrk.','krwrrrrk','krrrrrrk','.krrrrk.','..krrk..','...kk...','........'], // 22 草莓
-    ['.....kk.','....kyyk','...kyyk.','..kyyk..','.kyyk...','kyyk....','kkk.....','........'], // 23 香蕉
-    ['........','.kcccck.','kkkkkkkk','kggggggk','kkkkkkkk','kcccccck','.kkkkkk.','........'], // 24 漢堡
-    ['..kkkk..','.kyyyyk.','kyrrrryk','kyyrryk.','.kyyyyk.','..kyyk..','...kk...','........'], // 25 披薩
-    ['..kkkk..','.kwwwwk.','kwwwwwwk','kkkkkkkk','..kcck..','..kcck..','...kk...','........'], // 26 冰淇淋
-    ['kk....kk','krk..krk','kkrrrrkk','kwrrrrrk','kkrrrrkk','krk..krk','kk....kk','........'], // 27 糖果
-    ['........','kkkkkkkk','kyyyyyyk','kkkkkkkk','kssssssk','kkkkkkkk','kcccccck','kkkkkkkk'], // 28 三明治
-    ['..kk.kk.','.kcck.kk','kcccckck','kcccccck','.kccccck','..kkkkk.','........','........'], // 29 堅果
-    ['......s.','.....sr.','....krr.','...krrr.','..krrrk.','.krrrk..','kkkkk...','........'], // 30 辣椒
-  ];
-
-
-  const gallery = null;
-  if (gallery) FOOD30.forEach((rows, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'gallery-cell';
-    const cv = document.createElement('canvas');
-    drawSprite(cv, rows, 3, FOOD_EXTRA);
-    const num = document.createElement('span');
-    num.textContent = String(i + 1).padStart(2, '0');
-    cell.append(cv, num);
-    gallery.appendChild(cell);
-  });
-
+  $('modalDock').append($('eatModal'), $('modal'));
+  if (START_MOBILE) document.body.classList.add('mobile-mode');
+  initRoster();
+  log(TITLED ? '【系統】已開啟頭銜：名字帶稱號，性格跟著名字走。連按 3 次 P2 可關閉。' : '【系統】頭銜已關閉：名字單純，性格隨機配對。連按 3 次 P2 可開啟頭銜。');
   render();
-  layoutPile();
-  const crateCv = document.createElement('canvas');
-  drawSprite(crateCv, SPRITES.crate, 8);
-  crateCv.style.position = 'absolute';
-  crateCv.style.left = '0';
-  crateCv.style.top = '0';
-  $('pile').prepend(crateCv);
-  const crateCv2 = document.createElement('canvas');
-  drawSprite(crateCv2, SPRITES.crate, 8);
-  crateCv2.style.position = 'absolute';
-  crateCv2.style.left = '0';
-  crateCv2.style.top = '0';
-  $('pile2').prepend(crateCv2);
-  window.addEventListener('resize', layoutPile);
+  fitDesktop();
+  reflowReadingPages();
 </script>
 </body>
 </html>
